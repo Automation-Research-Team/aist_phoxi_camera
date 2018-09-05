@@ -1,0 +1,4 @@
+<launch>
+	<arg name="item_list_filename" default="$(find kitting_item_list_loader)/config/kitting_item_list.yaml"/>
+    <rosparam command="load" file="$(arg item_list_filename)"/>
+</launch>
