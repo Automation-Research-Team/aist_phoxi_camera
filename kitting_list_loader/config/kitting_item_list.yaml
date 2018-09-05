@@ -1,0 +1,33 @@
+set_1:
+- {num: '1', id: '17', name: 17_SCB4-10}
+- {num: '2', id: '17', name: 17_SCB4-10}
+- {num: '3', id: '18', name: 18_SCB3-10}
+- {num: '4', id: '4', name: 04_37D-GEARMOTOR-50-70}
+- {num: '5', id: '9', name: 09_EDCS10}
+- {num: '6', id: '11', name: 11_MBRAC60-2-10}
+- {num: '7', id: '16', name: 16_SPWF6}
+- {num: '8', id: '8', name: 08_KZAF1075NA4WA55GA20AA0}
+- {num: '9', id: '13', name: 13_MBGA30-2}
+- {num: '10', id: '6', name: 06_MBT4-400}
+set_2:
+- {num: '1', id: '18', name: 18_SCB3-10}
+- {num: '2', id: '12', name: 12_CLBUS6-9-9.5}
+- {num: '3', id: '4', name: 04_37D-GEARMOTOR-50-70}
+- {num: '4', id: '16', name: 16_SPWF6}
+- {num: '5', id: '16', name: 16_SPWF6}
+- {num: '6', id: '6', name: 06_MBT4-400}
+- {num: '7', id: '8', name: 08_KZAF1075NA4WA55GA20AA0}
+- {num: '8', id: '11', name: 11_MBRAC60-2-10}
+- {num: '9', id: '17', name: 17_SCB4-10}
+- {num: '10', id: '13', name: 13_MBGA30-2}
+set_3:
+- {num: '1', id: '16', name: 16_SPWF6}
+- {num: '2', id: '13', name: 13_MBGA30-2}
+- {num: '3', id: '6', name: 06_MBT4-400}
+- {num: '4', id: '11', name: 11_MBRAC60-2-10}
+- {num: '5', id: '18', name: 18_SCB3-10}
+- {num: '6', id: '8', name: 08_KZAF1075NA4WA55GA20AA0}
+- {num: '7', id: '18', name: 18_SCB3-10}
+- {num: '8', id: '9', name: 09_EDCS10}
+- {num: '9', id: '17', name: 17_SCB4-10}
+- {num: '10', id: '4', name: 04_37D-GEARMOTOR-50-70}
