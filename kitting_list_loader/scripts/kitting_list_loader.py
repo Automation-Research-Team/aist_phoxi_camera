@@ -28,7 +28,7 @@ def main():
             if int(data[0]) != term_number:
                 term_number += 1
                 kitting_list['set_' + str(term_number)] = list()
-            item_data = OrderedDict()
+            item_data = list()
             item_data['num'] = data[1]
             item_data['id'] = data[2]
             item_data['name'] = data[3]
