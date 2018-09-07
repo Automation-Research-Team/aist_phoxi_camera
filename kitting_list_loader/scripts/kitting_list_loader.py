@@ -2,8 +2,6 @@
 
 import os
 import csv
-import codecs
-from collections import OrderedDict
 import yaml
 
 import rospy
@@ -11,30 +9,19 @@ import rospkg
 
 rp = rospkg.RosPack()
 
-def represent_odict(dumper, instance):
-    return dumper.represent_mapping('tag:yaml.org,2002:map', instance.items())
-
-yaml.add_representer(OrderedDict, represent_odict)
 
 def main():
-    kitting_list = OrderedDict()
+
+    kitting_list = dict()
     
-    with open("ExampleOfSetListFile.csv", 'r') as csvfile:
+    with open(os.path.join(rp.get_path("o2as_routines"),"config", "ExampleOfSetListFile.csv"), 'r') as csvfile:
         reader = csv.reader(csvfile)
         header = next(csvfile)
-        term_number = 0
-        # term_items = []
         for data in reader:
-            if int(data[0]) != term_number:
-                term_number += 1
-                kitting_list['set_' + str(term_number)] = list()
-            item_data = list()
-            item_data['num'] = data[1]
-            item_data['id'] = data[2]
-            item_data['name'] = data[3]
-            kitting_list['set_' + str(term_number)].append(item_data)
+            kitting_list["set_"+data[0]] = dict() if kitting_list["set_"+data[0]] is None
+            kitting_list["set_"+data[0]]["part_"+ data[2]] = data[3]
             
-    with open("kitting_item_list.yaml", 'w') as yamlfile:
+    with open(os.path.join(rp.get_path("o2as_routines"), "config", "kitting_item_list.yaml"), 'w') as yamlfile:
         yaml.dump(kitting_list, yamlfile)
 
 
