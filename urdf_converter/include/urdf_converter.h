@@ -77,17 +77,17 @@ moveit_msgs::CollisionObject makeCollObjMsg(urdf::LinkConstSharedPtr link)
 
   int count = 0;
   co.frame_names.resize(link->child_joints.size());
-  co.frame_poses.resize(link->child_joints.size());
+  co.named_frame_poses.resize(link->child_joints.size());
   for (std::vector<urdf::JointSharedPtr>::const_iterator child = link->child_joints.begin(); child != link->child_joints.end(); child++)
   {
     co.frame_names[count] = (*child)->child_link_name;
-    co.frame_poses[count].position.x = (*child)->parent_to_joint_origin_transform.position.x;
-    co.frame_poses[count].position.y = (*child)->parent_to_joint_origin_transform.position.x;
-    co.frame_poses[count].position.z = (*child)->parent_to_joint_origin_transform.position.x;
-    co.frame_poses[count].orientation.x = (*child)->parent_to_joint_origin_transform.rotation.x;
-    co.frame_poses[count].orientation.y = (*child)->parent_to_joint_origin_transform.rotation.y;
-    co.frame_poses[count].orientation.z = (*child)->parent_to_joint_origin_transform.rotation.z;
-    co.frame_poses[count].orientation.w = (*child)->parent_to_joint_origin_transform.rotation.w;
+    co.named_frame_poses[count].position.x = (*child)->parent_to_joint_origin_transform.position.x;
+    co.named_frame_poses[count].position.y = (*child)->parent_to_joint_origin_transform.position.x;
+    co.named_frame_poses[count].position.z = (*child)->parent_to_joint_origin_transform.position.x;
+    co.named_frame_poses[count].orientation.x = (*child)->parent_to_joint_origin_transform.rotation.x;
+    co.named_frame_poses[count].orientation.y = (*child)->parent_to_joint_origin_transform.rotation.y;
+    co.named_frame_poses[count].orientation.z = (*child)->parent_to_joint_origin_transform.rotation.z;
+    co.named_frame_poses[count].orientation.w = (*child)->parent_to_joint_origin_transform.rotation.w;
     count++;
   }
 }
