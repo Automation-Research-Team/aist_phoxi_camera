@@ -1,0 +1,17 @@
+[submodule "robotiq-cri"]
+	path = robotiq-cri
+	url = https://gitlab.com/o2as-aist/robotiq-cri
+[submodule "universal_robot"]
+	path = universal_robot
+	url = https://gitlab.com/o2as-aist/universal_robot
+[submodule "ur_modern_driver"]
+	path = ur_modern_driver
+	url = https://gitlab.com/o2as-aist/ur_modern_driver
+[submodule "fetch_gazebo"]
+	path = fetch_gazebo
+	url = https://github.com/fetchrobotics/fetch_gazebo
+	branch = gazebo7
+[submodule "fetch_ros"]
+	path = fetch_ros
+	url = https://github.com/fetchrobotics/fetch_ros
+	branch = indigo-devel
