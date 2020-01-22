@@ -15,3 +15,6 @@
 	path = fetch_ros
 	url = https://github.com/fetchrobotics/fetch_ros
 	branch = indigo-devel
+[submodule "realsense-ros"]
+	path = realsense-ros
+	url = https://github.com/IntelRealSense/realsense-ros.git
