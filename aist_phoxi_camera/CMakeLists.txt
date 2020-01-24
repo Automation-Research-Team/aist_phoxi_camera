@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.12)
 project(aist_phoxi_camera)
 
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(YAML-CPP yaml-cpp REQUIRED)
 
 find_package(catkin REQUIRED
   COMPONENTS
@@ -65,6 +67,7 @@ add_executable(
 
 add_dependencies(
   ${PROJECT_NAME}
+  ${PROJECT_NAME}_gencpp
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
@@ -72,11 +75,8 @@ add_dependencies(
 target_link_libraries(
   ${PROJECT_NAME}
   ${PHOXI_LIBRARY}
-  ${Boost_LIBRARIES}
-  rt
-  yaml-cpp
-  debug ${catkin_LIBRARIES}
-  optimized ${catkin_LIBRARIES}
+  ${YAML-CPP_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 
 add_library(
@@ -87,6 +87,7 @@ add_library(
 
 add_dependencies(
   ${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}_gencpp
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
@@ -94,22 +95,19 @@ add_dependencies(
 target_link_libraries(
   ${PROJECT_NAME}_nodelet
   ${PHOXI_LIBRARY}
-  ${Boost_LIBRARIES}
-  rt
-  yaml-cpp
-  debug ${catkin_LIBRARIES}
-  optimized ${catkin_LIBRARIES}
+  ${YAML-CPP_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 
 install(
   PROGRAMS
     src/aist_phoxi_camera_example.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+)
 
 install(
   TARGETS
-    ${PROJECT_NAME}
+    ${PROJECT_NAME} ${PROJECT_NAME}_nodelet
   ARCHIVE
     DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY
