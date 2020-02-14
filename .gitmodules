@@ -18,3 +18,6 @@
 [submodule "realsense-ros"]
 	path = realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
+[submodule "iiwa_stack"]
+	path = iiwa_stack
+	url = https://github.com/IFL-CAMP/iiwa_stack
