@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8.12)
 project(aist_phoxi_camera)
 
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(YAML-CPP yaml-cpp REQUIRED)
 
 find_package(catkin REQUIRED
   COMPONENTS
@@ -75,7 +73,6 @@ add_dependencies(
 target_link_libraries(
   ${PROJECT_NAME}
   ${PHOXI_LIBRARY}
-  ${YAML-CPP_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
@@ -95,7 +92,6 @@ add_dependencies(
 target_link_libraries(
   ${PROJECT_NAME}_nodelet
   ${PHOXI_LIBRARY}
-  ${YAML-CPP_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 

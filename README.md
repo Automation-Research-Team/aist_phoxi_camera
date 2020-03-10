@@ -8,12 +8,42 @@ drvier](https://github.com/photoneo/phoxi_camera) by the manufacturer,
 i.e. [Photoneo co.](https://www.photoneo.com), however, its structure
 is completely reorganized.
 
-## Quick start
+## Installation
+
+Before compiling the ROS driver, you have to install
+[PhoXiControl](http://www.photoneo.com/3d-scanning-software)
+which is a GUI-based controller for PhoXi 3D scanners.
+
+Currently `PhoXiControl` is formally supported on Ubuntu 14 and Ubuntu 16.
+In order to be executed on Ubuntu 18, some additional packages are required.
+You can install `PhoXiControl` as well as these extra packages by simply
+typing;
+```bash
+$ cd (your-catkin-workspace)/src/aist_phoxi_sensor/install-scripts
+$ sudo ./install-photoneo.sh
+```
+Then append the following lines to your `~/.bashrc`
+```bash
+if [ -d /opt/PhotoneoPhoXiControl ]; then
+  export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl
+  export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
+  export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
+fi
+```
+and update the environment variables by typing;
+```bash
+$ source ~/.bashrc
+```
+Finally, you can compile the ROS driver by typing;
+```bash
+$ catkin build aist_phoxi_camera
+```
+
+## Testing
 
 You have to invoke `PhoXiControl` in advance of running
-`aist_phoxi_camera`. `PhoXiControl` is a GUI-based controller for
-PhoXi 3D scanners which can be freely downloaded from
-[here](http://www.photoneo.com/download). It directly communicates
+`aist_phoxi_camera`. It directly communicates
 with one or more scanners. Our ROS driver, `aist_phoxi_camera`,
 establishes a connection to one of the available scanners, sends
 control commands to it and receives various kinds of 3D data,
@@ -24,70 +54,51 @@ $ PhoXiControl
 ```
 
 `PhoXiControl` provides a virtual scanner device named
-"InstalledExamples-PhoXi-example(File3DCamera)". Therefore, you can
-test the ROS driver even if no actual scanner is connected to your
-host. You can launch ROS driver and establish a connection to the
-virtual scanner by typing as follows;
+"InstalledExamples-basic-example". Therefore, you can
+test our ROS driver `aist_phoxi_camera` even if no real scanners are
+connected to your host. You can launch the driver and establish
+a connection to the virtual scanner by typing as follows;
 
 ```bash
-$ roslaunch aist_phoxi_camera aist_phoxi_camera_test.launch
+$ roslaunch aist_phoxi_camera test.launch
 ```
-If you wish to connect an actual device, you should specify its unique
-ID;
+If you wish to connect a real device, specify its unique ID;
 ```bash
-$ roslaunch aist_phoxi_camera aist_phoxi_camera_test.launch id:='"1711015"'
+$ roslaunch aist_phoxi_camera test.launch id:="2018-09-016-LC3"
 ```
-The ID, "1711015" here, varies for each device. Please do not forget
-to doubly enclose it with `'`s and `"`s because the ID should be treated
-as a string.
+The ID, "2018-09-016-LC3" here, varies for each device which can be
+known from `Network Discovery` window of `PhoXiControl`.
 
-By issueing the command above, a ROS viewer, `rviz`, will start as
-well as the ROS driver,`aist_phoxi_camera`. Here, `rviz` is configured
-to subscribe two topics, `pointcloud` and `depth_map`, published by
-`aist_phoxi_camera`.  Then you should make the device enter into
-acquisition mode;
-```bash
-$ rosservice call /aist_phoxi_camera/start_acquisition
-```
-Now the device is ready for capturing and publishing 3D data. Please
-type;
-```bash
-$ rosservice call /aist_phoxi_camera/trigger_frame
-$ rosservice call /aist_phoxi_camera/get_frame 0
-```
-The observed point cloud and depth map will be displayed in
-`rviz`. Repeating two commands above, you can obtain new data.
+By issueing the command above, the ROS visualizer, `rviz`, will start as
+well. Here, `rviz` is configured to subscribe two topics, `pointcloud`
+and `texture`, published by `aist_phoxi_camera`. Since the driver is
+started with `trigger_mode:=0`, i.e. `Free Run` mode, you will see
+continuously updated pointcloud and image streams.
+
+Another GUI, `rqt_reconfigure`, will be also started. You can dynamically
+change various capturing parameters through it.
 
 ## Available ROS services
 
-- **/aist_phoxi_camera/start_acquisition** -- Make the scanner ready for image acquisition.
-- **/aist_phoxi_camera/stop_acquisition** -- Make the scanner stop image acquisition.
-- **/aist_phoxi_camera/trigger_frame** -- Capture 3D data.
-- **/aist_phoxi_camera/get_frame** -- Publish the captured data contained in a frame specified with a frame number. Currently, the frame number always should be 0.
-- **/aist_phoxi_camera/get_device_list** -- Enumerate all the PhoXi 3D scanner devices available including the virtual scanner.
-- **/aist_phoxi_camera/get_hardware_identification** -- Show unique ID of the scanner currently connected to.
-- **/aist_phoxi_camera/get_hardware_supported_capturing_modes** -- Enumerate all capturing modes supported by the scanner currently connected to.
+- **~/start_acquisition** -- Make the scanner ready for image acquisition.
+- **~/stop_acquisition** -- Make the scanner stop image acquisition.
+- **~/trigger_frame** -- Capture an image frame and publish it as specified topics.
+- **~/get_device_list** -- Enumerate all the PhoXi 3D scanner devices available including the virtual scanner.
+- **~/get_hardware_identification** -- Show unique ID of the scanner currently connected to.
+- **~/get_hardware_supported_capturing_modes** -- Enumerate all capturing modes supported by the scanner currently connected to.
 
 ## Published ROS topics
 
-- **/aist_phoxi_camera/confidence_map** -- A 2D map of values indicating reliability of 3D measurements at each pixel.
-- **/aist_phoxi_camera/depth_map** -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
-- **/aist_phoxi_camera/normal_map** -- A 2D map of surface normals.
-- **/aist_phoxi_camera/texture** -- A 2D map of intensity values. The values are in 32bit floating point format and range from 0 to 4096.
-- **/aist_phoxi_camera/pointcloud** -- A 2D map of 3D points. Each 2D pixel has an associated intensity value in RGBA format as well as the corresponding 3D coordinates in meters.
-- **/aist_phoxi_camera/camera_info** -- Camera parameters including a 3x3 calibration matrix.
+- **~/confidence_map** -- A 2D map of values indicating reliability of 3D measurements at each pixel.
+- **~/depth_map** -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
+- **~/normal_map** -- A 2D map of surface normals.
+- **~/texture** -- A 2D map of intensity values. The values are in 8bit unsigned integer format.
+- **~/pointcloud** -- A 2D map of 3D points. Each 2D pixel has an associated intensity value in RGBA format as well as the corresponding 3D coordinates in meters.
+- **~/camera_info** -- Camera parameters including a 3x3 calibration matrix and lens distortions.
 
 ## ROS parameters
 
-- **/aist_phoxi_camera/resolution** -- Switch resolution.
-- **/aist_phoxi_camera/scan_multiplier**
-- **/aist_phoxi_camera/shutter_multiplier**
-- **/aist_phoxi_camera/trigger_mode** -- Switch between software trigger and free run modes
-- **/aist_phoxi_camera/timeout**
-- **/aist_phoxi_camera/confidence**
-- **/aist_phoxi_camera/send_pointcloud** -- Enable/disable publishing point cloud.
-- **/aist_phoxi_camera/send_normal_map** -- Enable/disable publishing normal maps.
-- **/aist_phoxi_camera/send_depth_map** -- Enable/disable publishing depth maps.
-- **/aist_phoxi_camera/send_confidence_map** -- Enable/disable publishing confidence maps.
-- **/aist_phoxi_camera/send_texture** -- Enable/disable publishing texture.
-- **/aist_phoxi_camera/intensity_scale** -- Change scale factor of intensity published in texture topic.
+- **~id** -- Unique ID of the scanner
+- **~frame** -- Frame ID of the optical sensor used for published images and pointcloud
+- **~trigger_mode** -- Switch between software trigger(1) and free run(0) modes
+- **~intensity_scale** -- Change scale factor of intensity published in texture topic.

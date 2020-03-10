@@ -1,5 +1,4 @@
 <launch>
-  <!-- <arg name="id" default="InstalledExamples-PhoXi-example(File3DCamera)"/> -->
   <arg name="id" default="InstalledExamples-basic-example"/>
   <!-- <arg name="id"		default='"1711015"'/> -->
   <!-- <arg name="id"		default="2018-09-016-LC3"/> -->

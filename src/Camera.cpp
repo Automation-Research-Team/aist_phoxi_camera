@@ -5,7 +5,6 @@
 #include <ros/package.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/image_encodings.h>
-#include <yaml-cpp/yaml.h>
 
 namespace aist_phoxi_camera
 {
@@ -236,35 +235,12 @@ Camera::Camera(const std::string& name)
 
     _ddr.publishServicesTopics();
 
-#if ((PHO_SOFTWARE_VERSION_MAJOR >= 1) && (PHO_SOFTWARE_VERSION_MINOR >= 2))
   // Read camera intrinsic parameters from device.
     const auto& calib = _device->CalibrationSettings.GetValue();
     const auto& D     = calib.DistortionCoefficients;
     const auto& K     = calib.CameraMatrix;
     std::copy_n(std::begin(D), std::min(D.size(), _D.size()), std::begin(_D));
     std::copy(K[0], K[3], std::begin(_K));
-#else
-  // Read camera intrinsic parameters from YAML file.
-    try
-    {
-	const auto	calib = YAML::LoadFile(
-				    ros::package::getPath("aist_phoxi_camera")
-				  + "/config/"
-				  + _device->HardwareIdentification.GetValue()
-				  + ".yaml");
-	const auto	D = calib["D"].as<std::vector<double> >();
-	const auto	K = calib["K"].as<std::vector<double> >();
-	std::copy_n(std::begin(D), std::min(D.size(), _D.size()),
-		    std::begin(_D));
-	std::copy_n(std::begin(K), _K.size(), std::begin(_K));
-    }
-    catch (const std::exception& err)
-    {
-	ROS_WARN_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") " << err.what());
-    }
-#endif
 
   // Get frame name from parameter server and set it to _frame_id.
     _nh.param<std::string>("frame", _frame_id, "map");
