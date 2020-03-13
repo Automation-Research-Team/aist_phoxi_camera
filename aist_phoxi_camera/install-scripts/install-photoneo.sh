@@ -13,7 +13,7 @@ install_photoneo()
     cd /tmp
     wget https://photoneo.com/files/installer/$1/$2.tar
     tar xvf $2.tar
-    $2.run
+    ./$2.run
     rm $2.tar $2.run
 }
 
