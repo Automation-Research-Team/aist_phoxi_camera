@@ -13,4 +13,4 @@
 	url = https://github.com/pal-robotics/aruco_ros
 [submodule "realsense-ros"]
 	path = realsense-ros
-	url = https://gitlab.com/o2as-aist/realsense-ros
+	url = https://github.com/t-ueshiba/realsense-ros
