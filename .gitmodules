@@ -6,7 +6,7 @@
 	url = https://gitlab.com/o2as-aist/ur_modern_driver
 [submodule "realsense-ros"]
 	path = realsense-ros
-	url = https://github.com/IntelRealSense/realsense-ros.git
+	url = https://github.com/t-ueshiba/realsense-ros
 [submodule "universal_robot"]
 	path = universal_robot
 	url = https://gitlab.com/o2as-aist/universal_robot
@@ -14,3 +14,6 @@
 [submodule "aruco_ros"]
 	path = aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
+[submodule "ddynamic_reconfigure"]
+	path = ddynamic_reconfigure
+	url = https://github.com/t-ueshiba/ddynamic_reconfigure
