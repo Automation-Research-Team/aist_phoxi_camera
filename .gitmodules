@@ -8,9 +8,6 @@
 	path = universal_robot
 	url = https://gitlab.com/o2as-aist/universal_robot
 	branch = melodic-aist
-[submodule "aruco_ros"]
-	path = aruco_ros
-	url = https://github.com/pal-robotics/aruco_ros
 [submodule "realsense-ros"]
 	path = realsense-ros
 	url = https://github.com/t-ueshiba/realsense-ros
