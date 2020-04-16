@@ -17,3 +17,7 @@
 [submodule "ddynamic_reconfigure"]
 	path = ddynamic_reconfigure
 	url = https://github.com/t-ueshiba/ddynamic_reconfigure
+[submodule "iiwa_stack"]
+	path = iiwa_stack
+	url = https://github.com/IFL-CAMP/iiwa_stack
+
