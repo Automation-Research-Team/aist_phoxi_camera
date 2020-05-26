@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="camera_name"	default="aist_phoxi_camera"/>
+  <arg name="camera_name"	default="a_phoxi_m_camera"/>
   <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
   <!-- <arg name="id"		default='"1711015"'/> -->
   <arg name="id"		default="2018-09-016-LC3"/>
