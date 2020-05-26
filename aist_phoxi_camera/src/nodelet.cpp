@@ -19,7 +19,6 @@ class CameraNodelet : public nodelet::Nodelet
     void		timer_callback(const ros::TimerEvent&)		;
 
   private:
-    ros::NodeHandle		_nh;
     boost::shared_ptr<Camera>	_node;
     ros::Timer			_timer;
 };
@@ -29,11 +28,11 @@ CameraNodelet::onInit()
 {
     NODELET_INFO("aist_phoxi_camera::CameraNodelet::onInit()");
 
-    _nh = getNodeHandle();
-    _node.reset(new Camera(getName()));
+    const auto&	nh = getPrivateNodeHandle();
+    _node.reset(new Camera(nh));
     std::cout << "rate = " << 1.0/_node->rate() << std::endl;
-    _timer = _nh.createTimer(ros::Duration(1.0/_node->rate()),
-			     &CameraNodelet::timer_callback, this);
+    _timer = nh.createTimer(ros::Duration(1.0/_node->rate()),
+			    &CameraNodelet::timer_callback, this);
 
 }
 
