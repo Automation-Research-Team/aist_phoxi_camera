@@ -15,7 +15,8 @@ main(int argc, char** argv)
 
     try
     {
-        aist_phoxi_camera::Camera camera("~");
+	ros::NodeHandle			nh("~");
+        aist_phoxi_camera::Camera	camera(nh);
         camera.run();
     }
     catch (const std::exception& err)

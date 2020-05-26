@@ -38,7 +38,7 @@ class Camera
     };
 
   public:
-		Camera(const std::string& name)				;
+		Camera(const ros::NodeHandle& nh)			;
 		~Camera()						;
 
     void	run()							;
