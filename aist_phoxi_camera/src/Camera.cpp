@@ -238,7 +238,8 @@ Camera::Camera(const ros::NodeHandle& nh)
     std::copy(K[0], K[3], std::begin(_K));
 
   // Get frame name from parameter server and set it to _frame_id.
-    _nh.param<std::string>("frame", _frame_id, _frame_id);
+    _nh.param<std::string>("frame", _frame_id,
+			   ros::this_node::getName() + "_sensor");
 
   // Get rate from parameter server and set it to _rate.
     _nh.param<double>("rate", _rate, _rate);
