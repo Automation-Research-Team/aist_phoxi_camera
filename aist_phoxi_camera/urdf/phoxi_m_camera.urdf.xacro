@@ -8,15 +8,15 @@
     <xacro:PhoXi3Dscanner scanner_parent="${parent}"
 			  scanner_name  ="${prefix}camera"
 			  sensor_parent ="${prefix}camera"
-			  sensor_name   ="${prefix}camera_sensor" >
+			  sensor_name   ="${prefix}sensor">
       <xacro:insert_block name="origin"/>
       <xacro:PhoXi3DscannerM_default_sensor_origin/>
       <xacro:PhoXi3DscannerM_meshes/>
     </xacro:PhoXi3Dscanner>
 
     <link name="${prefix}camera_link"/>
-    <joint name="${prefix}camera_sensor_to_${prefix}camera_link" type="fixed">
-      <parent link="${prefix}camera_sensor"/>
+    <joint name="${prefix}sensor_to_${prefix}camera_link" type="fixed">
+      <parent link="${prefix}sensor"/>
       <child  link="${prefix}camera_link"/>
       <origin xyz="0 0 0" rpy="${pi/2} ${-pi/2} 0"/>
     </joint>
@@ -45,7 +45,7 @@
           <alwaysOn>true</alwaysOn>
           <updateRate>2.5</updateRate>
           <cameraName>${prefix}camera</cameraName>
-          <frameName>${prefix}camera_sensor</frameName>
+          <frameName>${prefix}sensor</frameName>
           <imageTopicName>texture</imageTopicName>
           <depthImageTopicName>depth_map</depthImageTopicName>
           <pointCloudTopicName>pointcloud</pointCloudTopicName>
