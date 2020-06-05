@@ -22,7 +22,7 @@
 
   <group unless="$(eval manager == '')">
     <node name="$(arg manager)" pkg ="nodelet" type="nodelet"
-          args="manager" output="screen">
+	  args="manager" output="screen">
       <param name="num_worker_threads"	value="$(arg nthreads)"/>
     </node>
 
