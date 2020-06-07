@@ -6,7 +6,7 @@
   <arg name="id"		default="2018-09-016-LC3"/>
   <arg name="trigger_mode"	default="1"/>
   <arg name="intensity_scale"	default="0.5"/>
-  <arg name="frame"		default="$(arg camera_name)_calibrated"/>
+  <arg name="frame"		default="calibrated_$(arg camera_name)"/>
   <arg name="rate"		default="10"/>
   <arg name="manager"		default=""/>
   <arg name="nthreads"		default="4"/>
