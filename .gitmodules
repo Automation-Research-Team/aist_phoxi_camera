@@ -7,10 +7,6 @@
 [submodule "realsense-ros"]
 	path = realsense-ros
 	url = https://gitlab.com/art-aist/realsense-ros
-[submodule "universal_robot"]
-	path = universal_robot
-	url = https://github.com/fmauch/universal_robot.git
-	branch = calibration_devel
 [submodule "aruco_ros"]
 	path = aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
@@ -20,10 +16,9 @@
 [submodule "iiwa_stack"]
 	path = iiwa_stack
 	url = https://github.com/IFL-CAMP/iiwa_stack
-
-[submodule "Universal_Robots_ROS_Driver"]
-	path = Universal_Robots_ROS_Driver
-	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
+[submodule "universal_robot"]
+	path = universal_robot
+	url = https://gitlab.com/art-aist/universal_robot
 [submodule "ur_robot_driver"]
 	path = ur_robot_driver
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver
