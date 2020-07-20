@@ -16,9 +16,9 @@
 [submodule "iiwa_stack"]
 	path = iiwa_stack
 	url = https://github.com/IFL-CAMP/iiwa_stack
-[submodule "universal_robot"]
-	path = universal_robot
-	url = https://gitlab.com/art-aist/universal_robot
 [submodule "ur_robot_driver"]
 	path = ur_robot_driver
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver
+[submodule "universal_robot"]
+	path = universal_robot
+	url = https://gitlab.com/art-aist/universal_robot
