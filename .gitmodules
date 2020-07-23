@@ -22,3 +22,9 @@
 [submodule "ur_modern_driver"]
 	path = ur_modern_driver
 	url = https://gitlab.com/art-aist/ur_modern_driver
+[submodule "aist_aruco_ros"]
+	path = aist_aruco_ros
+	url = https://gitlab.com/art-aist-private/aist_aruco_ros
+[submodule "aist_graspability"]
+	path = aist_graspability
+	url = https://gitlab.com/art-aist-private/aist_graspability
