@@ -7,7 +7,8 @@ ROS wrappers for various projects within ART lab
 * nothing, just little bit of instructions and a guide for others<br />
 
 * added support for handeye calibaration using realsenseD435 rgbd camera with aruco marker ID=32, size=0.16, margin=0.01
-    * calibration accuracy achieved within `0.007m` in position and `0.69` in degrees
+
+* calibration accuracy achieved within `0.007m` in position and `0.69` in degrees
 
 * main usage of this branch was to utilize realsenseD435 for pose detection and Pick-n-Place experiment with `UR5` using `MoveIt`
 
@@ -18,7 +19,7 @@ ROS wrappers for various projects within ART lab
 
 # Usage
 ## 1. Installation, (I know its messy!)
-* this will install everything, `UR5`, `MoveIt`, `realsense`
+* this will install everything, `UR5`, `MoveIt`, `realsense`, `aruco` packages
 * cd ~/catkin_ws/src
     * git clone https://gitlab.com/art-aist-private/aist_aruco_ros.git
     * git clone https://gitlab.com/art-aist-private/artros.git
@@ -26,35 +27,35 @@ ROS wrappers for various projects within ART lab
         * git checkout realsenseD435
         * git submodule update --init
         * rosdep install -i --from-paths .
-        * cd aist_phoxi_camera/install-scripts/
+        * cd ~/catkin_ws/src/artros/aist_phoxi_camera/install-scripts/
             * sudo ./install-phoxi-control.sh
-            * sudo reboot (*this will restart your pc*) --*ofcourse you know this*
         * cd ~/catkin_ws/src/artros/aist_localization/install-scripts/
             * sudo ./install-photoneo-localization.sh
+        * sudo reboot (*restart your pc*)
 
-            * copy these lines to your ~/.bashrc
-                * *you don't need them but they are part of other pkgs*
-                ```
-                ###
-                ### PhoXi settings
-                ###
-                if [ -d /opt/PhotoneoPhoXiControl-1.2.14 ]; then
-                export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl-1.2.14
-                export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
-                export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
-                export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
-                fi
+        * copy these lines to your ~/.bashrc
+            * *you don't need them but they are part of other pkgs*
+            ```
+            ###
+            ### PhoXi settings
+            ###
+            if [ -d /opt/PhotoneoPhoXiControl-1.2.14 ]; then
+            export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl-1.2.14
+            export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
+            export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
+            export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
+            fi
 
-                ###
-                ### PhoLocalization settings
-                ###
-                if [ -d /opt/PhotoneoSDK/Localization ]; then
-                export PHO_LOCALIZATION_PATH=/opt/PhotoneoSDK/Localization
-                export PATH=${PATH}:${PHO_LOCALIZATION_PATH}/bin
-                export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHO_LOCALIZATION_PATH}/lib
-                export CPATH=${CPATH}:${PHO_LOCALIZATION_PATH}/include
-                fi
-                ```
+            ###
+            ### PhoLocalization settings
+            ###
+            if [ -d /opt/PhotoneoSDK/Localization ]; then
+            export PHO_LOCALIZATION_PATH=/opt/PhotoneoSDK/Localization
+            export PATH=${PATH}:${PHO_LOCALIZATION_PATH}/bin
+            export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHO_LOCALIZATION_PATH}/lib
+            export CPATH=${CPATH}:${PHO_LOCALIZATION_PATH}/include
+            fi
+            ```
         * ***finally***, you can complie
         * cd ~/catkin_ws/
             * catkin_make
@@ -92,23 +93,23 @@ ROS wrappers for various projects within ART lab
 
 
 ## 3. To perform handeye calibration using realsenseD435
-* go to https://gitlab.com/art-aist-private/artros/-/tree/realsenseD435/aist_handeye_calibration and follow the instructions.
+* go to https://gitlab.com/art-aist-private/artros/-/tree/realsenseD435/aist_handeye_calibration and follow the instructions. or....(*follow below instructions*)
     * use config:=`mocap`
     * use camera_name:=`realsenseD435`
 
-** **use this when calibrating realsenseD435**
-* run handeye calibration
-  * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 scene:=mocap_calibration
+    ** **use this when calibrating realsenseD435**
+    * run handeye calibration
+    * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 scene:=mocap_calibration
 
-* start robot-control
-    * roslaunch aist_handeye_calibration run_calibration.launch config:=mocap camera_name:=realsenseD435
+    * start robot-control
+        * roslaunch aist_handeye_calibration run_calibration.launch config:=mocap camera_name:=realsenseD435
 
-** **use this when verifying calibration of realsenseD435**
-* to verify handeye calibration
-    * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 check:=true
+    ** **use this when verifying calibration of realsenseD435**
+    * to verify handeye calibration
+        * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 check:=true
 
-* move UR5 ef to calibrated pose of aruco marker
-    * roslaunch aist_handeye_calibration check_calibration.launch config:=mocap camera_name:=realsenseD435
+    * move UR5 ef to calibrated pose of aruco marker
+        * roslaunch aist_handeye_calibration check_calibration.launch config:=mocap camera_name:=realsenseD435
 
 <br />
 <br />
@@ -120,9 +121,10 @@ ROS wrappers for various projects within ART lab
 * but Yolo6D ros-wrapper publishes pose as geometry_msgs/`PoseArray`
 * so to adapt, change line https://gitlab.com/art-aist-private/artros/-/blob/realsenseD435/aist_routines/src/aist_routines/base.py#L379
 ```
-    est_pose = target_pose.poses[0] #poseArray
+    est_pose = target_pose.poses[n] #poseArray
     # est_pose = target_pose.pose #poseStamped
 ```
+* `n` is the count of detected object, in my case I detect only 1 onigiri so, n is 1
 
 
 <br />
@@ -134,9 +136,9 @@ ROS wrappers for various projects within ART lab
 * activate `yolo6d` conda environment
     * `rosrun yolo6d_ros yolo6d_ros.py pnp`
 * `roslaunch yolo6d_ros grasping.launch`
+    * afterwards, follow instructions as displayed on the terminal.
 
 <br />
 
 * you should see output similar to this ![Alt text](images/onigiripick.png?raw=true "yolo6d pose")
 
-* follow instructions as displayed on the terminal.
