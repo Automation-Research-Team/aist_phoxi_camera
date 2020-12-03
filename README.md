@@ -124,7 +124,7 @@ ROS wrappers for various projects within ART lab
     est_pose = target_pose.poses[n] #poseArray
     # est_pose = target_pose.pose #poseStamped
 ```
-* `n` is the count of detected object, in my case I detect only 1 onigiri so, n is 1
+* `n` is the count of detected object, in my case I detect only 1 onigiri so, n is 0
 
 
 <br />
