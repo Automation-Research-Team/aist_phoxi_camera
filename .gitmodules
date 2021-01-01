@@ -1,25 +1,25 @@
 [submodule "robotiq-cri"]
-	path = robotiq-cri
+	path = third_party/robotiq-cri
 	url = https://gitlab.com/art-aist/robotiq-cri
 [submodule "realsense-ros"]
-	path = realsense-ros
+	path = third_party/realsense-ros
 	url = https://gitlab.com/art-aist/realsense-ros
 [submodule "aruco_ros"]
-	path = aruco_ros
+	path = third_party/aruco_ros
 	url = https://github.com/pal-robotics/aruco_ros
 [submodule "ddynamic_reconfigure"]
-	path = ddynamic_reconfigure
+	path = third_party/ddynamic_reconfigure
 	url = https://gitlab.com/art-aist/ddynamic_reconfigure
 [submodule "iiwa_stack"]
-	path = iiwa_stack
+	path = third_party/iiwa_stack
 	url = https://github.com/IFL-CAMP/iiwa_stack
 [submodule "ur_robot_driver"]
-	path = ur_robot_driver
+	path = third_party/ur_robot_driver
 	url = https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
 [submodule "universal_robot"]
-	path = universal_robot
+	path = third_party/universal_robot
 	url = https://github.com/fmauch/universal_robot.git
 	branch = calibration_devel
 [submodule "ur_modern_driver"]
-	path = ur_modern_driver
+	path = third_party/ur_modern_driver
 	url = https://gitlab.com/art-aist/ur_modern_driver
