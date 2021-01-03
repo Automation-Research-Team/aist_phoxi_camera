@@ -104,7 +104,7 @@ ROS wrappers for various projects within ART lab
 * follow instructions and setup as per requirement
 * by default, aruco marker pose is published as geometry_msgs/`PoseStamped`
 * but Yolo6D ros-wrapper publishes pose as geometry_msgs/`PoseArray`
-* so to adapt, change line https://gitlab.com/art-aist-private/artros/-/blob/realsenseD435/aist_routines/src/aist_routines/base.py#L379
+* so to adapt, change line https://gitlab.com/art-aist-private/artros/-/blob/realsenseD435/aist_routines/src/aist_routines/__init__.py#L379
 ```
     est_pose = target_pose.poses[n] #poseArray
     # est_pose = target_pose.pose #poseStamped
