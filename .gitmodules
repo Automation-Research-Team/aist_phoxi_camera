@@ -4,9 +4,6 @@
 [submodule "realsense-ros"]
 	path = third_party/realsense-ros
 	url = https://gitlab.com/art-aist/realsense-ros
-[submodule "aruco_ros"]
-	path = third_party/aruco_ros
-	url = https://github.com/pal-robotics/aruco_ros
 [submodule "ddynamic_reconfigure"]
 	path = third_party/ddynamic_reconfigure
 	url = https://gitlab.com/art-aist/ddynamic_reconfigure
