@@ -17,4 +17,8 @@ install_photoneo()
     rm $2.run.zip $2.run
 }
 
-install_photoneo PhoXi/1.2.14 PhotoneoPhoXiControlInstaller-1.2.14-Ubuntu18-STABLE
+if [ `lsb_release -sc` != "xenial" ]; then
+    install_pkg i/icu libicu55_55.1-7ubuntu0.5_amd64.deb
+fi
+
+install_photoneo PhoXi/1.2.26 PhotoneoPhoXiControlInstaller-1.2.26-Ubuntu16-STABLE.tar.gz
