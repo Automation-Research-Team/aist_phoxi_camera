@@ -3,7 +3,7 @@
 install_pkg()
 {
     cd /tmp
-    curl http://mirrors.kernel.org/ubuntu/pool/main/$1/$2
+    wget http://mirrors.kernel.org/ubuntu/pool/main/$1/$2
     dpkg -i $2
     rm $2
 }
@@ -11,14 +11,14 @@ install_pkg()
 install_photoneo()
 {
     cd /tmp
-    curl https://photoneo.com/files/installer/$1/$2.run.zip
-    unzip $2.run.zip
+    wget https://photoneo.com/files/installer/$1/$2$3
+    tar xvf $2$3 -o $2.run
     bash ./$2.run
-    rm $2.run.zip $2.run
+    rm $2$3 $2.run
 }
 
 if [ `lsb_release -sc` != "kinetic" ]; then
-    install_pkg i/icu libicuu55_55.1-7ubuntu0.5_amd64.deb
+    install_pkg i/icu libicu55_55.1-7ubuntu0.5_amd64.deb
 fi
 
-install_photoneo PhoXi/1.2.26 PhotoneoPhoXiControlInstaller-1.2.26-Ubuntu16-STABLE
+install_photoneo PhoXi/1.2.26 PhotoneoPhoXiControlInstaller-1.2.26-Ubuntu 16-STABLE.tar.gz
