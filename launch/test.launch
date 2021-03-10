@@ -2,7 +2,7 @@
 
   <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
   <!-- <arg name="id"		default='"1711015"'/> -->
-  <arg name="id"		default="2018-09-016-LC3"/>
+  <arg name="id"		default="2020-01-098-LC3"/>
   <arg name="trigger_mode"	default="0"/>
   <arg name="camera_name"	default="aist_phoxi_camera"/>
   <arg name="frame"		default="$(arg camera_name)_sensor"/>
