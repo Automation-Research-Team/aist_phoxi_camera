@@ -14,7 +14,7 @@ install_photoneo()
     wget https://photoneo.com/files/installer/$1/$2.tar.gz
     tar xvf $2.tar.gz
     bash ./$2.run
-#    rm $2.tar.gz $2.run
+    rm $2.tar.gz $2.run
 }
 
 case `lsb_release -sc` in
