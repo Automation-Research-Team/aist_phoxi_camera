@@ -17,8 +17,8 @@ install_photoneo()
     rm $2$3 $2.run
 }
 
-if [ `lsb_release -sc` != "kinetic" ]; then
-    install_pkg i/icu libicu55_55.1-7ubuntu0.5_amd64.deb
-fi
-
-install_photoneo PhoXi/1.2.26 PhotoneoPhoXiControlInstaller-1.2.26-Ubuntu 16-STABLE.tar.gz
+case `lsb_release -sc` in
+  "xenial" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 16-STABLE.tar.gz ;;
+  "bionic" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 18-STABLE.tar.gz ;;
+  "focal"  ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 20-STABLE.tar.gz ;;
+esac
