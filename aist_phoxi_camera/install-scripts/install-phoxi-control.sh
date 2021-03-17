@@ -11,14 +11,14 @@ install_pkg()
 install_photoneo()
 {
     cd /tmp
-    wget https://photoneo.com/files/installer/$1/$2$3
-    tar xvf $2$3 -o $2.run
+    wget https://photoneo.com/files/installer/$1/$2.tar.gz
+    tar xvf $2.tar.gz
     bash ./$2.run
-    rm $2$3 $2.run
+#    rm $2.tar.gz $2.run
 }
 
 case `lsb_release -sc` in
-  "xenial" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 16-STABLE.tar.gz ;;
-  "bionic" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 18-STABLE.tar.gz ;;
-  "focal"  ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu 20-STABLE.tar.gz ;;
+  "xenial" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu16-STABLE ;;
+  "bionic" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu18-STABLE ;;
+  "focal"  ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu20-STABLE ;;
 esac
