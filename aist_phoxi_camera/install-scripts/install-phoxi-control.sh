@@ -11,14 +11,14 @@ install_pkg()
 install_photoneo()
 {
     cd /tmp
-    wget https://photoneo.com/files/installer/$1/$2$3
-    tar xvf $2$3 -o $2.run
+    wget https://photoneo.com/files/installer/$1/$2.tar.gz
+    tar xvf $2.tar.gz
     bash ./$2.run
-    rm $2$3 $2.run
+    rm $2.tar.gz $2.run
 }
 
-if [ `lsb_release -sc` != "kinetic" ]; then
-    install_pkg i/icu libicu55_55.1-7ubuntu0.5_amd64.deb
-fi
-
-install_photoneo PhoXi/1.2.26 PhotoneoPhoXiControlInstaller-1.2.26-Ubuntu 16-STABLE.tar.gz
+case `lsb_release -sc` in
+  "xenial" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu16-STABLE ;;
+  "bionic" ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu18-STABLE ;;
+  "focal"  ) install_photoneo PhoXi/1.4.1 PhotoneoPhoXiControlInstaller-1.4.1-Ubuntu20-STABLE ;;
+esac
