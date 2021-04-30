@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="model"			default="85"/>
+  <arg name="prefix"			default="a_bot_"/>
+  <arg name="joint_state_frequency"	default="50"/>
+  <arg name="paused"			default="false"/>
+  <arg name="gui"			default="true"/>
+
+  <!-- Startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused"	value="$(arg paused)"/>
+    <arg name="gui"	value="$(arg gui)"/>
+  </include>
+
+  <!-- Push robot_description to factory and spawn robot in gazebo -->
+  <param name="robot_description"
+	 command="$(find xacro)/xacro
+		  '$(dirname)/../urdf/robotiq_$(arg model)_gripper.urdf'
+		  prefix:='$(arg prefix)'"/>
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
+	args="-urdf -param robot_description -model robot"
+	respawn="false" output="screen"/>
+
+  <!-- Convert joint states to TF transforms for rviz, etc -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+  	type="robot_state_publisher" respawn="false" output="screen"/>
+
+  <!-- Load parameters for all controllers from YAML file -->
+  <rosparam file="$(dirname)/../config/controllers.yaml"
+	    subst_value="true"/>
+
+  <!-- Spawn joint state controller and gripper_controller -->
+  <node name="controller_spawner" pkg="controller_manager"
+	type="controller_manager" respawn="false" output="screen"
+	args="spawn joint_state_controller $(arg prefix)gripper_controller"/>
+
+</launch>
