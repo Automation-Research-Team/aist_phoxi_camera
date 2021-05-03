@@ -1,0 +1,20 @@
+# Feedback rate in Hz
+publish_rate: 100.0
+
+min_position_counts: 224
+counts_to_meters:    0.8
+
+# Gripper width in meters [0, 0.085]
+min_position: 0.0
+max_position: 0.085
+
+# Gripper velocity in m/s [0.013, 0.1]
+min_velocity: 0.013
+max_velocity: 0.1
+
+# Gripper effort in N. [40.0, 100.0]
+min_effort: 40.0
+max_effort: 100.0
+
+# Joint name
+joint_name: finger_joint
