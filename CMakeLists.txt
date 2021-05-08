@@ -31,14 +31,14 @@ include_directories(
     ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS} include
 )
 
-add_executable(
-    aist_robotiq_driver
-    src/robotiq_driver.cpp
-)
-target_link_libraries(
-    aist_robotiq_driver
-    ${catkin_LIBRARIES}
-)
+#add_executable(
+#    aist_robotiq_driver
+#    src/robotiq_driver.cpp
+#)
+#target_link_libraries(
+#    aist_robotiq_driver
+#    ${catkin_LIBRARIES}
+#)
 
 add_library(
     gazebo_mimic_joint_plugin

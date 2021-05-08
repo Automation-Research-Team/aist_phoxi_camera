@@ -5,7 +5,7 @@
     <xacro:property name="coupling_radius" value="0.0375"/>
     <xacro:property name="coupling_length" value="0.0169"/>
 
-    <link name="${prefix}robotiq_arg2f_coupling_link">
+    <link name="${prefix}base_link">
       <inertial>
         <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />
         <mass value="0.22652" />
@@ -32,21 +32,21 @@
         <!-- </geometry> -->
       </collision>
     </link>
-    <gazebo reference="${prefix}robotiq_arg2f_coupling_link">
+    <gazebo reference="${prefix}base_link">
       <material>Gazebo/Black</material>
     </gazebo>
 
     <!-- Add the force sensor in front of the gripper. -->
-    <joint name="${prefix}robotiq_arg2f_coupling_joint" type="fixed">
+    <joint name="${prefix}base_joint" type="fixed">
       <parent link="${parent}"/>
-      <child  link="${prefix}robotiq_arg2f_coupling_link"/>
+      <child  link="${prefix}base_link"/>
       <xacro:insert_block name="origin"/>
     </joint>
 
-    <link name="${prefix}robotiq_arg2f_coupling_flange_link"/>
-    <joint name="${prefix}robotiq_arg2f_coupling_flange_joint" type="fixed">
-      <parent link="${prefix}robotiq_arg2f_coupling_link"/>
-      <child  link="${prefix}robotiq_arg2f_coupling_flange_link"/>
+    <link name="${prefix}flange_link"/>
+    <joint name="${prefix}flange_joint" type="fixed">
+      <parent link="${prefix}base_link"/>
+      <child  link="${prefix}flange_link"/>
       <origin xyz="${coupling_length} 0 0" rpy="0 0 0"/>
     </joint>
 

@@ -210,7 +210,7 @@
   </xacro:macro>
 
   <xacro:include filename="$(find aist_robotiq
-			   )/urdf/robotiq_arg2f.urdf.xacro"/>
+			   )/urdf/robotiq_arg2f.xacro"/>
 
   <xacro:macro name="finger_joint" params="prefix">
     <joint name="${prefix}finger_joint" type="revolute">
@@ -239,14 +239,14 @@
   <!-- Initialization of all joints and links -->
   <xacro:macro name="robotiq_85_gripper" params="prefix parent *origin">
 
-    <joint name="${prefix}robotiq_85_base_joint" type="fixed">
+    <joint name="${prefix}base_joint" type="fixed">
       <parent link="${parent}"/>
-      <child  link="${prefix}robotiq_85_base_link"/>
+      <child  link="${prefix}base_link"/>
       <xacro:insert_block name="origin"/>
     </joint>
-    <link  name="${prefix}robotiq_85_base_link"/>
+    <link  name="${prefix}base_link"/>
     <joint name="${prefix}robotiq_arg2f_base_joint" type="fixed">
-      <parent link="${prefix}robotiq_85_base_link"/>
+      <parent link="${prefix}base_link"/>
       <child  link="${prefix}robotiq_arg2f_base_link"/>
       <origin xyz="0 0 0" rpy="${pi} ${-pi/2} 0"/>
     </joint>

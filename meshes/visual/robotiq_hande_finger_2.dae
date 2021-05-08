@@ -7,6 +7,7 @@
         </contributor>
         <created>mi. may. 22 09:27:57 2019 GMT</created>
         <modified>mi. may. 22 09:27:57 2019 GMT</modified>
+        <unit name="meter" meter="0.001"/>
         <up_axis>Y_UP</up_axis>
     </asset>
     <library_geometries>

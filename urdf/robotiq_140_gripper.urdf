@@ -3,11 +3,11 @@
 
   <xacro:arg name="prefix" default=""/>
 
-  <link name="base_link"/>
+  <link name="world"/>
 
   <xacro:include filename="$(find aist_robotiq
 			   )/urdf/robotiq_140_gripper.urdf.xacro" />
-  <xacro:robotiq_140_gripper prefix="$(arg prefix)" parent="base_link">
+  <xacro:robotiq_140_gripper prefix="$(arg prefix)" parent="world">
     <origin xyz="0 0 0" rpy="0 ${-pi/2} 0"/>
   </xacro:robotiq_140_gripper>
 
