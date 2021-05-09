@@ -289,9 +289,9 @@ class RobotiqCModelURCap:
 
 
 if __name__ == '__main__':
-    gripper = RobotiqCModelURCap('192.168.1.41')
+    gripper = RobotiqCModelURCap('10.66.171.52')
     # gripper.connect('192.168.1.41', 63352)
-    gripper.activate()
+    gripper.activate(True)
     gripper.move_and_wait_for_pos(100, 255, 255)
     gripper.move_and_wait_for_pos(150, 255, 255)
     gripper.move_and_wait_for_pos(100, 255, 255)

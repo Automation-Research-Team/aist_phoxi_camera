@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import os
-import sys
-import socket
-import rospy
+import sys, rospy
 from aist_robotiq.cmodel_base import RobotiqCModel, ComModbusRtu
-from aist_robotiq.msg         import CModelCommand, CModelStatus
+from aist_robotiq             import msg as amsg
 
 def mainLoop(device):
     # Gripper is a C-Model with a TCP connection
@@ -14,9 +11,9 @@ def mainLoop(device):
     rospy.loginfo("Connecting to device " + str(device))
     gripper.client.connectToDevice(device)
     # The Gripper status
-    pub = rospy.Publisher('status', CModelStatus, queue_size=3)
+    pub = rospy.Publisher('/status', amsg.CModelStatus, queue_size=3)
     # The Gripper command
-    rospy.Subscriber('command', CModelCommand, gripper.refreshCommand)
+    rospy.Subscriber('/command', amsg.CModelCommand, gripper.refreshCommand)
 
     while not rospy.is_shutdown():
         # Get and publish the Gripper status

@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="prefix" default="a_bot_"/>
+  <arg name="prefix" default="a_bot_gripper_"/>
 
   <!-- Spawn actionlib client GUI -->
   <node name="axclient" pkg="actionlib" type="axclient.py"
-  	args="/$(arg prefix)gripper_controller/gripper_cmd"
+  	args="/$(arg prefix)controller/gripper_cmd"
   	respawn="false" output="screen"/>
 
 </launch>

@@ -1,8 +1,4 @@
-# Feedback rate in Hz
-publish_rate: 100.0
-
-min_position_counts: 224
-counts_to_meters:    0.8
+min_gap_counts: 224
 
 # Gripper width in meters [0, 0.085]
 min_position: 0.0
@@ -17,4 +13,4 @@ min_effort: 40.0
 max_effort: 100.0
 
 # Joint name
-joint_name: finger_joint
+joint_name: $(arg prefix)finger_joint

@@ -2,7 +2,7 @@ joint_state_controller:
   type: joint_state_controller/JointStateController
   publish_rate: $(arg joint_state_frequency)
 
-$(arg prefix)gripper_controller:
+$(arg prefix)controller:
   type: position_controllers/GripperActionController
   joint: $(arg prefix)finger_joint
   action_monitor_rate: 20
