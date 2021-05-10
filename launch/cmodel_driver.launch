@@ -8,7 +8,7 @@
   <arg name="type"		value="$(eval driver_arg.split(',')[0])"/>
   <arg name="args"		value="$(eval driver_arg.split(',')[1])"/>
 
-  <node name="$(arg prefix)cmodel_driver"
+  <node name="$(arg prefix)driver"
 	pkg="aist_robotiq" type="cmodel_$(arg type)_driver.py"
 	output="screen" respawn="false" args="$(arg args)">
     <remap from="/status"	to="$(arg prefix)controller/status"/>

@@ -8,7 +8,7 @@ from actionlib    import SimpleActionServer
 
 class CModelController(object):
     def __init__(self, activate=False):
-        self._ns = rospy.get_namespace()
+        self._name = rospy.get_name()
 
         # Read configuration parameters
         self._min_gap_counts = rospy.get_param('~min_gap_counts', 230)
@@ -44,14 +44,15 @@ class CModelController(object):
             rospy.sleep(2.0)
             if not self._activate():
                 return
-        rospy.logdebug('(%s) Started' % self._ns)
+        rospy.logdebug('(%s) Started' % self._name)
 
     def _status_cb(self, status):
         # Publish the joint_states for the gripper
         joint_state = smsg.JointState()
         joint_state.header.stamp = rospy.Time.now()
         joint_state.name         = [self._joint_name]
-        joint_state.position     = [self._get_position(status)]
+        joint_state.position     = [self._position(status)]
+        joint_state.effort       = [self._effort(status)]
         self._joint_state_pub.publish(joint_state)
 
         if not self._server.is_active():
@@ -59,14 +60,18 @@ class CModelController(object):
 
         if not self._is_active(status):
             if not self._activate():
-                rospy.logwarn('(%s) could not accept goal because the gripper is not yet active' % self._ns)
+                rospy.logwarn('(%s) could not accept goal because the gripper is not yet active' % self._name)
             return
         elif self._error(status) != 0:
             rospy.logwarn('(%s) faulted with code: %x'
-                          % (self._ns, self._error(status)))
+                          % (self._name, self._error(status)))
             self._server.set_aborted()
         elif self._reached_goal(status):
-            rospy.loginfo('(%s) succeeded' % self.ns)
+            rospy.loginfo('(%s) reached goal' % self._name)
+            self._server.set_succeeded(
+                cmsg.GripperCommandResult(*self._status_values(status)))
+        elif self._stalled(status):
+            rospy.loginfo('(%s) stalled' % self._name)
             self._server.set_succeeded(
                 cmsg.GripperCommandResult(*self._status_values(status)))
         else:
@@ -89,7 +94,7 @@ class CModelController(object):
 
     def _preempt_cb(self):
         self._stop()
-        rospy.loginfo('(%s) Preempted' % self._ns)
+        rospy.loginfo('(%s) Preempted' % self._name)
         self._server.set_preempted()
 
     def _activate(self, timeout=5.0):
@@ -104,12 +109,12 @@ class CModelController(object):
                 self._preempt()
                 return False
             if rospy.get_time() - start_time > timeout:
-                rospy.logwarn('(%s) failed to activate' % (self._ns))
+                rospy.logwarn('(%s) failed to activate' % (self._name))
                 return False
             self._command_pub.publish(command)
             rospy.sleep(0.1)
 
-        rospy.loginfo('(%s) successfully activated' % (self._ns))
+        rospy.loginfo('(%s) successfully activated' % (self._name))
         return True
 
     def _send_move_command(self, position, velocity, effort):
@@ -134,7 +139,7 @@ class CModelController(object):
         command.rACT = 1
         command.rGTO = 0
         self._command_pub.publish(command)
-        rospy.logdebug('(%s) stopping' % (self._ns))
+        rospy.logdebug('(%s) stopping' % (self._name))
 
     def _position(self, status):
         return (status.gPO - self._min_gap_counts) * self.position_per_tick \

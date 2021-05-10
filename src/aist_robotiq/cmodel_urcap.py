@@ -31,7 +31,8 @@ class RobotiqCModelURCap:
     STA = 'STA'  # status (0 = is reset, 1 = activating, 3 = active)
     PRE = 'PRE'  # position request (echo of last commanded position)
     OBJ = 'OBJ'  # object detection (0 = moving, 1 = outer grip, 2 = inner grip, 3 = no object at rest)
-    FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)
+    FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)]
+    #CUR = 'CUR'  # cur : current (0-255)
 
     ENCODING = 'UTF-8'  # ASCII and UTF-8 both seem to work
 
@@ -91,7 +92,7 @@ class RobotiqCModelURCap:
         message.gFLT = self._get_var(self.FLT)
         message.gPR  = self._get_var(self.PRE)
         message.gPO  = self._get_var(self.POS)
-        # message.gCU  = self._get_var()  # current is not read by this package
+        #message.gCU  = self._get_var(self.CUR)
         return message
 
     def _set_vars(self, var_dict):
@@ -289,7 +290,7 @@ class RobotiqCModelURCap:
 
 
 if __name__ == '__main__':
-    gripper = RobotiqCModelURCap('10.66.171.52')
+    gripper = RobotiqCModelURCap('10.66.171.53')
     # gripper.connect('192.168.1.41', 63352)
     gripper.activate(True)
     gripper.move_and_wait_for_pos(100, 255, 255)

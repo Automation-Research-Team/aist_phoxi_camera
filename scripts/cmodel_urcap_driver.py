@@ -4,9 +4,12 @@ from aist_robotiq.cmodel_urcap import RobotiqCModelURCap
 from aist_robotiq              import msg as amsg
 
 def mainLoop(ur_address):
+    name = rospy.get_name()
+
     # Gripper is a C-Model that is connected to a UR controller
     # with the Robotiq URCap installed.
     # Commands are published to port 63352 as ASCII strings.
+    rospy.loginfo("(%s) connecting to gripper[%s:63352]" % (name, ur_address))
     gripper = RobotiqCModelURCap(ur_address)
 
     # The Gripper status
@@ -15,8 +18,10 @@ def mainLoop(ur_address):
     rospy.Subscriber('/command', amsg.CModelCommand, gripper.sendCommand)
 
     if not gripper.is_active():
-        rospy.loginfo("Activating gripper")
+        rospy.loginfo("(%s) activating gripper" % name)
         gripper.activate(auto_calibrate=False)
+
+    rospy.loginfo("(%s) gripper ready" % name)
 
     while not rospy.is_shutdown():
         # Get and publish the Gripper status
