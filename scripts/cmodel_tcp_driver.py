@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, socket, rospy
-from robotiq_control.cmodel_base import RobotiqCModel, ComModbusTcp
-from aist_robotiq                import msg as amsg
+from aist_robotiq.cmodel_base import RobotiqCModel, ComModbusTcp
+from aist_robotiq             import msg as amsg
 
 def mainLoop(address):
     # Gripper is a C-Model with a TCP connection
