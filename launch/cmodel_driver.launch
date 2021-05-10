@@ -5,8 +5,8 @@
   <arg name="device"		default="robotiq_85"/>
   <arg name="driver_arg"	default="urcap, 10.66.171.52"/>
 
-  <arg name="type"		value="$(eval driver_arg.split(',')[0])"/>
-  <arg name="args"		value="$(eval driver_arg.split(',')[1])"/>
+  <arg name="type"	value="$(eval driver_arg.split(',')[0].strip())"/>
+  <arg name="args"	value="$(eval driver_arg.split(',')[1].strip())"/>
 
   <node name="$(arg prefix)driver"
 	pkg="aist_robotiq" type="cmodel_$(arg type)_driver.py"
