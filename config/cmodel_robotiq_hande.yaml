@@ -1,5 +1,3 @@
-min_gap_counts: 255
-
 # Gripper width in meters [0, 0.026]
 min_position: 0.0
 max_position: 0.026

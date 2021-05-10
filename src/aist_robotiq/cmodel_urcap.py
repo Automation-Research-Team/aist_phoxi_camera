@@ -9,7 +9,7 @@ import time
 from enum import Enum
 
 # Added for ROS
-from robotiq_msgs.msg import CModelStatus, CModelCommand
+from aist_robotiq.msg import CModelStatus, CModelCommand
 import rospy
 import std_msgs.msg
 import os, rospkg

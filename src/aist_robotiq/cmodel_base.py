@@ -2,7 +2,7 @@
 from math import ceil
 import time
 import threading
-from robotiq_msgs.msg import CModelStatus
+from aist_robotiq.msg import CModelStatus
 from pymodbus.client.sync import ModbusTcpClient, ModbusSerialClient
 from pymodbus.register_read_message import ReadInputRegistersResponse
 

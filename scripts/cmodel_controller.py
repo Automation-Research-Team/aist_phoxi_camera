@@ -7,12 +7,10 @@ from aist_robotiq import msg as amsg
 from actionlib    import SimpleActionServer
 
 class CModelController(object):
-    def __init__(self, activate=False):
+    def __init__(self):
         self._name = rospy.get_name()
 
         # Read configuration parameters
-        self._min_gap_counts = rospy.get_param('~min_gap_counts', 230)
-        self._max_gap_counts = 0
         self._min_position   = rospy.get_param('~min_position', 0.0)
         self._max_position   = rospy.get_param('~max_position', 0.085)
         self._min_velocity   = rospy.get_param('~min_velocity', 0.013)
@@ -27,8 +25,13 @@ class CModelController(object):
         self._command_pub     = rospy.Publisher('~command', amsg.CModelCommand,
                                                 queue_size=1)
         self._joint_state_pub = rospy.Publisher('/joint_states',
-                                               smsg.JointState, queue_size=1)
+                                                smsg.JointState, queue_size=1)
         self._goal_rPR        = 0
+
+        # Calibration
+        self._min_gap_counts   = 255  # gap counts at full close position
+        self._max_gap_counts   = 0    # gap counts at full open position
+        self._calibration_step = 0    # ready for calibration
 
         # Configure and start the action server
         self._server = SimpleActionServer('~gripper_cmd',
@@ -38,12 +41,10 @@ class CModelController(object):
         self._server.register_preempt_callback(self._preempt_cb)
         self._server.start()
 
-        # Activate gripper
-        rospy.sleep(1.0)   # Wait before checking status with self._ready()
-        if activate and not self._ready():
-            rospy.sleep(2.0)
-            if not self._activate():
-                return
+        # Calibrate gripper
+        rospy.sleep(2.0)
+        self._calibrate()
+
         rospy.logdebug('(%s) Started' % self._name)
 
     def _status_cb(self, status):
@@ -55,12 +56,29 @@ class CModelController(object):
         joint_state.effort       = [self._effort(status)]
         self._joint_state_pub.publish(joint_state)
 
+        if not self._is_moving(status):
+            if self._calibration_step == 1:
+                self._calibration_step = 2
+                self._send_raw_move_command(0, 64, 1)    # fully open
+                rospy.sleep(0.5)
+            elif self._calibration_step == 2:
+                self._max_gap_counts = status.gPO
+                self._calibration_step = 3
+                self._send_raw_move_command(255, 64, 1)  # fully close
+                rospy.sleep(0.5)
+            elif self._calibration_step == 3:
+                self._min_gap_counts = status.gPO
+                self._calibration_step = 0
+                self._send_raw_move_command(0, 64, 1)    # fully open
+                rospy.loginfo('(%s) calibrated to [%d, %d]'
+                              % (self._name,
+                                 self._min_gap_counts, self._max_gap_counts))
+
         if not self._server.is_active():
             return
 
         if not self._is_active(status):
-            if not self._activate():
-                rospy.logwarn('(%s) could not accept goal because the gripper is not yet active' % self._name)
+            rospy.logwarn('(%s) could not accept goal because the gripper is not yet active' % self._name)
             return
         elif self._error(status) != 0:
             rospy.logwarn('(%s) faulted with code: %x'
@@ -97,42 +115,29 @@ class CModelController(object):
         rospy.loginfo('(%s) Preempted' % self._name)
         self._server.set_preempted()
 
-    def _activate(self, timeout=5.0):
-        command = amsg.CModelCommand()
-        command.rACT = 1
-        command.rGTO = 1
-        command.rSP  = 255
-        command.rFR  = 150
-        start_time = rospy.get_time()
-        while not self._ready():
-            if rospy.is_shutdown():
-                self._preempt()
-                return False
-            if rospy.get_time() - start_time > timeout:
-                rospy.logwarn('(%s) failed to activate' % (self._name))
-                return False
-            self._command_pub.publish(command)
-            rospy.sleep(0.1)
-
-        rospy.loginfo('(%s) successfully activated' % (self._name))
-        return True
+    def _calibrate(self):
+        self._calibration_step = 1
 
     def _send_move_command(self, position, velocity, effort):
+        pos = np.clip(int((position - self._min_position)
+                          / self.position_per_tick + self._min_gap_counts),
+                      self._max_gap_counts, self._min_gap_counts)
+        vel = np.clip(int((velocity - self._min_velocity)
+                          / self.velocity_per_tick),
+                      0, 255)
+        eff = np.clip(int((effort - self._min_effort) / self.effort_per_tick),
+                      0, 255)
+        self._send_raw_move_command(pos, vel, eff)
+        return pos
+
+    def _send_raw_move_command(self, pos, vel, eff):
         command = amsg.CModelCommand()
         command.rACT = 1
         command.rGTO = 1
-        command.rPR  = int(np.clip((position - self._min_position) \
-                                   / self.position_per_tick
-                                   + self._min_gap_counts,
-                                   self._max_gap_counts, self._min_gap_counts))
-        command.rSP  = int(np.clip((velocity - self._min_velocity) \
-                                   / self.velocity_per_tick,
-                                   0, 255))
-        command.rFR  = int(np.clip((effort - self._min_effort) \
-                                   / self.effort_per_tick,
-                                   0, 255))
+        command.rPR  = pos
+        command.rSP  = vel
+        command.rFR  = eff
         self._command_pub.publish(command)
-        return command.rPR
 
     def _stop(self):
         command = amsg.CModelCommand()
@@ -152,7 +157,7 @@ class CModelController(object):
         return status.gOBJ == 1 or status.gOBJ == 2
 
     def _reached_goal(self, status):
-        return status.gPO == self._goal_rPR
+        return abs(status.gPO - self._goal_rPR) <= 1
 
     def _status_values(self, status):
         return self._position(status), self._effort(status), \
@@ -183,5 +188,5 @@ class CModelController(object):
 
 if __name__ == '__main__':
     rospy.init_node('cmodel_controller')
-    controller = CModelController(False)
+    controller = CModelController()
     rospy.spin()
