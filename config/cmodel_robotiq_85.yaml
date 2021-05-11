@@ -1,14 +1,14 @@
 # Gripper width in meters [0, 0.085]
-min_position: 0.0
+min_position: 0.000
 max_position: 0.085
 
-# Gripper velocity in m/s [0.013, 0.1]
-min_velocity: 0.013
-max_velocity: 0.1
+# Gripper velocity in m/s [0.020, 0.150]
+min_velocity: 0.020
+max_velocity: 0.150
 
-# Gripper effort in N. [40.0, 100.0]
-min_effort: 40.0
-max_effort: 100.0
+# Gripper effort in N. [20.0, 235.0]
+min_effort:  20.0
+max_effort: 235.0
 
 # Joint name
 joint_name: $(arg prefix)finger_joint

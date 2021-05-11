@@ -1,13 +1,13 @@
 # Gripper width in meters [0, 0.140]
-min_position: 0.0
+min_position: 0.000
 max_position: 0.140
 
-# Gripper velocity in m/s [0.03, 0.25]
-min_velocity: 0.03
-max_velocity: 0.25
+# Gripper velocity in m/s [0.030, 0.250]
+min_velocity: 0.030
+max_velocity: 0.250
 
-# Gripper effort in N. [10, 125]
-min_effort: 10.0
+# Gripper effort in N. [10.0, 125.0]
+min_effort:  10.0
 max_effort: 125.0
 
 # Joint name

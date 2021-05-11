@@ -28,9 +28,9 @@ class CModelController(object):
                                                 smsg.JointState, queue_size=1)
         self._goal_rPR        = 0
 
-        # Calibration
-        self._min_gap_counts   = 255  # gap counts at full close position
-        self._max_gap_counts   = 0    # gap counts at full open position
+        # Position parameters to be calibrated
+        self._min_gap_counts   = 255  # gap counts at full-close position
+        self._max_gap_counts   = 0    # gap counts at full-open position
         self._calibration_step = 0    # ready for calibration
 
         # Configure and start the action server
@@ -42,7 +42,7 @@ class CModelController(object):
         self._server.start()
 
         # Calibrate gripper
-        rospy.sleep(2.0)
+        rospy.sleep(2.0)              # wait for server comes up
         self._calibrate()
 
         rospy.logdebug('(%s) Started' % self._name)
@@ -56,30 +56,33 @@ class CModelController(object):
         joint_state.effort       = [self._effort(status)]
         self._joint_state_pub.publish(joint_state)
 
+        # Handle calibration process if not moving
         if not self._is_moving(status):
             if self._calibration_step == 1:
                 self._calibration_step = 2
-                self._send_raw_move_command(0, 64, 1)    # fully open
+                self._send_raw_move_command(0, 64, 1)    # full-open
                 rospy.sleep(0.5)
             elif self._calibration_step == 2:
-                self._max_gap_counts = status.gPO
+                self._max_gap_counts = status.gPO        # record at full-open
                 self._calibration_step = 3
-                self._send_raw_move_command(255, 64, 1)  # fully close
+                self._send_raw_move_command(255, 64, 1)  # full-close
                 rospy.sleep(0.5)
             elif self._calibration_step == 3:
-                self._min_gap_counts = status.gPO
+                self._min_gap_counts = status.gPO        # record at full-close
                 self._calibration_step = 0
-                self._send_raw_move_command(0, 64, 1)    # fully open
+                self._send_raw_move_command(0, 64, 1)    # full-open
                 rospy.loginfo('(%s) calibrated to [%d, %d]'
                               % (self._name,
                                  self._min_gap_counts, self._max_gap_counts))
 
+        # Return if no active goals
         if not self._server.is_active():
             return
 
+        # Handle the active goal
         if not self._is_active(status):
-            rospy.logwarn('(%s) could not accept goal because the gripper is not yet active' % self._name)
-            return
+            rospy.logwarn('(%s) abort goal because the gripper is not yet active' % self._name)
+            self._server.set_aborted()
         elif self._error(status) != 0:
             rospy.logwarn('(%s) faulted with code: %x'
                           % (self._name, self._error(status)))
@@ -97,10 +100,9 @@ class CModelController(object):
                 cmsg.GripperCommandFeedback(*self._status_values(status)))
 
     def _goal_cb(self):
-        # Get requested goal
-        goal = self._server.accept_new_goal()
+        goal = self._server.accept_new_goal()  # requested goal
 
-        # check that preempt has not been requested by the client
+        # Check that preempt has not been requested by the client
         if self._server.is_preempt_requested():
             self._server.set_preempted()
             return
@@ -112,7 +114,7 @@ class CModelController(object):
 
     def _preempt_cb(self):
         self._stop()
-        rospy.loginfo('(%s) Preempted' % self._name)
+        rospy.loginfo('(%s) preempted' % self._name)
         self._server.set_preempted()
 
     def _calibrate(self):
