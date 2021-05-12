@@ -31,7 +31,7 @@ class RobotiqCModelURCap:
     STA = 'STA'  # status (0 = is reset, 1 = activating, 3 = active)
     PRE = 'PRE'  # position request (echo of last commanded position)
     OBJ = 'OBJ'  # object detection (0 = moving, 1 = outer grip, 2 = inner grip, 3 = no object at rest)
-    FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)]
+    FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)
     #CUR = 'CUR'  # cur : current (0-255)
 
     ENCODING = 'UTF-8'  # ASCII and UTF-8 both seem to work

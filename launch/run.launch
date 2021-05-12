@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="prefix"		default="a_bot_gripper_"/>
+  <arg name="device"		default="robotiq_85"/>
+  <arg name="type"		default="urcap"/>
+  <arg name="ip"		default="10.66.171.52"/>
+
+  <arg name="driver_arg"	value="$(arg type), $(arg ip)"/>
+
+  <!-- Spawn driver -->
+  <include file="$(dirname)/cmodel_driver.launch">
+    <arg name="prefix"		value="$(arg prefix)"/>
+    <arg name="device"		value="$(arg device)"/>
+    <arg name="driver_arg"	value="$(arg driver_arg)"/>
+  </include>
+
+  <!-- Spawn controller -->
+  <include file="$(dirname)/cmodel_controller.launch">
+    <arg name="prefix"		value="$(arg prefix)"/>
+    <arg name="device"		value="$(arg device)"/>
+    <arg name="sim"		value="false"/>
+  </include>
+
+</launch>
