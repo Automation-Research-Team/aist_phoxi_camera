@@ -3,10 +3,10 @@
 
   <arg name="prefix"		default="a_bot_gripper_"/>
   <arg name="device"		default="robotiq_85"/>
-  <arg name="type"		default="urcap"/>
+  <arg name="driver"		default="urcap"/>
   <arg name="ip"		default="10.66.171.52"/>
 
-  <arg name="driver_arg"	value="$(arg type), $(arg ip)"/>
+  <arg name="driver_arg"	value="$(arg driver), $(arg ip)"/>
 
   <!-- Spawn driver -->
   <include file="$(dirname)/cmodel_driver.launch">

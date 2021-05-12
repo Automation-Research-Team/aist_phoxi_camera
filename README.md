@@ -1,31 +1,31 @@
-aist_robotiq: ROS driver for Robotiq two-finger grippers
+aist_robotiq: ROS action controller and driver for Robotiq two-finger grippers
 ==================================================
 
-This package provides ROS drivers and an action controller for [Robotiq](https://robotiq.com) two finger grippers, namely [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). 
-
-## Driver
-The following three drivers are available.
-
-- **TCP driver** -- Save the original depth image with no filteres applied to `~/.ros/.tif`. This file is used as the backgroud in processing the subsequent input images.
-- **RTU driver** -- First, capture the filtered intensity/color, depth and normal images. Then, create a PLY file from them and save it to `~/.ros/scene.ply`. Finally, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
-- **URCap driver** -- First, capture the filtered intensity/color, depth and normal images. Then, create a PLY file from them and save it to `~/.ros/scene.ply`. Finally, its file path as well as the frame id of the camera is published to the topic `~/file_info`.
+This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, namely [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). And the URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
 
 ## Controller
 
-The node applies the filtering process to the input depth images in the following order;
+The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server of [control_msgs](http://wiki.ros.org/control_msgs).[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type.
+
+## Driver
+The driver subscribes a command topic published by the controller and send them to the gripper. It also receives status from the gripper and publish them as a topic toward the controller. The following three drivers are available.
+
+- **TCP driver** -- Will be used when the gripper is connected to the [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm) which acts as a converter between TCP/IP and Modbus. Not tested.
+- **RTU driver** -- Not tested.
+- **URCap driver** -- Will be used when the gripper is connected to the control box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. The driver sends commands and receives status to/from the gripper via unix socket connected to the URCap server which is exposed to the port `63352` of the box.
 
 ## Gazebo plugin
 
 ## Usage
 You can start both driver and controller by the following command;
 ```shell
-$ roslaunch aist_robotiq run.launch ip:=<ip> [type:=<type>] [device:=<device>] [prefix:=<prefix>] 
+$ roslaunch aist_robotiq run.launch ip:=<ip> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>] 
 ```
 where
 - **ip** -- If `type = urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. Otherwise, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
-- **type** -- Specify driver type. Currently `tcp`, `rtu` and `urcap` are supported. (default: `urcap`)
+- **driver** -- Specify driver type. Currently `tcp`, `rtu` and `urcap` are supported. (default: `urcap`)
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
-- **prefix** -- Specify prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
+- **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
 
 Then the gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at these two position are redorded by the controller and will be used in the subsequent grasping tasks.
 
