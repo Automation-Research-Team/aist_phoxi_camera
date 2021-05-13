@@ -1,3 +1,7 @@
+# Gripper joint position in radians [0.70, 0,00]
+min_joint_position: 0.70
+max_joint_position: 0.00
+
 # Gripper width in meters [0, 0.140]
 min_position: 0.000
 max_position: 0.140

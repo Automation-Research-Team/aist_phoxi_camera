@@ -9,7 +9,7 @@
 	name="$(arg prefix)controller"
 	pkg="aist_robotiq" type="cmodel_controller.py"
 	output="screen" respawn="false">
-    <rosparam file="$(find aist_robotiq)/config/cmodel_$(arg device).yaml"
+    <rosparam file="$(find aist_robotiq)/config/$(arg device).yaml"
 	      subst_value="true"/>
   </node>
 

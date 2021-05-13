@@ -27,7 +27,7 @@
   	type="robot_state_publisher" respawn="false" output="screen"/>
 
   <!-- Load parameters for all controllers from YAML file -->
-  <rosparam file="$(dirname)/../config/controllers.yaml"
+  <rosparam file="$(dirname)/../config/gazebo_controllers.yaml"
 	    subst_value="true"/>
 
   <!-- Spawn joint state controller and gripper_controller -->
