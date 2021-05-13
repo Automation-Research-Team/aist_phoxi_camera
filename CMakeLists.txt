@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 2.8.3)
 project(aist_robotiq)
 
 find_package(catkin REQUIRED COMPONENTS
+  roscpp
   gazebo_ros
+  control_toolbox
   message_generation
+  xmlrpcpp
 )
 
 catkin_python_setup()
@@ -20,6 +23,9 @@ find_package(gazebo REQUIRED)
 catkin_package(
   DEPENDS
     gazebo_ros
+    gazebo_ros
+    control_toolbox
+    xmlrpcpp
 )
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
