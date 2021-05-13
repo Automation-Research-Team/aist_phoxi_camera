@@ -33,21 +33,21 @@ Two gazebo plugins conforming to [gazebo_ros_control](http://gazebosim.org/tutor
 
 
 ## Usage (real gripper)
-At first, please activate the gripper hardware through the URCap panel of the Teacning Pendant. 
+At first, please activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), this can be made through the URCap panel of the Teacning Pendant. 
 
 Then you can start both the driver and the controller by typing:
 ```shell
 $ roslaunch aist_robotiq run.launch ip:=<ip> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>] 
 ```
 where
-- **ip** -- If `type = urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. Otherwise, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
+- **ip** -- If `driver` = `urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com). Otherwise, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
 - **driver** -- Specify driver type. Currently `tcp`, `rtu` and `urcap` are supported. (default: `urcap`)
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
 - **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
 
-The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at these two position are redorded by the controller and will be used in the subsequent grasping tasks.
+The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at the both ends are redorded by the controller and will be used in the subsequent grasping tasks.
 
-Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs).[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient`:
+Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient` by:
 ```
 $ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
 ```
@@ -72,7 +72,7 @@ where
 
 This command starts 
 
-- [gazebo](http://gazebosim.org/) for simulating gripper pysics,
+- [gazebo](http://gazebosim.org/) for simulating gripper physics,
 - [joint_state_controller](http://wiki.ros.org/joint_state_controller) for publishing `/joint_states` of the virtual gripper simulated by `gazebo`,
 - [robot_state_publisher](http://wiki.ros.org/robot_state_publisher) for converting `/joint_states` to cartesian poses and sending to [tf](https://wiki.ros.org/tf2), and
 - [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) for handling goals requested by the clients.
