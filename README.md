@@ -1,11 +1,21 @@
 aist_robotiq: ROS action controller and driver for Robotiq two-finger grippers
 ==================================================
 
-This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, namely [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). And the URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
+This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, namely [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). The URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
+
+## URDF
+
+[URDF](http://wiki.ros.org/urdf) models of grippers can be found in `urdf` subdirectory. You can visualize each model by:
+
+```
+$ roslauch urdf_tutorial display.launch model:=robotiq_<device>_gripper.urdf
+```
+
+where `<device>` should be `85`, `140` or `hande`.
 
 ## Controller
 
-The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server of [control_msgs](http://wiki.ros.org/control_msgs).[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type.
+The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. This action type is same as the one adopted by [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) which is a part of [ros_controllers](http://wiki.ros.org/ros_controllers), a controller stack conforming to [ros_control](http://wiki.ros.org/ros_control) interface.
 
 ## Driver
 The driver subscribes a command topic published by the controller and send them to the gripper. It also receives status from the gripper and publish them as a topic toward the controller. The following three drivers are available.
@@ -16,8 +26,16 @@ The driver subscribes a command topic published by the controller and send them 
 
 ## Gazebo plugin
 
-## Usage
-You can start both driver and controller by the following command;
+Two gazebo plugins conforming to [gazebo_ros_control](http://gazebosim.org/tutorials/?tut=ros_control) are provided for simulating gripper physics:
+
+- **gazebo_mimic_joint_plugin**
+- **gazebo_disable_link_plugin**
+
+
+## Usage (real gripper)
+At first, please activate the gripper hardware through the URCap panel of the Teacning Pendant. 
+
+Then you can start both the driver and the controller by typing:
 ```shell
 $ roslaunch aist_robotiq run.launch ip:=<ip> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>] 
 ```
@@ -27,11 +45,47 @@ where
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
 - **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
 
-Then the gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at these two position are redorded by the controller and will be used in the subsequent grasping tasks.
+The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at these two position are redorded by the controller and will be used in the subsequent grasping tasks.
 
-Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs).[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient.py` and connect it to the server;
+Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs).[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient`:
 ```
 $ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
 ```
 where
 - **prefix** -- Specify gripper prefix which must be same as the one given to `run.launch`. (default: `a_bot_gripper_`)
+
+At this point, the launched nodes are connected like this:
+
+![real_graph](doc/real_graph.png)
+
+You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.
+
+## Usage (gazebo simulation)
+
+You can simulate gripper motions by using [Gazebo](http://gazebosim.org/) through the following command
+```
+$ roslaunch aist_robotiq gazebo_launch [device:=<device>] [prefix:=<prefix>]
+```
+where
+- **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
+- **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
+
+This command starts 
+
+- [gazebo](http://gazebosim.org/) for simulating gripper pysics,
+- [joint_state_controller](http://wiki.ros.org/joint_state_controller) for publishing `/joint_states` of the virtual gripper simulated by `gazebo`,
+- [robot_state_publisher](http://wiki.ros.org/robot_state_publisher) for converting `/joint_states` to cartesian poses and sending to [tf](https://wiki.ros.org/tf2), and
+- [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) for handling goals requested by the clients.
+
+Now, as in the case of real grippers, you can `axclient` can be used to send goal commands:
+```
+$ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
+```
+where
+- **prefix** -- Specify gripper prefix which must be same as the one given to `gazebo.launch`. (default: `a_bot_gripper_`)
+
+At this point, the launched nodes are connected like this:
+
+![gazebo_graph](doc/gazebo_graph.png)
+
+You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.
