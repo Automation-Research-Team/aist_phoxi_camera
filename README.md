@@ -1,13 +1,14 @@
 aist_robotiq: ROS action controller and driver for Robotiq two-finger grippers
 ==================================================
 
-This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, namely [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). The URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
+This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). The URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
 
 ## URDF
 
 [URDF](http://wiki.ros.org/urdf) models of grippers can be found in `urdf` subdirectory. You can visualize each model by:
 
 ```
+$ cd aist_robotiq/urdf
 $ roslauch urdf_tutorial display.launch model:=robotiq_<device>_gripper.urdf
 ```
 
@@ -64,7 +65,7 @@ You fill find that the gripper moves according to the goal position you give thr
 
 You can simulate gripper motions by using [Gazebo](http://gazebosim.org/) through the following command
 ```
-$ roslaunch aist_robotiq gazebo_launch [device:=<device>] [prefix:=<prefix>]
+$ roslaunch aist_robotiq gazebo.launch [device:=<device>] [prefix:=<prefix>]
 ```
 where
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
