@@ -1,17 +1,17 @@
-# Gripper joint position in radians [0.81, 0,00]
-min_joint_position: 0.81
-max_joint_position: 0.00
+# Gap width between fingers in meters [0.000, 0.085]
+min_gap: 0.000
+max_gap: 0.085
 
-# Gripper width in meters [0, 0.085]
-min_position: 0.000
-max_position: 0.085
+# Gripper position in radians [0.81, 0,00]
+min_position: 0.81
+max_position: 0.00
 
 # Gripper velocity in m/s [0.020, 0.150]
 min_velocity: 0.020
 max_velocity: 0.150
 
-# Gripper effort in N. [20.0, 235.0]
-min_effort:  20.0
+# Gripper effort in N. [0.0, 235.0]
+min_effort:   0.0
 max_effort: 235.0
 
 # Joint name

@@ -11,16 +11,13 @@ class CModelController(object):
         self._name = rospy.get_name()
 
         # Read configuration parameters
-        self._min_joint_position = rospy.get_param('~min_joint_position', 0.81)
-        self._max_joint_position = rospy.get_param('~max_joint_position', 0.00)
-        self._min_position       = rospy.get_param('~min_position', 0.0)
-        self._max_position       = rospy.get_param('~max_position', 0.085)
-        self._min_velocity       = rospy.get_param('~min_velocity', 0.013)
-        self._max_velocity       = rospy.get_param('~max_velocity', 0.1)
-        self._min_effort         = rospy.get_param('~min_effort', 40.0)
-        self._max_effort         = rospy.get_param('~max_effort', 100.0)
-        self._joint_name         = rospy.get_param('~joint_name',
-                                                   'finger_joint')
+        self._min_position = rospy.get_param('~min_position', 0.0)
+        self._max_position = rospy.get_param('~max_position', 0.085)
+        self._min_velocity = rospy.get_param('~min_velocity', 0.013)
+        self._max_velocity = rospy.get_param('~max_velocity', 0.1)
+        self._min_effort   = rospy.get_param('~min_effort', 40.0)
+        self._max_effort   = rospy.get_param('~max_effort', 100.0)
+        self._joint_name   = rospy.get_param('~joint_name', 'finger_joint')
 
         # Status recevied from driver, command sent to driver
         self._status_sub      = rospy.Subscriber('~status', amsg.CModelStatus,
@@ -55,7 +52,7 @@ class CModelController(object):
         joint_state = smsg.JointState()
         joint_state.header.stamp = rospy.Time.now()
         joint_state.name         = [self._joint_name]
-        joint_state.position     = [self._joint_position(status)]
+        joint_state.position     = [self._position(status)]
         self._joint_state_pub.publish(joint_state)
 
         # Handle calibration process if not moving
@@ -150,10 +147,6 @@ class CModelController(object):
         self._command_pub.publish(command)
         rospy.logdebug('(%s) stopping' % (self._name))
 
-    def _joint_position(self, status):
-        return (status.gPO - self._min_gap_counts) \
-             * self.joint_position_per_tick + self._min_joint_position
-
     def _position(self, status):
         return (status.gPO - self._min_gap_counts) * self.position_per_tick \
              + self._min_position
@@ -179,11 +172,6 @@ class CModelController(object):
 
     def _is_moving(self, status):
         return status.gGTO == 1 and status.gOBJ == 0
-
-    @property
-    def joint_position_per_tick(self):
-        return (self._max_joint_position - self._min_joint_position) \
-             / (self._max_gap_counts - self._min_gap_counts)
 
     @property
     def position_per_tick(self):

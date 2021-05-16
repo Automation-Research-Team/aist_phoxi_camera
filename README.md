@@ -19,11 +19,11 @@ where `<device>` should be `85`, `140` or `hande`.
 The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. This action type is same as the one adopted by [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) which is a part of [ros_controllers](http://wiki.ros.org/ros_controllers), a controller stack conforming to [ros_control](http://wiki.ros.org/ros_control) interface.
 
 ## Driver
-The driver subscribes a command topic published by the controller and send them to the gripper. It also receives status from the gripper and publish them as a topic toward the controller. The following three drivers are available.
+The driver subscribes a command topic published by the controller and transfer it to the gripper. It also receives status from the gripper and publish it as a topic toward the controller. The following three drivers are available.
 
-- **TCP driver** -- Will be used when the gripper is connected to the [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm) which acts as a converter between TCP/IP and Modbus. Not tested.
+- **TCP driver** -- To be used when the gripper is connected to the [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm) which acts as a converter between TCP/IP and Modbus. Not tested.
 - **RTU driver** -- Not tested.
-- **URCap driver** -- Will be used when the gripper is connected to the control box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. The driver sends commands and receives status to/from the gripper via unix socket connected to the URCap server which is exposed to the port `63352` of the box.
+- **URCap driver** -- To be used when the gripper is connected to the control box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. The driver sends commands and receives status to/from the gripper via unix socket connected to the URCap server which is exposed to the port `63352` of the box.
 
 ## Gazebo plugin
 
@@ -34,7 +34,7 @@ Two gazebo plugins conforming to [gazebo_ros_control](http://gazebosim.org/tutor
 
 
 ## Usage (real gripper)
-At first, please activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), this can be made through the URCap panel of the Teacning Pendant. 
+At first, you should activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), you can do it through the URCap panel of the Teaching Pendant. 
 
 Then you can start both the driver and the controller by typing:
 ```shell
@@ -46,7 +46,7 @@ where
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
 - **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
 
-The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at the both ends are redorded by the controller and will be used in the subsequent grasping tasks.
+The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at the both ends are recorded by the controller and will be used in the subsequent grasping tasks.
 
 Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient` by:
 ```
