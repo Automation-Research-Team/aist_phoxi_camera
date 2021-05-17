@@ -78,7 +78,7 @@ This command starts
 - [robot_state_publisher](http://wiki.ros.org/robot_state_publisher) for converting `/joint_states` to cartesian poses and sending to [tf](https://wiki.ros.org/tf2), and
 - [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) for handling goals requested by the clients.
 
-Now, as in the case of real grippers, you can `axclient` can be used to send goal commands:
+Now, as in the case of real grippers, you can use `axclient` to send goal commands to the controller:
 ```
 $ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
 ```
