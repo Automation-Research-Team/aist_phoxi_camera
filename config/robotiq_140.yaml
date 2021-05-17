@@ -3,7 +3,7 @@ min_gap: 0.000
 max_gap: 0.140
 
 # Gripper position in radians [0.70, 0,00]
-min_position: 0.70
+min_position: 0.69
 max_position: 0.00
 
 # Gripper velocity in m/s [0.030, 0.250]
