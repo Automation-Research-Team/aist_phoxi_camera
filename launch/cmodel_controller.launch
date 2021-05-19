@@ -3,21 +3,12 @@
 
   <arg name="prefix"	default="a_bot_gripper_"/>
   <arg name="device"	default="robotiq_85"/>
-  <arg name="sim"	default="false"/>
 
-  <node unless="$(arg sim)"
-	name="$(arg prefix)controller"
+  <node name="$(arg prefix)controller"
 	pkg="aist_robotiq" type="cmodel_controller.py"
 	output="screen" respawn="false">
-    <rosparam file="$(find aist_robotiq)/config/$(arg device).yaml"
+    <rosparam file="$(dirname)/../config/$(arg device).yaml"
 	      subst_value="true"/>
   </node>
-
-  <include if="$(arg sim)"
-	   file="$(find aist_bringup)/launch/include/ros_controller.launch">
-    <arg name="prefix"	value="$(arg prefix)"/>
-    <arg name="device"	value="$(arg device)"/>
-    <arg name="sim"	value="$(arg sim)"/>
-  </include>
 
 </launch>

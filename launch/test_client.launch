@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="prefix" default="a_bot_gripper_"/>
+
+  <!-- Spawn test_client -->
+  <node name="test_client" pkg="aist_robotiq" type="test_client.py"
+  	respawn="false" output="screen">
+    <param name="prefix" value="$(arg prefix)"/>
+  </node>
+
+  <!-- Spawn Rviz -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+	args="-d $(dirname)/../config/aist_robotiq.rviz" output="screen"/>
+
+</launch>
