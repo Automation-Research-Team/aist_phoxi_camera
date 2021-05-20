@@ -23,7 +23,7 @@ if __name__ == '__main__':
         print('  g:         Grasp')
         print('  r:         Release')
         print('  <numeric>: Open gripper with a specified gap value')
-        print('  q:         Quit')
+        print('  q:         Quit\n')
 
         key = raw_input('>> ')
         if key == 'g':
