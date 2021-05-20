@@ -9,7 +9,7 @@ from control_msgs       import msg as cmsg
 class GenericGripper(object):
     def __init__(self, action_ns,
                  min_position=0.0, max_position=0.1, max_effort=5.0):
-        object.__init__(self)
+        super(GenericGripper, self).__init__()
 
         self._feedback = cmsg.GripperCommandFeedback()
         self._client   = actionlib.SimpleActionClient(action_ns,
@@ -77,15 +77,16 @@ class RobotiqGripper(GenericGripper):
         assert self._min_gap < self._max_gap
         assert self._min_position != self._max_position
 
-        GenericGripper.__init__(self, ns + '/gripper_cmd',
-                                self._min_gap, self._max_gap, max_effort)
+        super(RobotiqGripper, self).__init__(ns + '/gripper_cmd',
+                                             self._min_gap, self._max_gap,
+                                             max_effort)
 
     def move(self, gap, max_effort=0, timeout=0):
-        return GenericGripper.move(self,
-                                   self._position(gap), max_effort, timeout)
+        return super(RobotiqGripper, self).move(self._position(gap),
+                                                max_effort, timeout)
 
     def wait(self, timeout=0):
-        result = GenericGripper.wait(self, timeout)
+        result = super(RobotiqGripper, self).wait(timeout)
         result.position = self._gap(result.position)
         return result
 
