@@ -1,3 +1,8 @@
+"""
+Clients of gripper action controller of control_msg/GripperCommandAction type.
+@file   __init__.py
+@author t.ueshiba@aist.go.jp
+"""
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
@@ -7,8 +12,17 @@ from control_msgs       import msg as cmsg
 #  class GenericGripper                                              #
 ######################################################################
 class GenericGripper(object):
-    def __init__(self, action_ns,
-                 min_position=0.0, max_position=0.1, max_effort=5.0):
+    """
+    Gripper client of control_msg/GripperCommandAction type.
+    """
+    def __init__(self, action_ns, min_position=0.0, max_position=0.1, max_effort=5.0):
+        """
+        Constructor
+        @param action_ns    namespace of action server to be connected
+        @param min_position position when fully closed
+        @param max_position position when fully opened
+        @param max_effort   maximum effort applied when gripping objects
+        """
         super(GenericGripper, self).__init__()
 
         self._feedback = cmsg.GripperCommandFeedback()
@@ -24,27 +38,73 @@ class GenericGripper(object):
 
     @property
     def parameters(self):
+        """
+        Return a dictionary of grippaer parameters
+        @return a dictionary with string keys of grippaer parameters
+        """
         return self._parameters
 
     @parameters.setter
     def parameters(self, parameters):
+        """
+        Set a dictionary of grippaer parameters
+        @param parameters a dictionary with string keys of grippaer parameters
+        """
         for key, value in parameters.items():
             self._parameters[key] = value
 
-    def grasp(self):
+    def grasp(self, timeout=0):
+        """
+        Grasp an object with the gripper.
+        Desired finger position and applied effort are specified by parameters
+        with 'grasp_position' and 'max_effort' keys, respectively,
+        @param timeout If positive, wait timeout seconds until
+                       the gripper completing the movement. If zero,
+                       wait forever until the completion. If negative,
+                       return immediately without waiting for completion.
+        @return result of control_msgs/GripperCommandResult type
+        """
         return self.move(self.parameters['grasp_position'],
-                         self.parameters['max_effort'])
+                         self.parameters['max_effort'], timeout)
 
-    def release(self):
-        return self.move(self.parameters['release_position'], 0)
+    def release(self, timeout=0):
+        """
+        Release an object grasped by the gripper.
+        Desired finger position is specified by a parameter
+        with 'release_position' key. No effort is applied.
+        @param timeout If positive, wait timeout seconds until
+                       the gripper completing the movement. If zero,
+                       wait forever until the completion. If negative,
+                       return immediately without waiting for completion.
+        @return result of control_msgs/GripperCommandResult type
+        """
+        return self.move(self.parameters['release_position'], 0, timeout)
 
     def move(self, position, max_effort=0, timeout=0):
+        """
+        Move fingers to the specified position with specified effort
+        @param position   finger position
+        @param max_effort maximum effort to be applied
+        @param timeout    If positive, wait timeout seconds until
+                          the gripper completing the movement. If zero,
+                          wait forever until the completion. If negative,
+                          return immediately without waiting for completion.
+        @return result of control_msgs/GripperCommandResult type
+        """
         self._client.send_goal(cmsg.GripperCommandGoal(
                                    cmsg.GripperCommand(position, max_effort)),
                                feedback_cb=self._feedback_cb)
         return self.wait(timeout)
 
     def wait(self, timeout=0):
+        """
+        Wait the gripper for completing the movement.
+        @param timeout    If positive, wait timeout seconds until
+                          the gripper completing the movement. If zero,
+                          wait forever until the completion. If negative,
+                          return immediately without waiting for completion.
+        @return result of control_msgs/GripperCommandResult type
+        """
         if timeout < 0:
             return cmsg.GripperCommandResult(0, 0, False, False)
         elif not self._client.wait_for_result(rospy.Duration(timeout)):
@@ -57,6 +117,9 @@ class GenericGripper(object):
         return self._client.get_result()
 
     def cancel(self):
+        """
+        Cancel the latest motion command sent to the gripper.
+        """
         if self._client.get_state() in (GoalStatus.PENDING, GoalStatus.ACTIVE):
             self._client.cancel_goal()
 
@@ -68,6 +131,12 @@ class GenericGripper(object):
 ######################################################################
 class RobotiqGripper(GenericGripper):
     def __init__(self, prefix='a_bot_gripper_', max_effort=0.0):
+        """
+        Constructor
+        @param prefix     string prefix for identifying a specific gripper
+                          from multiple devices
+        @param max_effort maximum effort applied when gripping objects
+        """
         ns = prefix + 'controller'
         self._min_gap      = rospy.get_param(ns + '/min_gap',      0.000)
         self._max_gap      = rospy.get_param(ns + '/max_gap',      0.085)

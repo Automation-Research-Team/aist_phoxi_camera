@@ -3,6 +3,10 @@
 
   <arg name="prefix" default="a_bot_gripper_"/>
 
+  <!-- Convert joint states to TF transforms for rviz, etc -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+  	type="robot_state_publisher" respawn="false" output="screen"/>
+
   <!-- Spawn test_client -->
   <node name="test_client" pkg="aist_robotiq" type="test_client.py"
   	respawn="false" output="screen">

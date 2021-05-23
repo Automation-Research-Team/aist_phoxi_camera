@@ -57,7 +57,7 @@ where
 
 At this point, the launched nodes are connected like this:
 
-![real_graph](doc/real_graph.png)
+![real_graph](docs/real_graph.png)
 
 You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.
 
@@ -87,6 +87,6 @@ where
 
 At this point, the launched nodes are connected like this:
 
-![gazebo_graph](doc/gazebo_graph.png)
+![gazebo_graph](docs/gazebo_graph.png)
 
 You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.

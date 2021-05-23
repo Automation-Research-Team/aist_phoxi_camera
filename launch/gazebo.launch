@@ -22,10 +22,6 @@
 	args="-urdf -param robot_description -model robot"
 	respawn="false" output="screen"/>
 
-  <!-- Convert joint states to TF transforms for rviz, etc -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher"
-  	type="robot_state_publisher" respawn="false" output="screen"/>
-
   <!-- Load parameters for all controllers from YAML file -->
   <rosparam ns="$(arg prefix)controller"
 	    file="$(dirname)/../config/$(arg device).yaml"
