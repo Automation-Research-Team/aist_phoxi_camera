@@ -40,7 +40,7 @@ class GenericGripper(object):
     def parameters(self):
         """
         Return a dictionary of grippaer parameters
-        @return a dictionary with string keys of grippaer parameters
+        @return a dictionary of grippaer parameters with string keys
         """
         return self._parameters
 
@@ -48,7 +48,7 @@ class GenericGripper(object):
     def parameters(self, parameters):
         """
         Set a dictionary of grippaer parameters
-        @param parameters a dictionary with string keys of grippaer parameters
+        @param parameters a dictionary of grippaer parameters with string keys
         """
         for key, value in parameters.items():
             self._parameters[key] = value
@@ -59,9 +59,10 @@ class GenericGripper(object):
         Desired finger position and applied effort are specified by parameters
         with 'grasp_position' and 'max_effort' keys, respectively,
         @param timeout If positive, wait timeout seconds until
-                       the gripper completing the movement. If zero,
-                       wait forever until the completion. If negative,
-                       return immediately without waiting for completion.
+                       the gripper completing the movement.
+                       If zero, wait forever until the completion.
+                       If negative, return immediately without waiting
+                       for completion.
         @return result of control_msgs/GripperCommandResult type
         """
         return self.move(self.parameters['grasp_position'],
@@ -73,9 +74,10 @@ class GenericGripper(object):
         Desired finger position is specified by a parameter
         with 'release_position' key. No effort is applied.
         @param timeout If positive, wait timeout seconds until
-                       the gripper completing the movement. If zero,
-                       wait forever until the completion. If negative,
-                       return immediately without waiting for completion.
+                       the gripper completing the movement.
+                       If zero, wait forever until the completion.
+                       If negative, return immediately without waiting
+                       for completion.
         @return result of control_msgs/GripperCommandResult type
         """
         return self.move(self.parameters['release_position'], 0, timeout)
@@ -86,9 +88,10 @@ class GenericGripper(object):
         @param position   finger position
         @param max_effort maximum effort to be applied
         @param timeout    If positive, wait timeout seconds until
-                          the gripper completing the movement. If zero,
-                          wait forever until the completion. If negative,
-                          return immediately without waiting for completion.
+                          the gripper completing the movement.
+                          If zero, wait forever until the completion.
+                          If negative, return immediately without waiting
+                          for completion.
         @return result of control_msgs/GripperCommandResult type
         """
         self._client.send_goal(cmsg.GripperCommandGoal(
@@ -99,10 +102,11 @@ class GenericGripper(object):
     def wait(self, timeout=0):
         """
         Wait the gripper for completing the movement.
-        @param timeout    If positive, wait timeout seconds until
-                          the gripper completing the movement. If zero,
-                          wait forever until the completion. If negative,
-                          return immediately without waiting for completion.
+        @param timeout If positive, wait timeout seconds until
+                       the gripper completing the movement.
+                       If zero, wait forever until the completion.
+                       If negative, return immediately without waiting
+                       for completion.
         @return result of control_msgs/GripperCommandResult type
         """
         if timeout < 0:
