@@ -1,7 +1,16 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="prefix" default="a_bot_gripper_"/>
+  <arg name="prefix"	default="a_bot_gripper_"/>
+  <arg name="device"	default="robotiq_85"/>
+  <arg name="sim"	default="false"/>
+
+  <!-- Push robot_description to factory and spawn robot in gazebo -->
+  <param unless="$(arg sim)"
+	 name="robot_description"
+	 command="$(find xacro)/xacro
+		  '$(dirname)/../urdf/$(arg device)_gripper.urdf'
+		  prefix:='$(arg prefix)'"/>
 
   <!-- Convert joint states to TF transforms for rviz, etc -->
   <node name="robot_state_publisher" pkg="robot_state_publisher"
