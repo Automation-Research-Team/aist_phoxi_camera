@@ -579,7 +579,15 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 {
     using namespace	pho::api;
 
+    ROS_INFO_STREAM('('
+		    << _device->HardwareIdentification.GetValue()
+		    << ") trigger_frame: service requested");
+    
     const auto	frameId = _device->TriggerFrame(true, true);
+
+    ROS_INFO_STREAM('('
+		    << _device->HardwareIdentification.GetValue()
+		    << ") trigger_frame: triggered");
 
     switch (frameId)
     {
@@ -609,6 +617,10 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 	    break;
 	}
 
+	ROS_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") trigger_frame: frame got");
+	
 	if (_frame->Info.FrameIndex != frameId)
 	{
 	    res.success = false;
@@ -629,12 +641,12 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
     if (res.success)
 	ROS_INFO_STREAM('('
 			<< _device->HardwareIdentification.GetValue()
-			<< ") get_frame: "
+			<< ") trigger_frame: "
 			<< res.message);
     else
 	ROS_ERROR_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
-			 << ") get_frame: "
+			 << ") trigger_frame: "
 			 << res.message);
 
     return true;
@@ -705,13 +717,6 @@ Camera::get_hardware_identification(GetString::Request&  req,
 void
 Camera::publish_frame() const
 {
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue() << ") "
-		    << "PointCloud: "
-		    << _frame->PointCloud.Size.Width << 'x'
-		    << _frame->PointCloud.Size.Height
-		    << " [frame #" << _frame->Info.FrameIndex << ']');
-
   // Common setting.
     const auto	now = ros::Time::now();
 
@@ -731,6 +736,13 @@ Camera::publish_frame() const
 
   // publish camera_info
     publish_camera_info(now);
+
+    ROS_INFO_STREAM('('
+		    << _device->HardwareIdentification.GetValue() << ") "
+		    << "frame published: "
+		    << _frame->PointCloud.Size.Width << 'x'
+		    << _frame->PointCloud.Size.Height
+		    << " [frame #" << _frame->Info.FrameIndex << ']');
 }
 
 void
