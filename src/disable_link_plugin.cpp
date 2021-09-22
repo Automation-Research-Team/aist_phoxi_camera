@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *  Copyright (c) 2014, Konstantinos Chatzilygeroudis
  *  Copyright (c) 2016, CRI Lab at Nanyang Technological University
+ *  Copyright (c) 2021, National Insitute of Advanced Industrial Science and Technology (AIST)
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without

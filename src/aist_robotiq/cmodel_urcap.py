@@ -2,7 +2,6 @@
 # BASED ON: https://dof.robotiq.com/discussion/1962/programming-options-ur16e-2f-85#latest
 # Ported to ROS by felixvd
 
-
 import socket
 import threading
 import time
