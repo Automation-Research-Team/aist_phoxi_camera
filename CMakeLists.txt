@@ -23,7 +23,6 @@ find_package(gazebo REQUIRED)
 catkin_package(
   DEPENDS
     gazebo_ros
-    gazebo_ros
     control_toolbox
     xmlrpcpp
 )

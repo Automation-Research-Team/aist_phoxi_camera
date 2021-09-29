@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>aist_robotiq</name>
   <version>0.1.0</version>
   <description>The robotiq_gazebo package</description>
@@ -13,17 +13,13 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>gazebo_ros</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>control_toolbox</build_depend>
-  <build_depend>xmlrpcpp</build_depend>
   <build_depend>message_generation</build_depend>
-
-  <run_depend>gazebo_ros</run_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>control_toolbox</run_depend>
-  <run_depend>xmlrpcpp</run_depend>
-  <run_depend>message_runtime</run_depend>
+  <exec_depend>message_runtime</exec_depend>
+  
+  <depend>gazebo_ros</depend>
+  <depend>roscpp</depend>
+  <depend>control_toolbox</depend>
+  <depend>xmlrpcpp</depend>
 
   <export>
     <gazebo_ros plugin_path="${prefix}/lib" gazebo_media_path="${prefix}" />
