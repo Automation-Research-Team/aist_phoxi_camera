@@ -97,12 +97,6 @@ target_link_libraries(
 )
 
 install(
-  PROGRAMS
-    src/aist_phoxi_camera_example.py
-    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(
   TARGETS
     ${PROJECT_NAME} ${PROJECT_NAME}_nodelet
   ARCHIVE
