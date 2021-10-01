@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#
 # Software License Agreement (BSD License)
 #
 # Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
@@ -31,7 +32,9 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+#
+# Author: Toshio Ueshiba
+#
 import rospy, os
 import numpy as np
 from sensor_msgs  import msg as smsg
