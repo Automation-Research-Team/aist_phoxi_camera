@@ -31,7 +31,9 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+#
+# Author: Toshio Ueshiba
+#
 import argparse, rospy, numpy as np, message_filters, ros_numpy, cv2
 from sensor_msgs import msg as smsg
 
