@@ -44,6 +44,8 @@ from actionlib    import SimpleActionServer
 
 class CModelController(object):
     def __init__(self):
+        super(CModelController, self).__init__()
+
         self._name = rospy.get_name()
 
         # Read configuration parameters

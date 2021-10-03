@@ -7,6 +7,11 @@ find_package(catkin REQUIRED COMPONENTS
   control_toolbox
   message_generation
   xmlrpcpp
+  rospy
+  actionlib
+  actionlib_msgs
+  control_msgs
+  sensor_msgs
 )
 
 catkin_python_setup()
@@ -25,6 +30,10 @@ catkin_package(
     gazebo_ros
     control_toolbox
     xmlrpcpp
+    actionlib
+    actionlib_msgs
+    control_msgs
+    sensor_msgs
 )
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
