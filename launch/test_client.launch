@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="prefix"	default="a_bot_gripper_"/>
+  <arg name="device"	default="robotiq_85"/>
+  <arg name="sim"	default="false"/>
+
+  <!-- Push robot_description to factory and spawn robot in gazebo -->
+  <param unless="$(arg sim)"
+	 name="robot_description"
+	 command="$(find xacro)/xacro
+		  '$(dirname)/../urdf/$(arg device)_gripper.urdf'
+		  prefix:='$(arg prefix)'"/>
+
+  <!-- Convert joint states to TF transforms for rviz, etc -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+  	type="robot_state_publisher" respawn="false" output="screen"/>
+
+  <!-- Spawn test_client -->
+  <node name="test_client" pkg="aist_robotiq" type="test_client.py"
+  	respawn="false" output="screen">
+    <param name="prefix" value="$(arg prefix)"/>
+  </node>
+
+  <!-- Spawn Rviz -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz"
+	args="-d $(dirname)/../config/aist_robotiq.rviz" output="screen"/>
+
+</launch>

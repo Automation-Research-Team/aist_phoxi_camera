@@ -1,0 +1,6 @@
+uint8 rACT  # activate (0: deactivate, 1: activate)
+uint8 rGTO  # go-to (0: stop, 1: move with values set in rPR, rSP and rFR)
+uint8 rATR  # auto-release (0: normal, 1: emergency slow move)
+uint8 rPR   # position request (0-255, 0 = open)
+uint8 rSP   # speed request (0-255)
+uint8 rFR   # force request (0-255)

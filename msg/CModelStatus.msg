@@ -1,0 +1,8 @@
+uint8 gACT  # activation status (0: gripper reset, 1: gripper activation)
+uint8 gGTO  # action status (0: stopped, 1: go to position request)
+uint8 gSTA  # status (0: is reset, 1: activating, 3: active)
+uint8 gOBJ  # object detection (0: moving, 1: outer grip, 2: inner grip, 3: no object at rest)
+uint8 gFLT  # fault (0: ok, other: see manual for errors)
+uint8 gPR   # position request (echo of last commanded position)
+uint8 gPO   # actual position (0-255, 0 = open)
+uint8 gCU   # actual current (0-255, proportional to actual force)

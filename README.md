@@ -1,122 +1,92 @@
-# ART ROS packages
-ROS wrappers for various projects within ART lab
+aist_robotiq: ROS action controller and driver for Robotiq two-finger grippers
+==================================================
 
-## What's so special about this branch?
-* nothing, just little bit of instructions and a guide for others<br />
+This package provides a ROS action controller and drivers for [Robotiq](https://robotiq.com) two finger grippers, [2F-85, 2F-140](https://robotiq.com/products/2f85-140-adaptive-robot-gripper) and [Hand-E](https://robotiq.com/products/hand-e-adaptive-robot-gripper). The package is forked from the [robotiq package developed by CRI group](https://github.com/crigroup/robotiq). The URCap driver is borrowed from [the code by Felix von Drigalski](https://gist.github.com/felixvd/d538cad3150e9cac28dae0a3132701cf).
 
-* added support for handeye calibaration using realsenseD435 rgbd camera with aruco marker ID=32, size=0.16, margin=0.01
+## URDF
 
-* calibration accuracy achieved within `0.007m` in position and `0.69` in degrees
+[URDF](http://wiki.ros.org/urdf) models of grippers can be found in `urdf` subdirectory. You can visualize each model by:
 
-* main usage of this branch was to utilize realsenseD435 for pose detection and Pick-n-Place experiment with `UR5` using `MoveIt`
-
-* tested on Ubuntu 18.04, ROS Melodic, RTX 2080-Ti, CUDA 10.1, Python2.7/3.7
-
-
-# Usage
-## 1. Installation, (I know its messy!)
-* this will install everything, `UR5`, `MoveIt`, `realsense`, `aruco` packages
-* cd ~/catkin_ws/src
-    * git clone https://gitlab.com/art-aist-private/aist_aruco_ros.git
-    * git clone https://gitlab.com/art-aist-private/artros.git
-        * cd artros/
-        * git checkout realsenseD435
-        * git submodule update --init
-        * rosdep install -i --from-paths .
-        * cd ~/catkin_ws/src/artros/aist_phoxi_camera/install-scripts/
-            * sudo ./install-phoxi-control.sh
-        * cd ~/catkin_ws/src/artros/aist_localization/install-scripts/
-            * sudo ./install-photoneo-localization.sh
-        * sudo reboot (*restart your pc*)
-
-        * copy these lines to your ~/.bashrc
-            * *you don't need them but they are part of other pkgs*
-            ```
-            ###
-            ### PhoXi settings
-            ###
-            if [ -d /opt/PhotoneoPhoXiControl-1.2.14 ]; then
-            export PHOXI_CONTROL_PATH=/opt/PhotoneoPhoXiControl-1.2.14
-            export PATH=${PATH}:${PHOXI_CONTROL_PATH}/bin
-            export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHOXI_CONTROL_PATH}/API/lib
-            export CPATH=${CPATH}:${PHOXI_CONTROL_PATH}/API/include
-            fi
-
-            ###
-            ### PhoLocalization settings
-            ###
-            if [ -d /opt/PhotoneoSDK/Localization ]; then
-            export PHO_LOCALIZATION_PATH=/opt/PhotoneoSDK/Localization
-            export PATH=${PATH}:${PHO_LOCALIZATION_PATH}/bin
-            export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PHO_LOCALIZATION_PATH}/lib
-            export CPATH=${CPATH}:${PHO_LOCALIZATION_PATH}/include
-            fi
-            ```
-        * ***finally***, you can complie
-        * cd ~/catkin_ws/
-            * catkin_make
-            * catkin_make install
-            * cd devel
-            * source ./setup.bash
-
-        ** `Note:` if you get catkin_make `error` in *robotiq-cri* due to *`byte to str conversion`* do the following
-        * go to line https://gitlab.com/art-aist/robotiq-cri/-/blob/devel-aist/robotiq_control/src/robotiq_control/cmodel_urscript.py#L125
-        * in method ``buildCommandProgram`` replace line
-        ```
-        complete_program += program_line
-        ```
-        with
-        ```
-        encoding = 'utf-8'
-        complete_program += program_line.decode(encoding)
-        ```
-
-## 2. if installation is successful, test it!
- * In simulation environment
-    * roslaunch aist_bringup mocap_bringup.launch sim:=true
-    * ![Alt text](images/scsim.png?raw=true "sim environment")
- * In real environment with UR5
-    * roslaunch aist_bringup mocap_bringup.launch
-    * ![Alt text](images/real.png?raw=true "real robot environment")
-
-
-## 3. To perform handeye calibration using realsenseD435
-* go to https://gitlab.com/art-aist-private/artros/-/tree/realsenseD435/aist_handeye_calibration and follow the instructions. or....(*follow below instructions*)
-    * use config:=`mocap`
-    * use camera_name:=`realsenseD435`
-
-    ** **use this when calibrating realsenseD435**
-    * run handeye calibration
-    * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 scene:=mocap_calibration
-
-    * start robot-control
-        * roslaunch aist_handeye_calibration run_calibration.launch config:=mocap camera_name:=realsenseD435
-
-    ** **use this when verifying calibration of realsenseD435**
-    * to verify handeye calibration
-        * roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 check:=true
-
-    * move UR5 ef to calibrated pose of aruco marker
-        * roslaunch aist_handeye_calibration check_calibration.launch config:=mocap camera_name:=realsenseD435
-
-## 4. If you wish to test further and perform object picking
-* clone `yolo6d_ros` pkg https://github.com/avasalya/Yolo6D_ROS.git (***wt missing***? try password: `telexistence`)
-* follow instructions and setup as per requirement
-* by default, aruco marker pose is published as geometry_msgs/`PoseStamped`
-* but Yolo6D ros-wrapper publishes pose as geometry_msgs/`PoseArray`
-* so to adapt, change line https://gitlab.com/art-aist-private/artros/-/blob/realsenseD435/aist_routines/src/aist_routines/__init__.py#L379
 ```
-    est_pose = target_pose.poses[n] #poseArray
-    # est_pose = target_pose.pose #poseStamped
+$ cd aist_robotiq/urdf
+$ roslauch urdf_tutorial display.launch model:=robotiq_<device>_gripper.urdf
 ```
-* `n` is the count of detected object, in my case I detect only 1 onigiri so, n is 0
+
+where `<device>` should be `85`, `140` or `hande`.
+
+## Controller
+
+The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. This action type is same as the one adopted by [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) which is a part of [ros_controllers](http://wiki.ros.org/ros_controllers), a controller stack conforming to [ros_control](http://wiki.ros.org/ros_control) interface.
+
+## Driver
+The driver subscribes a command topic published by the controller and transfer it to the gripper. It also receives status from the gripper and publish it as a topic toward the controller. The following three drivers are available.
+
+- **TCP driver** -- To be used when the gripper is connected to the [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm) which acts as a converter between TCP/IP and Modbus. Not tested.
+- **RTU driver** -- Not tested.
+- **URCap driver** -- To be used when the gripper is connected to the control box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. The driver sends commands and receives status to/from the gripper via unix socket connected to the URCap server which is exposed to the port `63352` of the box.
+
+## Gazebo plugin
+
+Two gazebo plugins conforming to [gazebo_ros_control](http://gazebosim.org/tutorials/?tut=ros_control) are provided for simulating gripper physics:
+
+- **gazebo_mimic_joint_plugin**
+- **gazebo_disable_link_plugin**
 
 
-## 5. Try out pick-n-place experiment
-* `roslaunch aist_handeye_calibration mocap_handeye_calibration.launch camera_name:=realsenseD435 check:=true`
-* activate `yolo6d` conda environment
-    * `rosrun yolo6d_ros yolo6d_ros.py pnp`
-* `roslaunch yolo6d_ros grasping.launch`
-    * afterwards, follow instructions as displayed on the terminal.
+## Usage (real gripper)
+At first, you should activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), you can do it through the URCap panel of the Teaching Pendant. 
 
-* you should see output similar to this ![Alt text](images/onigiripick.png?raw=true "yolo6d pose")
+Then you can start both the driver and the controller by typing:
+```shell
+$ roslaunch aist_robotiq run.launch ip:=<ip> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>] 
+```
+where
+- **ip** -- If `driver` = `urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com). Otherwise, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
+- **driver** -- Specify driver type. Currently `tcp`, `rtu` and `urcap` are supported. (default: `urcap`)
+- **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
+- **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
+
+The gripper will be automatically calibrated by fully opening and then fully closing its fingers. Encoder readings at the both ends are recorded by the controller and will be used in the subsequent grasping tasks.
+
+Now, you can make a connection to the action server of the controller from any action clients of [control_msgs](http://wiki.ros.org/control_msgs)::[GripperCommand](http://docs.ros.org/en/api/control_msgs/html/action/GripperCommand.html) type. The simplest way for testing is invoking [actionlib](http://wiki.ros.org/actionlib)'s `axclient` by:
+```
+$ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
+```
+where
+- **prefix** -- Specify gripper prefix which must be same as the one given to `run.launch`. (default: `a_bot_gripper_`)
+
+At this point, the launched nodes are connected like this:
+
+![real_graph](docs/real_graph.png)
+
+You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.
+
+## Usage (gazebo simulation)
+
+You can simulate gripper motions by using [Gazebo](http://gazebosim.org/) through the following command
+```
+$ roslaunch aist_robotiq gazebo.launch [device:=<device>] [prefix:=<prefix>]
+```
+where
+- **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
+- **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
+
+This command starts 
+
+- [gazebo](http://gazebosim.org/) for simulating gripper physics,
+- [joint_state_controller](http://wiki.ros.org/joint_state_controller) for publishing `/joint_states` of the virtual gripper simulated by `gazebo`,
+- [robot_state_publisher](http://wiki.ros.org/robot_state_publisher) for converting `/joint_states` to cartesian poses and sending to [tf](https://wiki.ros.org/tf2), and
+- [gripper_action_controller](http://wiki.ros.org/gripper_action_controller) for handling goals requested by the clients.
+
+Now, as in the case of real grippers, you can use `axclient` to send goal commands to the controller:
+```
+$ roslaunch aist_robotiq test.launch [prefix:=<prefix>]
+```
+where
+- **prefix** -- Specify gripper prefix which must be same as the one given to `gazebo.launch`. (default: `a_bot_gripper_`)
+
+At this point, the launched nodes are connected like this:
+
+![gazebo_graph](docs/gazebo_graph.png)
+
+You fill find that the gripper moves according to the goal position you give through the GUI of `axclient`.
