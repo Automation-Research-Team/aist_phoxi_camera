@@ -85,13 +85,11 @@ class Camera
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			    T value,
-			    bool reset, const std::string& name)	;
+			    T value, bool reset)			;
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member,
-			  T value, const std::string& name)		;
+			  T F::* member, T value)			;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     bool	get_device_list(GetStringList::Request&  req,

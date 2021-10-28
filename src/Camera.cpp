@@ -136,208 +136,22 @@ Camera::Camera(const ros::NodeHandle& nh)
 		    << ") Initializing configuration.");
 
   // Setup ddynamic_reconfigure services.
-  // -- image resolution --
-    const auto	modes = _device->SupportedCapturingModes.GetValue();
-    std::map<std::string, int>	enum_resolution;
-    int				idx = 0;
-    for (int i = 0; i < modes.size(); ++i)
+    switch (_device->GetType())
     {
-	const auto&	resolution = modes[i].Resolution;
-	enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
-				std::to_string(resolution.Height), i);
-	if (modes[i] == _device->CapturingMode)
-	    idx = i;
+      case pho::api::PhoXiScanner:
+	setup_ddr_phoxi();
+	break;
+      case pho::api::MotionCam3D:
+	setup_ddr_motioncam();
+	break;
+      default:
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") Unknown device type["
+			 << std::string(_device->GetType()) << ']');
+	throw std::runtime_error("");
     }
-    _ddr.registerEnumVariable<int>(
-	    "resolution", idx,
-	    boost::bind(&Camera::set_resolution, this, _1),
-	    "Image resolution", enum_resolution);
-
-  // -- trigger mode --
-    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::NoValue)
-    {
-	std::map<std::string, int>	enum_trigger = {{"Freerun",  0},
-							{"Software", 1},
-							{"Hardware", 2}};
-	_ddr.registerEnumVariable<int>(
-	    "trigger_mode", _device->TriggerMode.GetValue(),
-	    boost::bind(&Camera::set_feature<PhoXiTriggerMode, int>, this,
-			&PhoXi::TriggerMode, _1, true, "trigger_mode"),
-	    "Trigger mode", enum_trigger);
-    }
-
-  // -- timeout --
-    std::map<std::string, int>	enum_timeout = {{"ZeroTimeout", 0},
-						{"Infinity",   -1},
-						{"LastStored", -2},
-						{"Default",    -3}};
-    _ddr.registerEnumVariable<int>(
-	    "timeout",
-	    _device->Timeout.GetValue(),
-	    boost::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
-			&PhoXi::Timeout, _1, false, "timeout"),
-	    "Timeout settings", enum_timeout);
-
-  // -- scan multiplier --
-    _ddr.registerVariable<int>(
-	    "scan_multiplier",
-	    _device->CapturingSettings->ScanMultiplier,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::ScanMultiplier,
-			_1, "scan_multiplier"),
-	    "The number of scans taken and merged to sigle output",
-	    1, 50, "capturing_settings");
-
-  // -- shutter multiplier --
-    _ddr.registerVariable<int>(
-	    "shutter_multiplier",
-	    _device->CapturingSettings->ShutterMultiplier,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::ShutterMultiplier,
-			_1, "shutter_multiplier"),
-	    "The number of repeats of indivisual pattern",
-	    1, 20, "capturing_settings");
-
-  // -- ambient light suppression --
-    _ddr.registerVariable<bool>(
-	    "ambient_light_suppression",
-	    _device->CapturingSettings->AmbientLightSuppression,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::AmbientLightSuppression,
-			_1, "ambient_light_suppression"),
-	    "Enables the mode that suppress ambient illumination.",
-	    false, true, "capturing_settings");
-
-  // -- maximum fps--
-    _ddr.registerVariable<double>(
-	    "maximum_fps",
-	    _device->CapturingSettings->MaximumFPS,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, double>,
-			this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::MaximumFPS,
-			_1, "maximum_fps"),
-	    "Maximum fps in freerun mode",
-	    0.1, 30.0, "capturing_settings");
-
-  // -- single pattern exposure --
-    const auto	exposures = _device->SupportedSinglePatternExposures.GetValue();
-    std::map<std::string, double>	enum_single_pattern_exposure;
-    for (const auto& exposure: exposures)
-	enum_single_pattern_exposure.emplace(std::to_string(exposure),
-					     exposure);
-  /*
-    _ddr.registerEnumVariable<double>(
-	    "single_pattern_exposure",
-	    _device->CapturingSettings->SinglePatternExposure,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, double>,
-			this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::SinglePatternExposure,
-			_1, "single_pattern_exposure"),
-	    "Exposure time for a single patter in miliseconds",
-	    enum_single_pattern_exposure);
-  */
-  // -- coding strategy --
-    if (_device->CapturingSettings->CodingStrategy !=
-	PhoXiCodingStrategy::NoValue)
-    {
-	std::map<std::string, int>
-	    enum_coding_strategy = {
-		{"Normal",	     PhoXiCodingStrategy::Normal},
-		{"Interreflections", PhoXiCodingStrategy::Interreflections}};
-	_ddr.registerEnumVariable<int>(
-    	    "coding_strategy",
-    	    _device->CapturingSettings->CodingStrategy,
-    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-					   PhoXiCodingStrategy>,
-    			this,
-    			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::CodingStrategy,
-			_1, "coding_strategy"),
-    	    "Coding strategy", enum_coding_strategy, "capturing_settings");
-    }
-
-  // -- coding quality --
-    if (_device->CapturingSettings->CodingQuality !=
-	PhoXiCodingQuality::NoValue)
-    {
-	std::map<std::string, int>
-	    enum_coding_quality = {{"Fast",  PhoXiCodingQuality::Fast},
-				   {"High",  PhoXiCodingQuality::High},
-				   {"Ultra", PhoXiCodingQuality::Ultra}};
-	_ddr.registerEnumVariable<int>(
-    	    "coding_quality",
-    	    _device->CapturingSettings->CodingQuality,
-    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-					   PhoXiCodingQuality>,
-    			this,
-    			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::CodingQuality,
-			_1, "coding_quality"),
-    	    "Coding quality", enum_coding_quality, "capturing_settings");
-    }
-
-  // -- texture source --
-    if (_device->CapturingSettings->TextureSource !=
-    	PhoXiTextureSource::NoValue)
-    {
-	std::map<std::string, int>
-	    enum_texture_source = {{"Computed", PhoXiTextureSource::Computed},
-				   {"LED",	PhoXiTextureSource::LED},
-				   {"Laser",    PhoXiTextureSource::Laser},
-				   {"Focus",    PhoXiTextureSource::Focus},
-				   {"Color",    PhoXiTextureSource::Color}};
-	_ddr.registerEnumVariable<int>(
-    	    "texture_source",
-    	    _device->CapturingSettings->TextureSource,
-    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-					   PhoXiTextureSource>,
-    			this,
-    			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::TextureSource,
-			_1, "texture_source"),
-    	    "Source used for texture image", enum_texture_source,
-	    "capturing_settings");
-    }
-
-  // -- laser power --
-    _ddr.registerVariable<int>(
-	    "laser_power",
-	    _device->CapturingSettings->LaserPower,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::LaserPower,
-			_1, "lawer_power"),
-	    "Laser power",
-	    0, 4095, "capturing_settings");
-
-  // -- hardware trigger --
-    _ddr.registerVariable<bool>(
-	    "hardware_trigger",
-	    _device->CapturingSettings->HardwareTrigger,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::HardwareTrigger,
-			_1, "hardware_trigger"),
-	    "Hardware trigger",
-	    0, 4095, "capturing_settings");
-
-  // -- confidence value --
-    _ddr.registerVariable<double>(
-	    "confidence",
-	    _device->ProcessingSettings->Confidence,
-	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
-			this,
-			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::Confidence,
-			_1, "confidence"),
-	    "Confidence value",
-	    0.0, 100.0);
-
+    
   // -- enable/disable publish topics --
     _ddr.registerVariable<bool>(
 	    "send_point_cloud",
@@ -345,40 +159,40 @@ Camera::Camera(const ros::NodeHandle& nh)
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendPointCloud,
-			_1, "send_point_cloud"),
-	    "Publish point cloud if set.");
+			_1),
+	    "Publish point cloud if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_normal_map",
 	    _device->OutputSettings->SendNormalMap,
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendNormalMap,
-			_1, "send_normal_map"),
-	    "Publish normal map if set.");
+			_1),
+	    "Publish normal map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_depth_map",
 	    _device->OutputSettings->SendDepthMap,
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendDepthMap,
-			_1, "send_depth_map"),
-	    "Publish depth map if set.");
+			_1),
+	    "Publish depth map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_confidence_map",
 	    _device->OutputSettings->SendConfidenceMap,
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendConfidenceMap,
-			_1, "send_confidence_map"),
-	    "Publish confidence map if set.");
+			_1),
+	    "Publish confidence map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_texture",
 	    _device->OutputSettings->SendTexture,
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendTexture,
-			_1, "send_texture"),
-	    "Publish texture if set.");
+			_1),
+	    "Publish texture if set.", false, true, "output_settings");
 
   // -- point format --
     std::map<std::string, int>	enum_point_format = {{"None",  0},
@@ -418,7 +232,7 @@ Camera::Camera(const ros::NodeHandle& nh)
   // Set trigger_mode according to the parameter.
     const auto trigger_mode = _nh.param<int>("trigger_mode", 1);
     set_feature<PhoXiTriggerMode, int>(&PhoXi::TriggerMode, trigger_mode,
-				       true, "trigger_mode");
+				       true);
 
   // Start acquisition.
     _device->ClearBuffer();
@@ -474,6 +288,262 @@ Camera::rate() const
 }
 
 void
+Camera::setup_ddr_phoxi()
+{
+  // -- image resolution --
+    const auto	modes = _device->SupportedCapturingModes.GetValue();
+    if (modes.size() > 1)
+    {
+	std::map<std::string, int>	enum_resolution;
+	int				idx = 0;
+	for (int i = 0; i < modes.size(); ++i)
+	{
+	    const auto&	resolution = modes[i].Resolution;
+	    enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
+				    std::to_string(resolution.Height), i);
+	    if (modes[i] == _device->CapturingMode)
+		idx = i;
+	}
+	_ddr.registerEnumVariable<int>("resolution", idx,
+				       boost::bind(&Camera::set_resolution,
+						   this, _1),
+				       "Image resolution", enum_resolution);
+    }
+
+  // -- trigger mode --
+    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::NoValue)
+    {
+	std::map<std::string, int>	enum_trigger = {{"Freerun",  0},
+							{"Software", 1},
+							{"Hardware", 2}};
+	_ddr.registerEnumVariable<int>(
+	    "trigger_mode", _device->TriggerMode.GetValue(),
+	    boost::bind(&Camera::set_feature<PhoXiTriggerMode, int>, this,
+			&PhoXi::TriggerMode, _1, true),
+	    "Trigger mode", enum_trigger);
+    }
+
+  // -- timeout --
+    std::map<std::string, int>	enum_timeout = {{"ZeroTimeout", 0},
+						{"Infinity",   -1},
+						{"LastStored", -2},
+						{"Default",    -3}};
+    _ddr.registerEnumVariable<int>(
+	    "timeout",
+	    _device->Timeout.GetValue(),
+	    boost::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
+			&PhoXi::Timeout, _1, false),
+	    "Timeout settings", enum_timeout);
+
+  // -- scan multiplier --
+    _ddr.registerVariable<int>(
+	    "scan_multiplier",
+	    _device->CapturingSettings->ScanMultiplier,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::ScanMultiplier,
+			_1),
+	    "The number of scans taken and merged to sigle output",
+	    1, 50, "capturing_settings");
+
+  // -- shutter multiplier --
+    _ddr.registerVariable<int>(
+	    "shutter_multiplier",
+	    _device->CapturingSettings->ShutterMultiplier,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::ShutterMultiplier,
+			_1),
+	    "The number of repeats of indivisual pattern",
+	    1, 20, "capturing_settings");
+
+  // -- ambient light suppression --
+    _ddr.registerVariable<bool>(
+	    "ambient_light_suppression",
+	    _device->CapturingSettings->AmbientLightSuppression,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::AmbientLightSuppression,
+			_1),
+	    "Enables the mode that suppress ambient illumination.",
+	    false, true, "capturing_settings");
+
+  // -- maximum fps--
+    _ddr.registerVariable<double>(
+	    "maximum_fps",
+	    _device->CapturingSettings->MaximumFPS,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, double>,
+			this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::MaximumFPS,
+			_1),
+	    "Maximum fps in freerun mode",
+	    0.1, 30.0, "capturing_settings");
+
+  // -- single pattern exposure --
+    const auto	exposures = _device->SupportedSinglePatternExposures.GetValue();
+    std::map<std::string, double>	enum_single_pattern_exposure;
+    for (const auto& exposure: exposures)
+	enum_single_pattern_exposure.emplace(std::to_string(exposure),
+					     exposure);
+    _ddr.registerEnumVariable<double>(
+	    "single_pattern_exposure",
+	    _device->CapturingSettings->SinglePatternExposure,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, double>,
+			this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::SinglePatternExposure,
+			_1),
+	    "Exposure time for a single patter in miliseconds",
+	    enum_single_pattern_exposure);
+
+  // -- coding strategy --
+    if (_device->CapturingSettings->CodingStrategy !=
+	PhoXiCodingStrategy::NoValue)
+    {
+	std::map<std::string, int>
+	    enum_coding_strategy = {
+		{"Normal",	     PhoXiCodingStrategy::Normal},
+		{"Interreflections", PhoXiCodingStrategy::Interreflections}};
+	_ddr.registerEnumVariable<int>(
+    	    "coding_strategy",
+    	    _device->CapturingSettings->CodingStrategy,
+    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
+					   PhoXiCodingStrategy>,
+    			this,
+    			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::CodingStrategy,
+			_1),
+    	    "Coding strategy", enum_coding_strategy, "capturing_settings");
+    }
+
+  // -- coding quality --
+    if (_device->CapturingSettings->CodingQuality !=
+	PhoXiCodingQuality::NoValue)
+    {
+	std::map<std::string, int>
+	    enum_coding_quality = {{"Fast",  PhoXiCodingQuality::Fast},
+				   {"High",  PhoXiCodingQuality::High},
+				   {"Ultra", PhoXiCodingQuality::Ultra}};
+	_ddr.registerEnumVariable<int>(
+    	    "coding_quality",
+    	    _device->CapturingSettings->CodingQuality,
+    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
+					   PhoXiCodingQuality>,
+    			this,
+    			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::CodingQuality,
+			_1),
+    	    "Coding quality", enum_coding_quality, "capturing_settings");
+    }
+
+  // -- texture source --
+    if (_device->CapturingSettings->TextureSource !=
+    	PhoXiTextureSource::NoValue)
+    {
+	std::map<std::string, int>
+	    enum_texture_source = {{"Computed", PhoXiTextureSource::Computed},
+				   {"LED",	PhoXiTextureSource::LED},
+				   {"Laser",    PhoXiTextureSource::Laser},
+				   {"Focus",    PhoXiTextureSource::Focus},
+				   {"Color",    PhoXiTextureSource::Color}};
+	_ddr.registerEnumVariable<int>(
+    	    "texture_source",
+    	    _device->CapturingSettings->TextureSource,
+    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
+					   PhoXiTextureSource>,
+    			this,
+    			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::TextureSource,
+			_1),
+    	    "Source used for texture image", enum_texture_source,
+	    "capturing_settings");
+    }
+
+  // -- laser power --
+    _ddr.registerVariable<int>(
+	    "laser_power",
+	    _device->CapturingSettings->LaserPower,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::LaserPower,
+			_1, "lawer_power"),
+	    "Laser power",
+	    0, 4095, "capturing_settings");
+
+  // -- hardware trigger --
+    _ddr.registerVariable<bool>(
+	    "hardware_trigger",
+	    _device->CapturingSettings->HardwareTrigger,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::HardwareTrigger,
+			_1),
+	    "Hardware trigger",
+	    0, 4095, "capturing_settings");
+
+  // -- confidence value --
+    _ddr.registerVariable<double>(
+	    "confidence",
+	    _device->ProcessingSettings->Confidence,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::Confidence,
+			_1),
+	    "Confidence value",
+	    0.0, 100.0);
+
+    
+}
+
+void
+Camera::setup_ddr_motioncam()
+{
+  // -- laser power --
+    _ddr.registerVariable<int>(
+	    "laser_power",
+	    _device->MotionCam->LaserPower,
+	    boost::bind(&Camera::set_field<PhoXiMotionCam, int>, this,
+			&PhoXi::MotionCam, &PhoXiMotionCam::LaserPower, _1),
+	    "Laser power",
+	    0, 4095, "motioncam");
+
+  // -- maximum fps --
+    _ddr.registerVariable<double>(
+	    "maximum_fps",
+	    _device->MotionCam->MaximumFPS,
+	    boost::bind(&Camera::set_field<PhoXiMotionCam, double>, this,
+			&PhoXi::MotionCam, &PhoXiMotionCam::MaximumFPS, _1),
+	    "Maximum fps",
+	    0.0, 20.0, "motioncam");
+
+  // -- hardware trigger --
+    _ddr.registerVariable<bool>(
+	    "maximum_fps",
+	    _device->MotionCam->HardwareTrigger,
+	    boost::bind(&Camera::set_field<PhoXiMotionCam, bool>, this,
+			&PhoXi::MotionCam, &PhoXiMotionCam::MaximumFPS, _1),
+	    "Maximum fps",
+	    0.0, 20.0, "motioncam");
+
+  // -- shutter multiplier --
+    _ddr.registerVariable<int>(
+	    "shutter_multiplier",
+	    _device->CapturingSettings->ShutterMultiplier,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::ShutterMultiplier,
+			_1),
+	    "The number of repeats of indivisual pattern",
+	    1, 20, "capturing_settings");
+
+}
+
+template <class F> void
+Camera::setup_ddr(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
+		  const std::string& name, 
+void
 Camera::set_resolution(int idx)
 {
     const auto acq = _device->isAcquiring();
@@ -497,17 +567,18 @@ Camera::set_resolution(int idx)
 
 template <class F, class T> void
 Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
-		    T value, bool pause, const std::string& name)
+		    T value, bool pause)
 {
     const auto acq = _device->isAcquiring();
     if (pause && acq)
 	_device->StopAcquisition();
 
-    (_device.operator ->()->*feature).SetValue(value);
+    const auto&	f = _device.operator ->()->*feature;
+    f.SetValue(value);
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << name << " to "
-		    << (_device.operator ->()->*feature).GetValue());
+		    << ") set " << f.GetName() << " to "
+		    << f.GetValue());
 
     if (pause)
     {
@@ -519,15 +590,16 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
 template <class F, class T> void
 Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
-		  T F::* field, T value, const std::string& name)
+		  T F::* field, T value)
 {
-    auto	val = (_device.operator ->()->*feature).GetValue();
+    const auto&	f   = _device.operator ->()->*feature;
+    auto	val = f.GetValue();
     val.*field = value;
-    (_device.operator ->()->*feature).SetValue(val);
+    f.SetValue(val);
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << name << " to "
-		    << (_device.operator ->()->*feature).GetValue().*field);
+		    << ") set " << f.GetName() << " to "
+		    << f.GetValue().*field);
 }
 
 template <class T> void
