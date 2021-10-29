@@ -266,35 +266,8 @@ Camera::setup_ddr_phoxi()
 				       "Image resolution", enum_resolution);
     }
 
-  // 2. TriggerMode
-    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::NoValue)
-    {
-	const std::map<std::string, int>
-	    enum_trigger = {{"Freerun",  PhoXiTriggerMode::Freerun},
-			    {"Software", PhoXiTriggerMode::Software},
-			    {"Hardware", PhoXiTriggerMode::Hardware}};
-	_ddr.registerEnumVariable<int>(
-	    "trigger_mode", _device->TriggerMode.GetValue(),
-	    boost::bind(&Camera::set_feature<PhoXiTriggerMode, int>, this,
-			&PhoXi::TriggerMode, _1, true),
-	    "Trigger mode", enum_trigger);
-    }
-
-  // 3. Timeout
-    const std::map<std::string, int>
-	enum_timeout = {{"ZeroTimeout", PhoXiTimeout::ZeroTimeout},
-			{"Infinity",    PhoXiTimeout::Infinity},
-			{"LastStored",  PhoXiTimeout::LastStored},
-			{"Default",     PhoXiTimeout::Default}};
-    _ddr.registerEnumVariable<int>(
-	    "timeout",
-	    _device->Timeout.GetValue(),
-	    boost::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
-			&PhoXi::Timeout, _1, false),
-	    "Timeout settings", enum_timeout);
-
-  // 4. CaoturingSettings
-  // 4.1 ScanMultiplier
+  // 2. CaoturingSettings
+  // 2.1 ScanMultiplier
     _ddr.registerVariable<int>(
 	    "scan_multiplier",
 	    _device->CapturingSettings->ScanMultiplier,
@@ -305,7 +278,7 @@ Camera::setup_ddr_phoxi()
 	    "The number of scans taken and merged to sigle output",
 	    1, 50, "capturing_settings");
 
-  // 4.2 ShutterMultiplier
+  // 2.2 ShutterMultiplier
     _ddr.registerVariable<int>(
 	    "shutter_multiplier",
 	    _device->CapturingSettings->ShutterMultiplier,
@@ -316,7 +289,7 @@ Camera::setup_ddr_phoxi()
 	    "The number of repeats of indivisual pattern",
 	    1, 20, "capturing_settings");
 
-  // 4.3 AmbientLightSuppression
+  // 2.3 AmbientLightSuppression
     _ddr.registerVariable<bool>(
 	    "ambient_light_suppression",
 	    _device->CapturingSettings->AmbientLightSuppression,
@@ -327,7 +300,7 @@ Camera::setup_ddr_phoxi()
 	    "Enables the mode that suppress ambient illumination.",
 	    false, true, "capturing_settings");
 
-  // 4.4 MaximumFPS
+  // 2.4 MaximumFPS
     _ddr.registerVariable<double>(
 	    "maximum_fps",
 	    _device->CapturingSettings->MaximumFPS,
@@ -339,7 +312,7 @@ Camera::setup_ddr_phoxi()
 	    "Maximum fps in freerun mode",
 	    0.1, 30.0, "capturing_settings");
 
-  // 4.5 SinglePatternExposure
+  // 2.5 SinglePatternExposure
     const auto	exposures = _device->SupportedSinglePatternExposures.GetValue();
     std::map<std::string, double>	enum_single_pattern_exposure;
     for (const auto& exposure: exposures)
@@ -356,7 +329,7 @@ Camera::setup_ddr_phoxi()
 	    "Exposure time for a single patter in miliseconds",
 	    enum_single_pattern_exposure, "", "capturing_settings");
 
-  // 4.6 CodingStrategy
+  // 2.6 CodingStrategy
     if (_device->CapturingSettings->CodingStrategy !=
 	PhoXiCodingStrategy::NoValue)
     {
@@ -376,7 +349,7 @@ Camera::setup_ddr_phoxi()
     	    "Coding strategy", enum_coding_strategy, "", "capturing_settings");
     }
 
-  // 4.7 CodingQuality
+  // 2.7 CodingQuality
     if (_device->CapturingSettings->CodingQuality !=
 	PhoXiCodingQuality::NoValue)
     {
@@ -396,7 +369,7 @@ Camera::setup_ddr_phoxi()
     	    "Coding quality", enum_coding_quality, "", "capturing_settings");
     }
 
-  // 4.8 TextureSource
+  // 2.8 TextureSource
     if (_device->CapturingSettings->TextureSource !=
     	PhoXiTextureSource::NoValue)
     {
@@ -419,7 +392,7 @@ Camera::setup_ddr_phoxi()
 	    enum_texture_source, "", "capturing_settings");
     }
 
-  // 4.9 LaserPower
+  // 2.9 LaserPower
     _ddr.registerVariable<int>(
 	    "laser_power",
 	    _device->CapturingSettings->LaserPower,
@@ -429,7 +402,7 @@ Camera::setup_ddr_phoxi()
 			_1),
 	    "Laser power", 0, 4095, "capturing_settings");
 
-  // 4.10 HardwareTrigger
+  // 2.10 HardwareTrigger
 #if defined(HAVE_HARDWARE_TRIGGER)
     _ddr.registerVariable<bool>(
 	    "hardware_trigger",
@@ -441,8 +414,8 @@ Camera::setup_ddr_phoxi()
 	    "Hardware trigger", false, true, "capturing_settings");
 #endif
     
-  // 5. ProcessingSettings
-  // 5.1 ConfidenceValue
+  // 3. ProcessingSettings
+  // 3.1 ConfidenceValue
     _ddr.registerVariable<double>(
 	    "confidence",
 	    _device->ProcessingSettings->Confidence,
@@ -453,7 +426,7 @@ Camera::setup_ddr_phoxi()
 			_1),
 	    "Confidence value", 0.0, 100.0, "processing_settings");
 
-  // 5.2 SurfaceSmoothness
+  // 3.2 SurfaceSmoothness
     if (_device->ProcessingSettings->SurfaceSmoothness !=
     	PhoXiSurfaceSmoothness::NoValue)
     {
@@ -477,7 +450,7 @@ Camera::setup_ddr_phoxi()
 	    enum_surface_smoothness, "", "processing_settings");
     }
 
-  // 5.3 CalibrationVolumeOnly
+  // 3.3 CalibrationVolumeOnly
     _ddr.registerVariable<bool>(
 	    "calibration_volume_only",
 	    _device->ProcessingSettings->CalibrationVolumeOnly,
@@ -488,7 +461,7 @@ Camera::setup_ddr_phoxi()
 			_1),
 	    "Calibration volume only", false, true, "processing_settings");
 
-  // 5.4 NormalsEstimationRadius
+  // 3.4 NormalsEstimationRadius
     _ddr.registerVariable<int>(
 	    "normals_estimation_radius",
 	    _device->ProcessingSettings->NormalsEstimationRadius,
@@ -499,7 +472,7 @@ Camera::setup_ddr_phoxi()
 			_1),
 	    "Normals estimation radius", 1, 4, "processing_settings");
 
-  // 5.5 InterreflectionsFiltering
+  // 3.5 InterreflectionsFiltering
 #if defined(HAVE_INTERREFLECTIONS_FILTERING)
     _ddr.registerVariable<bool>(
 	    "interreflections_filtering",
@@ -744,7 +717,34 @@ Camera::setup_ddr_common()
 {
     using namespace	pho::api;
 
-  // 1. OutputSettings
+  // 1. TriggerMode
+    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::NoValue)
+    {
+	const std::map<std::string, int>
+	    enum_trigger = {{"Freerun",  PhoXiTriggerMode::Freerun},
+			    {"Software", PhoXiTriggerMode::Software},
+			    {"Hardware", PhoXiTriggerMode::Hardware}};
+	_ddr.registerEnumVariable<int>(
+	    "trigger_mode", _device->TriggerMode.GetValue(),
+	    boost::bind(&Camera::set_feature<PhoXiTriggerMode, int>, this,
+			&PhoXi::TriggerMode, _1, true),
+	    "Trigger mode", enum_trigger);
+    }
+
+  // 2. Timeout
+    const std::map<std::string, int>
+	enum_timeout = {{"ZeroTimeout", PhoXiTimeout::ZeroTimeout},
+			{"Infinity",    PhoXiTimeout::Infinity},
+			{"LastStored",  PhoXiTimeout::LastStored},
+			{"Default",     PhoXiTimeout::Default}};
+    _ddr.registerEnumVariable<int>(
+	    "timeout",
+	    _device->Timeout.GetValue(),
+	    boost::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
+			&PhoXi::Timeout, _1, false),
+	    "Timeout settings", enum_timeout);
+
+  // 3. OutputSettings
     _ddr.registerVariable<bool>(
 	    "send_point_cloud",
 	    _device->OutputSettings->SendPointCloud,
@@ -786,17 +786,18 @@ Camera::setup_ddr_common()
 			_1),
 	    "Publish texture if set.", false, true, "output_settings");
 
-  // 2. Point format --
+  // 4. Intensity format of the points in point cloud
     std::map<std::string, int>	enum_point_format = {{"None",  0},
 						     {"RGB",   1},
 						     {"Float", 2}};
     _ddr.registerEnumVariable<int>(
-	    "point_format", _pointFormat,
+	    "intensity_format", _pointFormat,
 	    boost::bind(&Camera::set_member<int>, this,
-			boost::ref(_pointFormat), _1, "point_format"),
-	    "Format of points in published point cloud", enum_point_format);
+			boost::ref(_pointFormat), _1, "intensity_format"),
+	    "Intensity format of points in published point cloud",
+	    enum_point_format);
 
-  // 3. Intensity scale --
+  // 5. Intensity scale
     _intensityScale = _nh.param<double>("intensity_scale", _intensityScale);
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
