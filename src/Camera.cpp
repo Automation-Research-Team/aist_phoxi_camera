@@ -743,8 +743,8 @@ void
 Camera::setup_ddr_common()
 {
     using namespace	pho::api;
-    
-  // -- enable/disable publish topics --
+
+  // 1. OutputSettings
     _ddr.registerVariable<bool>(
 	    "send_point_cloud",
 	    _device->OutputSettings->SendPointCloud,
@@ -786,7 +786,7 @@ Camera::setup_ddr_common()
 			_1),
 	    "Publish texture if set.", false, true, "output_settings");
 
-  // -- point format --
+  // 2. Point format --
     std::map<std::string, int>	enum_point_format = {{"None",  0},
 						     {"RGB",   1},
 						     {"Float", 2}};
@@ -796,7 +796,7 @@ Camera::setup_ddr_common()
 			boost::ref(_pointFormat), _1, "point_format"),
 	    "Format of points in published point cloud", enum_point_format);
 
-  // -- intensity scale --
+  // 3. Intensity scale --
     _intensityScale = _nh.param<double>("intensity_scale", _intensityScale);
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
@@ -840,8 +840,7 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     f.SetValue(value);
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << f.GetName() << " to "
-		    << f.GetValue());
+		    << ") set " << f.GetName() << " to " << f.GetValue());
 
     if (pause)
     {
