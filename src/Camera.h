@@ -81,6 +81,9 @@ class Camera
     double	rate()						const	;
 
   private:
+    void	setup_ddr_phoxi()					;
+    void	setup_ddr_motioncam()					;
+    void	setup_ddr_common()					;
     void	set_resolution(int idx)					;
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
