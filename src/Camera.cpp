@@ -413,77 +413,6 @@ Camera::setup_ddr_phoxi()
 			_1),
 	    "Hardware trigger", false, true, "capturing_settings");
 #endif
-    
-  // 3. ProcessingSettings
-  // 3.1 ConfidenceValue
-    _ddr.registerVariable<double>(
-	    "confidence",
-	    _device->ProcessingSettings->Confidence,
-	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
-			this,
-			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::Confidence,
-			_1),
-	    "Confidence value", 0.0, 100.0, "processing_settings");
-
-  // 3.2 SurfaceSmoothness
-    if (_device->ProcessingSettings->SurfaceSmoothness !=
-    	PhoXiSurfaceSmoothness::NoValue)
-    {
-	const std::map<std::string, int>
-	    enum_surface_smoothness = {{"Sharp",
-					PhoXiSurfaceSmoothness::Sharp},
-				       {"Normal",
-					PhoXiSurfaceSmoothness::Normal},
-				       {"Smooth",
-					PhoXiSurfaceSmoothness::Smooth}};
-	_ddr.registerEnumVariable<int>(
-    	    "surface_smoothness",
-    	    _device->ProcessingSettings->SurfaceSmoothness,
-    	    boost::bind(&Camera::set_field<PhoXiProcessingSettings,
-					   PhoXiSurfaceSmoothness>,
-    			this,
-    			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::SurfaceSmoothness,
-			_1),
-    	    "Surface smoothness",
-	    enum_surface_smoothness, "", "processing_settings");
-    }
-
-  // 3.3 CalibrationVolumeOnly
-    _ddr.registerVariable<bool>(
-	    "calibration_volume_only",
-	    _device->ProcessingSettings->CalibrationVolumeOnly,
-	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, bool>,
-			this,
-			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::CalibrationVolumeOnly,
-			_1),
-	    "Calibration volume only", false, true, "processing_settings");
-
-  // 3.4 NormalsEstimationRadius
-    _ddr.registerVariable<int>(
-	    "normals_estimation_radius",
-	    _device->ProcessingSettings->NormalsEstimationRadius,
-	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, int>,
-			this,
-			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::NormalsEstimationRadius,
-			_1),
-	    "Normals estimation radius", 1, 4, "processing_settings");
-
-  // 3.5 InterreflectionsFiltering
-#if defined(HAVE_INTERREFLECTIONS_FILTERING)
-    _ddr.registerVariable<bool>(
-	    "interreflections_filtering",
-	    _device->ProcessingSettings->InterreflectionsFiltering,
-	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, bool>,
-			this,
-			&PhoXi::ProcessingSettings,
-			&PhoXiProcessingSettings::InterreflectionsFiltering,
-			_1),
-	    "Interreflections filtering", false, true, "processing_settings");
-#endif
 }
 
 #if defined(HAVE_MOTIONCAM)
@@ -744,7 +673,77 @@ Camera::setup_ddr_common()
 			&PhoXi::Timeout, _1, false),
 	    "Timeout settings", enum_timeout);
 
-  // 3. OutputSettings
+  // 3. ProcessingSettings
+  // 3.1 ConfidenceValue
+    _ddr.registerVariable<double>(
+	    "confidence",
+	    _device->ProcessingSettings->Confidence,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::Confidence,
+			_1),
+	    "Confidence value", 0.0, 100.0, "processing_settings");
+
+  // 3.2 SurfaceSmoothness
+    if (_device->ProcessingSettings->SurfaceSmoothness !=
+    	PhoXiSurfaceSmoothness::NoValue)
+    {
+	const std::map<std::string, int>
+	    enum_surface_smoothness = {{"Sharp",
+					PhoXiSurfaceSmoothness::Sharp},
+				       {"Normal",
+					PhoXiSurfaceSmoothness::Normal},
+				       {"Smooth",
+					PhoXiSurfaceSmoothness::Smooth}};
+	_ddr.registerEnumVariable<int>(
+    	    "surface_smoothness",
+    	    _device->ProcessingSettings->SurfaceSmoothness,
+    	    boost::bind(&Camera::set_field<PhoXiProcessingSettings,
+					   PhoXiSurfaceSmoothness>,
+    			this,
+    			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::SurfaceSmoothness,
+			_1),
+    	    "Surface smoothness",
+	    enum_surface_smoothness, "", "processing_settings");
+    }
+
+  // 3.3 CalibrationVolumeOnly
+    _ddr.registerVariable<bool>(
+	    "calibration_volume_only",
+	    _device->ProcessingSettings->CalibrationVolumeOnly,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, bool>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::CalibrationVolumeOnly,
+			_1),
+	    "Calibration volume only", false, true, "processing_settings");
+
+  // 3.4 NormalsEstimationRadius
+    _ddr.registerVariable<int>(
+	    "normals_estimation_radius",
+	    _device->ProcessingSettings->NormalsEstimationRadius,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, int>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::NormalsEstimationRadius,
+			_1),
+	    "Normals estimation radius", 1, 4, "processing_settings");
+
+  // 3.5 InterreflectionsFiltering
+#if defined(HAVE_INTERREFLECTIONS_FILTERING)
+    _ddr.registerVariable<bool>(
+	    "interreflections_filtering",
+	    _device->ProcessingSettings->InterreflectionsFiltering,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, bool>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::InterreflectionsFiltering,
+			_1),
+	    "Interreflections filtering", false, true, "processing_settings");
+#endif
+  // 4. OutputSettings
     _ddr.registerVariable<bool>(
 	    "send_point_cloud",
 	    _device->OutputSettings->SendPointCloud,
@@ -786,7 +785,7 @@ Camera::setup_ddr_common()
 			_1),
 	    "Publish texture if set.", false, true, "output_settings");
 
-  // 4. Intensity format of the points in point cloud
+  // 5. Intensity format of the points in point cloud
     std::map<std::string, int>	enum_point_format = {{"None",  0},
 						     {"RGB",   1},
 						     {"Float", 2}};
@@ -797,7 +796,7 @@ Camera::setup_ddr_common()
 	    "Intensity format of points in published point cloud",
 	    enum_point_format);
 
-  // 5. Intensity scale
+  // 6. Intensity scale
     _intensityScale = _nh.param<double>("intensity_scale", _intensityScale);
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
