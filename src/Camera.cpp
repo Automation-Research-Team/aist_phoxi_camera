@@ -276,7 +276,7 @@ Camera::setup_ddr_phoxi()
 			&PhoXiCapturingSettings::ScanMultiplier,
 			_1),
 	    "The number of scans taken and merged to sigle output",
-	    1, 50, "capturing_settings");
+	    1, 20, "capturing_settings");
 
   // 2.2 ShutterMultiplier
     _ddr.registerVariable<int>(
@@ -400,19 +400,7 @@ Camera::setup_ddr_phoxi()
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::LaserPower,
 			_1),
-	    "Laser power", 0, 4095, "capturing_settings");
-
-  // 2.10 HardwareTrigger
-#if defined(HAVE_HARDWARE_TRIGGER)
-    _ddr.registerVariable<bool>(
-	    "hardware_trigger",
-	    _device->CapturingSettings->HardwareTrigger,
-	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
-			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::HardwareTrigger,
-			_1),
-	    "Hardware trigger", false, true, "capturing_settings");
-#endif
+	    "Laser power", 1000, 4095, "capturing_settings");
 }
 
 #if defined(HAVE_MOTIONCAM)
@@ -445,7 +433,7 @@ Camera::setup_ddr_motioncam()
 	    boost::bind(&Camera::set_field<PhoXiMotionCam, int>, this,
 			&PhoXi::MotionCam, &PhoXiMotionCam::LaserPower, _1),
 	    "Laser power",
-	    0, 4095, "motioncam");
+	    1000, 4095, "motioncam");
 
   // 1.3 maximum fps
     _ddr.registerVariable<double>(
@@ -729,7 +717,7 @@ Camera::setup_ddr_common()
 			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::NormalsEstimationRadius,
 			_1),
-	    "Normals estimation radius", 1, 4, "processing_settings");
+	    "Normals estimation radius", 0, 4, "processing_settings");
 
   // 3.5 InterreflectionsFiltering
 #if defined(HAVE_INTERREFLECTIONS_FILTERING)
