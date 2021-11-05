@@ -80,24 +80,9 @@ Camera::Camera(const ros::NodeHandle& nh)
      _pointFormat(XYZ),
      _intensityScale(0.5),
      _ddr(_nh),
-     _get_device_list_server(
-	 _nh.advertiseService("get_device_list",   &get_device_list,	this)),
-     _is_acquiring_server(
-	 _nh.advertiseService("is_acquiring",	   &is_acquiring,	this)),
-     _start_acquisition_server(
-	 _nh.advertiseService("start_acquisition", &start_acquisition,	this)),
-     _stop_acquisition_server(
-	 _nh.advertiseService("stop_acquisition",  &stop_acquisition,	this)),
-     _trigger_frame_server(
-	 _nh.advertiseService("trigger_frame",	   &trigger_frame,	this)),
-     _save_frame_server(
-	 _nh.advertiseService("save_frame",	   &save_frame,		this)),
-     _get_hardware_identification_server(
-	 _nh.advertiseService("get_hardware_identification",
-			      &get_hardware_identification, this)),
-     _get_supported_capturing_modes_server(
-	 _nh.advertiseService("get_supported_capturing_modes",
-			      &get_supported_capturing_modes, this)),
+     _trigger_frame_server(_nh.advertiseService("trigger_frame",
+						&trigger_frame,	this)),
+     _save_frame_server(_nh.advertiseService("save_frame", &save_frame, this)),
      _it(_nh),
      _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
@@ -862,89 +847,6 @@ Camera::set_member(T& member, T value, const std::string& name)
 }
 
 bool
-Camera::get_device_list(GetStringList::Request&  req,
-			GetStringList::Response& res)
-{
-    _factory.StartConsoleOutput("Admin-On");
-
-    const auto	devinfos = _factory.GetDeviceList();
-
-    res.len = devinfos.size();
-    for (const auto& devinfo : devinfos)
-	res.out.push_back(devinfo.HWIdentification);
-
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") get_device_list: succeded.");
-
-    return true;
-}
-
-bool
-Camera::is_acquiring(std_srvs::Trigger::Request&  req,
-		     std_srvs::Trigger::Response& res)
-{
-    res.success = _device->isAcquiring();
-    res.message = (res.success ? "yes" : "no");
-
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") is_acquiring: "
-		    << res.message);
-
-    return true;
-}
-
-bool
-Camera::start_acquisition(std_srvs::Trigger::Request&  req,
-			  std_srvs::Trigger::Response& res)
-{
-    if (_device->isAcquiring())
-    {
-	res.success = true;
-	res.message = "already in aquisition.";
-    }
-    else
-    {
-      // Flush buffer to avoid publishing data during past acquisition.
-	_device->ClearBuffer();			// MUST!!!
-	res.success = _device->StartAcquisition();
-	res.message = (res.success ? "scceeded." : "failed.");
-    }
-
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") start_acquisition: "
-		    << res.message);
-
-    ros::Duration(1.0).sleep();
-    return true;
-}
-
-bool
-Camera::stop_acquisition(std_srvs::Trigger::Request&  req,
-			 std_srvs::Trigger::Response& res)
-{
-    if (_device->isAcquiring())
-    {
-	res.success = _device->StopAcquisition();
-	res.message = (res.success ? "succeeded." : "failed.");
-    }
-    else
-    {
-	res.success = true;
-	res.message = "already not in aquisition.";
-    }
-
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") stop_acquisition: "
-		    << res.message);
-
-    return true;
-}
-
-bool
 Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 		      std_srvs::Trigger::Response& res)
 {
@@ -1051,36 +953,6 @@ Camera::save_frame(SetString::Request& req, SetString::Response& res)
 			<< ") save_frame: succeeded to save PLY to "
 			<< req.in + ".ply");
     }
-
-    return true;
-}
-
-bool
-Camera::get_supported_capturing_modes(
-		GetSupportedCapturingModes::Request&  req,
-	        GetSupportedCapturingModes::Response& res)
-{
-    const auto	modes = _device->SupportedCapturingModes.GetValue();
-    for (const auto& mode : modes)
-    {
-	aist_phoxi_camera::PhoXiSize	size;
-	size.Width  = mode.Resolution.Width;
-	size.Height = mode.Resolution.Height;
-	res.supported_capturing_modes.push_back(size);
-    }
-
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") get_supported_capturing_moddes: succeeded.");
-
-    return true;
-}
-
-bool
-Camera::get_hardware_identification(GetString::Request&  req,
-				    GetString::Response& res)
-{
-    res.out = _device->HardwareIdentification;
 
     return true;
 }

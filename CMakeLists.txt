@@ -26,17 +26,9 @@ include_directories(include
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
 
-add_message_files(
-  FILES
-    PhoXiSize.msg
-)
-
 add_service_files(
   FILES
     SetString.srv
-    GetString.srv
-    GetStringList.srv
-    GetSupportedCapturingModes.srv
 )
 
 generate_messages(

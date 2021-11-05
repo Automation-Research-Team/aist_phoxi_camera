@@ -42,16 +42,12 @@
 
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
+#include <aist_phoxi_camera/SetString.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 
 #include <PhoXi.h>
-
-#include <aist_phoxi_camera/SetString.h>
-#include <aist_phoxi_camera/GetString.h>
-#include <aist_phoxi_camera/GetStringList.h>
-#include <aist_phoxi_camera/GetSupportedCapturingModes.h>
 
 namespace aist_phoxi_camera
 {
@@ -95,23 +91,10 @@ class Camera
 			  T F::* member, T value)			;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
-    bool	get_device_list(GetStringList::Request&  req,
-				GetStringList::Response& res)		;
-    bool	is_acquiring(std_srvs::Trigger::Request&  req,
-			     std_srvs::Trigger::Response& res)		;
-    bool	start_acquisition(std_srvs::Trigger::Request&  req,
-				  std_srvs::Trigger::Response& res)	;
-    bool	stop_acquisition(std_srvs::Trigger::Request&  req,
-				 std_srvs::Trigger::Response& res)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
 			   SetString::Response& res)			;
-    bool	get_supported_capturing_modes(
-			GetSupportedCapturingModes::Request&  req,
-			GetSupportedCapturingModes::Response& res)	;
-    bool	get_hardware_identification(GetString::Request&  req,
-					    GetString::Response& res)	;
     template <class T>
     static bool	save_image(const std::string& filename,
 			   const pho::api::Mat2D<T>& phoxi_image,
@@ -144,14 +127,8 @@ class Camera
 
     ddynamic_reconfigure::DDynamicReconfigure	_ddr;
 
-    const ros::ServiceServer		_get_device_list_server;
-    const ros::ServiceServer		_is_acquiring_server;
-    const ros::ServiceServer		_start_acquisition_server;
-    const ros::ServiceServer		_stop_acquisition_server;
     const ros::ServiceServer		_trigger_frame_server;
     const ros::ServiceServer		_save_frame_server;
-    const ros::ServiceServer		_get_hardware_identification_server;
-    const ros::ServiceServer		_get_supported_capturing_modes_server;
 
     image_transport::ImageTransport	_it;
     const ros::Publisher		_cloud_publisher;
