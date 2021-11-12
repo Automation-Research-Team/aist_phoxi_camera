@@ -8,10 +8,12 @@
   <arg name="intensity_scale"	default="0.5"/>
   <arg name="frame"		default="calibrated_$(arg camera_name)"/>
   <arg name="rate"		default="10"/>
+  <arg name="external_manager"	default="false"/>
   <arg name="manager"		default=""/>
   <arg name="nthreads"		default="4"/>
 
-  <node if="$(eval manager == '')"	name="$(arg camera_name)"
+  <node if="$(eval manager == '')"
+	name="$(arg camera_name)"
 	pkg="aist_phoxi_camera" type="aist_phoxi_camera" output="screen">
     <param name="id"			value="$(arg id)"/>
     <param name="trigger_mode"		value="$(arg trigger_mode)"/>
@@ -21,7 +23,9 @@
   </node>
 
   <group unless="$(eval manager == '')">
-    <node name="$(arg manager)" pkg ="nodelet" type="nodelet"
+
+    <node unless="$(arg external_manager)"
+	  name="$(arg manager)" pkg ="nodelet" type="nodelet"
 	  args="manager" output="screen">
       <param name="num_worker_threads"	value="$(arg nthreads)"/>
     </node>
