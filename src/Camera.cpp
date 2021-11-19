@@ -497,7 +497,7 @@ Camera::setup_ddr_motioncam()
     	    "Output topology",
 	    enum_output_topology, "", "motioncam_camera_mode");
     }
-    
+
   // 2.4 coding strategy
     if (_device->MotionCamCameraMode->CodingStrategy !=
 	PhoXiCodingStrategy::NoValue)
@@ -509,7 +509,7 @@ Camera::setup_ddr_motioncam()
 				     PhoXiCodingStrategy::Interreflections}};
 	_ddr.registerEnumVariable<int>(
     	    "camera_coding_strategy",
-    	    _device->MotionCamCameraMode->OutputTopology,
+    	    _device->MotionCamCameraMode->CodingStrategy,
     	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
 					   PhoXiCodingStrategy>, this,
     			&PhoXi::MotionCamCameraMode,
