@@ -178,6 +178,7 @@ Camera::Camera(const ros::NodeHandle& nh)
 				       true);
 
   // Start acquisition.
+    _device->UnlockGUI();
     _device->ClearBuffer();
     _device->StartAcquisition();
 
@@ -781,6 +782,11 @@ Camera::setup_ddr_common()
 			boost::ref(_intensityScale), _1, "intensity_scale"),
 	    "Multiplier for intensity values of published texture",
 	    0.05, 5.0);
+
+  // 7. Lock/unlock GUI
+    _ddr.registerVariable<bool>(
+	    "lock_gui", false, boost::bind(&Camera::lock_gui, this, _1),
+	    "Lock/unlock GUI", false, true);
 }
 
 void
@@ -839,6 +845,23 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		    << _device->HardwareIdentification.GetValue()
 		    << ") set " << f.GetName() << " to "
 		    << f.GetValue().*field);
+}
+
+void
+Camera::lock_gui(bool enable)
+{
+    const auto	success = (enable ? _device->LockGUI() : _device->UnlockGUI());
+
+    if (success)
+	ROS_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") succesfully " << (enable ? "locked" : "unlocked")
+			<< " GUI");
+    else
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") failed to " << (enable ? "lock" : "unlock")
+			<< " GUI");
 }
 
 template <class T> void

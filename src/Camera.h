@@ -91,6 +91,7 @@ class Camera
 			  T F::* member, T value)			;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
+    void	lock_gui(bool enable)					;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
