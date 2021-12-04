@@ -83,6 +83,10 @@ Camera::Camera(const ros::NodeHandle& nh)
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
 						&trigger_frame,	this)),
      _save_frame_server(_nh.advertiseService("save_frame", &save_frame, this)),
+     _save_settings_server(_nh.advertiseService("save_settings",
+						&save_settings, this)),
+     _restore_settings_server(_nh.advertiseService("restore_settings",
+						   &restore_settings, this)),
      _it(_nh),
      _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
@@ -953,6 +957,66 @@ Camera::save_frame(SetString::Request& req, SetString::Response& res)
 			<< ") save_frame: succeeded to save PLY to "
 			<< req.in + ".ply");
     }
+
+    return true;
+}
+
+bool
+Camera::save_settings(std_srvs::Trigger::Request&  req,
+		      std_srvs::Trigger::Response& res)
+{
+    res.success = _device->SaveSettings();
+
+    if (res.success)
+    {
+	res.message = "succesfully saved settings";
+	ROS_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") save_settings: "
+			<< res.message);
+    }
+    else
+    {
+	res.message = "failed to save settings";
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") save_settings: "
+			 << res.message);
+    }
+
+    return true;
+}
+
+bool
+Camera::restore_settings(std_srvs::Trigger::Request&  req,
+			 std_srvs::Trigger::Response& res)
+{
+    const auto acq = _device->isAcquiring();
+    if (acq)
+	_device->StopAcquisition();
+
+    res.success = _device->ResetActivePreset();
+
+    if (res.success)
+    {
+	res.message = "succesfully restored settings.";
+	ROS_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") restore_settings: "
+			<< res.message);
+    }
+    else
+    {
+	res.message = "failed to restore settings.";
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") restore_settings: "
+			 << res.message);
+    }
+    
+    _device->ClearBuffer();
+    if (acq)
+	_device->StartAcquisition();
 
     return true;
 }

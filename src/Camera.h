@@ -95,6 +95,10 @@ class Camera
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
 			   SetString::Response& res)			;
+    bool	save_settings(std_srvs::Trigger::Request&  req,
+			      std_srvs::Trigger::Response& res)		;
+    bool	restore_settings(std_srvs::Trigger::Request&  req,
+				 std_srvs::Trigger::Response& res)	;
     template <class T>
     static bool	save_image(const std::string& filename,
 			   const pho::api::Mat2D<T>& phoxi_image,
@@ -129,6 +133,8 @@ class Camera
 
     const ros::ServiceServer		_trigger_frame_server;
     const ros::ServiceServer		_save_frame_server;
+    const ros::ServiceServer		_save_settings_server;
+    const ros::ServiceServer		_restore_settings_server;
 
     image_transport::ImageTransport	_it;
     const ros::Publisher		_cloud_publisher;
