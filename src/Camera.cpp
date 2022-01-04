@@ -1090,7 +1090,6 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
     cloud->is_dense	= false;
 
     PointCloud2Modifier	modifier(*cloud);
-#if 1
     if (_pointFormat == XYZ)
 	modifier.setPointCloud2Fields(3,
 				      "x", 1, PointField::FLOAT32,
@@ -1102,12 +1101,6 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
 				      "y",   1, PointField::FLOAT32,
 				      "z",   1, PointField::FLOAT32,
 				      "rgb", 1, PointField::FLOAT32);
-#else
-    if (_pointFormat == XYZ)
-	modifier.setPointCloud2FieldsByString(1, "xyz");
-    else
-	modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");
-#endif
     modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
 
     cloud->header.stamp	   = stamp;
