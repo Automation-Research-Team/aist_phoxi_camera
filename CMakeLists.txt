@@ -7,10 +7,8 @@ find_package(catkin REQUIRED
   COMPONENTS
     roscpp
     roslib
-    rospy
     message_generation
     image_transport
-    std_msgs
     sensor_msgs
     ddynamic_reconfigure
     tf
@@ -33,7 +31,6 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-    std_msgs
     sensor_msgs
 )
 
@@ -41,7 +38,6 @@ catkin_package(
   CATKIN_DEPENDS
     roscpp
     message_runtime
-    std_msgs
     sensor_msgs
 )
 
