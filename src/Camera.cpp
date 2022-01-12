@@ -77,7 +77,7 @@ Camera::Camera(const ros::NodeHandle& nh)
      _K({2215.13350577,    0.0        , 1030.47471121 ,
 	    0.0       , 2215.13350577 ,  756.735726174,
             0.0       ,    0.0        ,    1.0        }),
-     _pointFormat(XYZ),
+     _pointFormat(XYZ_ONLY),
      _intensityScale(0.5),
      _ddr(_nh),
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
@@ -764,14 +764,16 @@ Camera::setup_ddr_common()
 	    "Publish texture if set.", false, true, "output_settings");
 
   // 5. Intensity format of the points in point cloud
-    std::map<std::string, int>	enum_point_format = {{"None",  0},
-						     {"RGB",   1},
-						     {"Float", 2}};
+    std::map<std::string, int>
+	enum_point_format = {{"xyz_only",	 XYZ_ONLY},
+			     {"with_rgb",	 WITH_RGB},
+			     {"with_normal",	 WITH_NORMAL},
+			     {"with_rgb_normal", WITH_RGB_NORMAL}};
     _ddr.registerEnumVariable<int>(
-	    "intensity_format", _pointFormat,
+	    "point_format", _pointFormat,
 	    boost::bind(&Camera::set_member<int>, this,
-			boost::ref(_pointFormat), _1, "intensity_format"),
-	    "Intensity format of points in published point cloud",
+			boost::ref(_pointFormat), _1, "point_format"),
+	    "Format of points in published point cloud",
 	    enum_point_format);
 
   // 6. Intensity scale
@@ -1090,17 +1092,41 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
     cloud->is_dense	= false;
 
     PointCloud2Modifier	modifier(*cloud);
-    if (_pointFormat == XYZ)
+    switch (_pointFormat)
+    {
+      default:
 	modifier.setPointCloud2Fields(3,
 				      "x", 1, PointField::FLOAT32,
 				      "y", 1, PointField::FLOAT32,
 				      "z", 1, PointField::FLOAT32);
-    else
+	break;
+      case WITH_RGB:
 	modifier.setPointCloud2Fields(4,
 				      "x",   1, PointField::FLOAT32,
 				      "y",   1, PointField::FLOAT32,
 				      "z",   1, PointField::FLOAT32,
-				      "rgb", 1, PointField::FLOAT32);
+				      "rgb", 1, PointField::UINT32);
+	break;
+      case WITH_NORMAL:
+	modifier.setPointCloud2Fields(6,
+				      "x",	  1, PointField::FLOAT32,
+				      "y",	  1, PointField::FLOAT32,
+				      "z",	  1, PointField::FLOAT32,
+				      "normal_x", 1, PointField::FLOAT32,
+				      "normal_y", 1, PointField::FLOAT32,
+				      "normal_z", 1, PointField::FLOAT32);
+	break;
+      case WITH_RGB_NORMAL:
+	modifier.setPointCloud2Fields(7,
+				      "x",	  1, PointField::FLOAT32,
+				      "y",	  1, PointField::FLOAT32,
+				      "z",	  1, PointField::FLOAT32,
+				      "rgb",	  1, PointField::UINT32,
+				      "normal_x", 1, PointField::FLOAT32,
+				      "normal_y", 1, PointField::FLOAT32,
+				      "normal_z", 1, PointField::FLOAT32);
+	break;
+    }
     modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
 
     cloud->header.stamp	   = stamp;
@@ -1109,13 +1135,9 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
     cloud->width	   = phoxi_cloud.Size.Width;
     cloud->row_step	   = cloud->width * cloud->point_step;
 
-    const auto&	phoxi_texture = _frame->Texture;
+    PointCloud2Iterator<float>	xyz(*cloud, "x");
 
     for (int v = 0; v < cloud->height; ++v)
-    {
-	PointCloud2Iterator<float>	xyz(*cloud, "x");
-	xyz += cloud->width * v;
-
 	for (int u = 0; u < cloud->width; ++u)
 	{
 	    const auto&	p = phoxi_cloud.At(v, u);
@@ -1135,30 +1157,34 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
 	    ++xyz;
 	}
 
-	if (_pointFormat == XYZRGB)
-	{
-	    PointCloud2Iterator<uint8_t> rgb(*cloud, "rgb");
-	    rgb += cloud->width * v;
+    if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
+    {
+	PointCloud2Iterator<uint8_t> rgb(*cloud, "rgb");
 
+	for (int v = 0; v < cloud->height; ++v)
 	    for (int u = 0; u < cloud->width; ++u)
 	    {
-		const auto	val = phoxi_texture.At(v, u) * _intensityScale;
+		const auto val = _frame->Texture.At(v, u) * _intensityScale;
 
 		rgb[0] = rgb[1] = rgb[2] = (val > 255 ? 255 : val);
 		++rgb;
 	    }
-	}
-	else if (_pointFormat == XYZI)
-	{
-	    PointCloud2Iterator<float>	rgb(*cloud, "rgb");
-	    rgb += cloud->width * v;
+    }
+    
+    if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
+    {
+	PointCloud2Iterator<float>	normal(*cloud, "normal_x");
 
+	for (int v = 0; v < cloud->height; ++v)
 	    for (int u = 0; u < cloud->width; ++u)
 	    {
-		*rgb = phoxi_texture.At(v, u) * _intensityScale;
-		++rgb;
+		const auto n = _frame->NormalMap.At(v, u);
+
+		normal[0] = n.x;
+		normal[1] = n.y;
+		normal[2] = n.z;
+		++normal;
 	    }
-	}
     }
 
     _cloud_publisher.publish(cloud);

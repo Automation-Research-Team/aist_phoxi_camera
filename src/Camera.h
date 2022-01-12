@@ -65,7 +65,7 @@ class Camera
 
     enum
     {
-	XYZ = 0, XYZRGB = 1, XYZI = 2
+	XYZ_ONLY = 0, WITH_RGB = 1, WITH_NORMAL = 2, WITH_RGB_NORMAL = 4
     };
 
   public:
