@@ -1085,7 +1085,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
     const auto&	phoxi_cloud = _frame->PointCloud;
     if (phoxi_cloud.Empty())
 	return;
-
+    
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
     cloud_p	cloud(new cloud_t);
     cloud->is_bigendian = false;
@@ -1159,6 +1159,14 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
 
     if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
     {
+	if (!_device->OutputSettings->SendTexture)
+	{
+	    ROS_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") send_texture must be turned on");
+	    return;
+	}
+	
 	PointCloud2Iterator<uint8_t> rgb(*cloud, "rgb");
 
 	for (int v = 0; v < cloud->height; ++v)
@@ -1173,6 +1181,14 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
     
     if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
     {
+	if (!_device->OutputSettings->SendNormalMap)
+	{
+	    ROS_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") send_normal_map must be turned on");
+	    return;
+	}
+	
 	PointCloud2Iterator<float>	normal(*cloud, "normal_x");
 
 	for (int v = 0; v < cloud->height; ++v)
