@@ -217,8 +217,6 @@ Camera::tick()
     if (_device->TriggerMode == PhoXiTriggerMode::Freerun &&
 	_device->isAcquiring())
     {
-	std::lock_guard<std::mutex>	lock(_mutex);
-
 	if ((_frame = _device->GetFrame(PhoXiTimeout::ZeroTimeout)) &&
 	    _frame->Successful)
 	    publish_frame();
@@ -264,7 +262,7 @@ Camera::setup_ddr_phoxi()
 	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::ScanMultiplier,
-			_1),
+			_1, false),
 	    "The number of scans taken and merged to sigle output",
 	    1, 20, "capturing_settings");
 
@@ -275,7 +273,7 @@ Camera::setup_ddr_phoxi()
 	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::ShutterMultiplier,
-			_1),
+			_1, false),
 	    "The number of repeats of indivisual pattern",
 	    1, 20, "capturing_settings");
 
@@ -286,7 +284,7 @@ Camera::setup_ddr_phoxi()
 	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::AmbientLightSuppression,
-			_1),
+			_1, false),
 	    "Enables the mode that suppress ambient illumination.",
 	    false, true, "capturing_settings");
 
@@ -298,7 +296,7 @@ Camera::setup_ddr_phoxi()
 			this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::MaximumFPS,
-			_1),
+			_1, false),
 	    "Maximum fps in freerun mode",
 	    0.1, 30.0, "capturing_settings");
 
@@ -315,7 +313,7 @@ Camera::setup_ddr_phoxi()
 			this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::SinglePatternExposure,
-			_1),
+			_1, false),
 	    "Exposure time for a single patter in miliseconds",
 	    enum_single_pattern_exposure, "", "capturing_settings");
 
@@ -335,7 +333,7 @@ Camera::setup_ddr_phoxi()
     			this,
     			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::CodingStrategy,
-			_1),
+			_1, false),
     	    "Coding strategy", enum_coding_strategy, "", "capturing_settings");
     }
 
@@ -355,7 +353,7 @@ Camera::setup_ddr_phoxi()
     			this,
     			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::CodingQuality,
-			_1),
+			_1, false),
     	    "Coding quality", enum_coding_quality, "", "capturing_settings");
     }
 
@@ -377,7 +375,7 @@ Camera::setup_ddr_phoxi()
     			this,
     			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::TextureSource,
-			_1),
+			_1, false),
     	    "Source used for texture image",
 	    enum_texture_source, "", "capturing_settings");
     }
@@ -389,7 +387,7 @@ Camera::setup_ddr_phoxi()
 	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::LaserPower,
-			_1),
+			_1, false),
 	    "Laser power", 1000, 4095, "capturing_settings");
 }
 
@@ -412,7 +410,8 @@ Camera::setup_ddr_motioncam()
     	    _device->MotionCam->OperationMode,
     	    boost::bind(&Camera::set_field<PhoXiMotionCam, PhoXiOperationMode>,
 			this,
-    			&PhoXi::MotionCam, &PhoXiMotionCam::OperationMode, _1),
+    			&PhoXi::MotionCam, &PhoXiMotionCam::OperationMode,
+			_1, false),
     	    "Operation mode", enum_operation_mode, "", "motioncam");
     }
 
@@ -421,7 +420,8 @@ Camera::setup_ddr_motioncam()
 	    "laser_power",
 	    _device->MotionCam->LaserPower,
 	    boost::bind(&Camera::set_field<PhoXiMotionCam, int>, this,
-			&PhoXi::MotionCam, &PhoXiMotionCam::LaserPower, _1),
+			&PhoXi::MotionCam, &PhoXiMotionCam::LaserPower,
+			_1, false),
 	    "Laser power",
 	    1000, 4095, "motioncam");
 
@@ -430,7 +430,8 @@ Camera::setup_ddr_motioncam()
 	    "maximum_fps",
 	    _device->MotionCam->MaximumFPS,
 	    boost::bind(&Camera::set_field<PhoXiMotionCam, double>, this,
-			&PhoXi::MotionCam, &PhoXiMotionCam::MaximumFPS, _1),
+			&PhoXi::MotionCam, &PhoXiMotionCam::MaximumFPS,
+			_1, false),
 	    "Maximum fps",
 	    0.0, 20.0, "motioncam");
 
@@ -441,7 +442,7 @@ Camera::setup_ddr_motioncam()
 	    _device->MotionCam->HardwareTrigger,
 	    boost::bind(&Camera::set_field<PhoXiMotionCam, bool>, this,
 			&PhoXi::MotionCam,
-			&PhoXiMotionCam::HardwareTrigger, _1),
+			&PhoXiMotionCam::HardwareTrigger, _1, false),
 	    "Hardware trigger",
 	    false, true, "motioncam");
 #  endif
@@ -457,7 +458,7 @@ Camera::setup_ddr_motioncam()
 	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode, double>,
 			this,
 			&PhoXi::MotionCamCameraMode,
-			&PhoXiMotionCamCameraMode::Exposure, _1),
+			&PhoXiMotionCamCameraMode::Exposure, _1, false),
 	    "Exposure time in miliseconds",
 	    enum_exposures, "", "motioncam_camera_mode");
 
@@ -476,7 +477,7 @@ Camera::setup_ddr_motioncam()
     			this,
     			&PhoXi::MotionCamCameraMode,
 			&PhoXiMotionCamCameraMode::SamplingTopology,
-			_1),
+			_1, false),
     	    "Sampling topology",
 	    enum_sampling_topology, "", "motioncam_camera_mode");
     }
@@ -498,7 +499,7 @@ Camera::setup_ddr_motioncam()
     	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
 					   PhoXiOutputTopology>, this,
     			&PhoXi::MotionCamCameraMode,
-			&PhoXiMotionCamCameraMode::OutputTopology, _1),
+			&PhoXiMotionCamCameraMode::OutputTopology, _1, false),
     	    "Output topology",
 	    enum_output_topology, "", "motioncam_camera_mode");
     }
@@ -518,7 +519,7 @@ Camera::setup_ddr_motioncam()
     	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
 					   PhoXiCodingStrategy>, this,
     			&PhoXi::MotionCamCameraMode,
-			&PhoXiMotionCamCameraMode::CodingStrategy, _1),
+			&PhoXiMotionCamCameraMode::CodingStrategy, _1, false),
     	    "Coding strategy",
 	    enum_coding_strategy, "", "motioncam_camera_mode");
     }
@@ -530,7 +531,7 @@ Camera::setup_ddr_motioncam()
 	_device->MotionCamScannerMode->ShutterMultiplier,
 	boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode, int>, this,
 		    &PhoXi::MotionCamScannerMode,
-		    &PhoXiMotionCamScannerMode::ShutterMultiplier, _1),
+		    &PhoXiMotionCamScannerMode::ShutterMultiplier, _1, false),
 	"Shutter multiplier", 1, 20, "motioncam_scanner_mode");
     
   // 3.2 scan multiplier
@@ -539,7 +540,7 @@ Camera::setup_ddr_motioncam()
 	_device->MotionCamScannerMode->ScanMultiplier,
 	boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode, int>, this,
 		    &PhoXi::MotionCamScannerMode,
-		    &PhoXiMotionCamScannerMode::ScanMultiplier, _1),
+		    &PhoXiMotionCamScannerMode::ScanMultiplier, _1, false),
 	"Scan multiplier", 1, 20, "motioncam_scanner_mode");
 
   // 3.3 coding strategy
@@ -558,7 +559,7 @@ Camera::setup_ddr_motioncam()
 					   PhoXiCodingStrategy>,
 			this,
 			&PhoXi::MotionCamScannerMode,
-			&PhoXiMotionCamScannerMode::CodingStrategy, _1),
+			&PhoXiMotionCamScannerMode::CodingStrategy, _1, false),
 	    "Coding  strategy", enum_coding_strategy, "",
 	    "motioncam_scanner_mode");
     }
@@ -578,7 +579,7 @@ Camera::setup_ddr_motioncam()
 					   PhoXiCodingQuality>,
 			this,
 			&PhoXi::MotionCamScannerMode,
-			&PhoXiMotionCamScannerMode::CodingQuality, _1),
+			&PhoXiMotionCamScannerMode::CodingQuality, _1, false),
 	    "Coding quality", enum_coding_quality, "",
 	    "motioncam_scanner_mode");
     }
@@ -600,7 +601,7 @@ Camera::setup_ddr_motioncam()
 					   PhoXiTextureSource>,
 			this,
 			&PhoXi::MotionCamScannerMode,
-			&PhoXiMotionCamScannerMode::TextureSource, _1),
+			&PhoXiMotionCamScannerMode::TextureSource, _1, false),
 	    "Texture source", enum_texture_source, "",
 	    "motioncam_scanner_mode");
     }
@@ -613,7 +614,7 @@ Camera::setup_ddr_motioncam()
 	boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode, double>,
 		    this,
 		    &PhoXi::MotionCamScannerMode,
-		    &PhoXiMotionCamScannerMode::Exposure, _1),
+		    &PhoXiMotionCamScannerMode::Exposure, _1, false),
 	"Exposure", enum_exposures, "", "motioncam_scanner_mode");
 #  endif
 }
@@ -660,7 +661,7 @@ Camera::setup_ddr_common()
 			this,
 			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::Confidence,
-			_1),
+			_1, false),
 	    "Confidence value", 0.0, 100.0, "processing_settings");
 
   // 3.2 SurfaceSmoothness
@@ -682,7 +683,7 @@ Camera::setup_ddr_common()
     			this,
     			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::SurfaceSmoothness,
-			_1),
+			_1, false),
     	    "Surface smoothness",
 	    enum_surface_smoothness, "", "processing_settings");
     }
@@ -695,7 +696,7 @@ Camera::setup_ddr_common()
 			this,
 			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::CalibrationVolumeOnly,
-			_1),
+			_1, false),
 	    "Calibration volume only", false, true, "processing_settings");
 
   // 3.4 NormalsEstimationRadius
@@ -706,7 +707,7 @@ Camera::setup_ddr_common()
 			this,
 			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::NormalsEstimationRadius,
-			_1),
+			_1, false),
 	    "Normals estimation radius", 0, 4, "processing_settings");
 
   // 3.5 InterreflectionsFiltering
@@ -718,7 +719,7 @@ Camera::setup_ddr_common()
 			this,
 			&PhoXi::ProcessingSettings,
 			&PhoXiProcessingSettings::InterreflectionsFiltering,
-			_1),
+			_1, false),
 	    "Interreflections filtering", false, true, "processing_settings");
 #endif
   // 4. OutputSettings
@@ -728,7 +729,7 @@ Camera::setup_ddr_common()
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendPointCloud,
-			_1),
+			_1, true),
 	    "Publish point cloud if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_normal_map",
@@ -736,7 +737,7 @@ Camera::setup_ddr_common()
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendNormalMap,
-			_1),
+			_1, true),
 	    "Publish normal map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_depth_map",
@@ -744,7 +745,7 @@ Camera::setup_ddr_common()
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendDepthMap,
-			_1),
+			_1, true),
 	    "Publish depth map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_confidence_map",
@@ -752,7 +753,7 @@ Camera::setup_ddr_common()
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendConfidenceMap,
-			_1),
+			_1, true),
 	    "Publish confidence map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
 	    "send_texture",
@@ -760,7 +761,7 @@ Camera::setup_ddr_common()
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
 			&PhoXi::OutputSettings,
 			&FrameOutputSettings::SendTexture,
-			_1),
+			_1, true),
 	    "Publish texture if set.", false, true, "output_settings");
 
   // 5. Intensity format of the points in point cloud
@@ -837,8 +838,12 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
 template <class F, class T> void
 Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
-		  T F::* field, T value)
+		  T F::* field, T value, bool pause)
 {
+    const auto acq = _device->isAcquiring();
+    if (pause && acq)
+	_device->StopAcquisition();
+
     const auto&	f   = _device.operator ->()->*feature;
     auto	val = f.GetValue();
     val.*field = value;
@@ -847,6 +852,13 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		    << _device->HardwareIdentification.GetValue()
 		    << ") set " << f.GetName() << " to "
 		    << f.GetValue().*field);
+
+    if (pause)
+    {
+	_device->ClearBuffer();
+	if (acq)
+	    _device->StartAcquisition();
+    }
 }
 
 void
@@ -957,8 +969,6 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 bool
 Camera::save_frame(SetString::Request& req, SetString::Response& res)
 {
-    std::lock_guard<std::mutex>	lock(_mutex);
-
     if (_frame == nullptr || !_frame->Successful)
     {
 	res.success = false;

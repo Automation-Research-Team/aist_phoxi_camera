@@ -38,7 +38,6 @@
  */
 #include <string>
 #include <array>
-#include <mutex>
 
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
@@ -84,11 +83,11 @@ class Camera
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			    T value, bool reset)			;
+			    T value, bool pause)			;
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member, T value)			;
+			  T F::* member, T value, bool pause)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     void	lock_gui(bool enable)					;
@@ -119,7 +118,6 @@ class Camera
   private:
     ros::NodeHandle			_nh;
 
-    mutable std::mutex			_mutex;
     const pho::api::PhoXiFactory	_factory;
     pho::api::PPhoXi			_device;
     pho::api::PFrame			_frame;
