@@ -87,7 +87,7 @@ class Camera
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member, T value, bool pause)		;
+			  T F::* member, T value)			;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     void	lock_gui(bool enable)					;
@@ -103,12 +103,13 @@ class Camera
     static bool	save_image(const std::string& filename,
 			   const pho::api::Mat2D<T>& phoxi_image,
 			   float scale)					;
-    void	publish_frame()					const	;
+    void	publish_frame()						;
     void	publish_cloud(const ros::Time& stamp,
-			      float distanceScale)		const	;
+			      float distanceScale)			;
     template <class T>
     void	publish_image(const pho::api::Mat2D<T>& phoxi_image,
 			      const image_transport::Publisher& publisher,
+			      image_t& image,
 			      const ros::Time& stamp,
 			      const std::string& encoding,
 			      typename T::ElementChannelType scale)
@@ -127,6 +128,12 @@ class Camera
     std::array<double, 9>		_K;		// intrinsic param.
     int					_pointFormat;
     double				_intensityScale;
+
+    cloud_t				_cloud;
+    image_t				_normal_map;
+    image_t				_depth_map;
+    image_t				_confidence_map;
+    image_t				_texture;
 
     ddynamic_reconfigure::DDynamicReconfigure	_ddr;
 
