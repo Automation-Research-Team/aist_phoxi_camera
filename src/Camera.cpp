@@ -43,6 +43,10 @@
 #      define HAVE_INTERREFLECTIONS_FILTERING
 #      define HAVE_HARDWARE_TRIGGER
 #      define HAVE_MOTIONCAM_EXPOSURE
+#      if PHO_SOFTWARE_VERSION_MINOR >= 7
+#        define HAVE_HARDWARE_TRIGGER_SIGNAL
+#        define HAVE_INTERREFLECTION_FILTER_STRENGTH
+#      endif
 #    endif
 #  endif
 #endif
@@ -429,8 +433,8 @@ Camera::setup_ddr_motioncam()
 	    "Maximum fps",
 	    0.0, 20.0, "motioncam");
 
-  // 1.4 hardware trigger
 #  if defined(HAVE_HARDWARE_TRIGGER)
+  // 1.4 hardware trigger
     _ddr.registerVariable<bool>(
 	    "hardware_trigger",
 	    _device->MotionCam->HardwareTrigger,
@@ -439,6 +443,25 @@ Camera::setup_ddr_motioncam()
 			&PhoXiMotionCam::HardwareTrigger, _1),
 	    "Hardware trigger",
 	    false, true, "motioncam");
+
+#    if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
+  // 1.5 hardware trigger signal
+    const std::map<std::string, int>
+	enum_hardware_trigger_signal =
+	{{"Falling", PhoXiHardwareTriggerSignal::Falling},
+	 {"Rising",  PhoXiHardwareTriggerSignal::Rising},
+	 {"Both",    PhoXiHardwareTriggerSignal::Both}};
+	_ddr.registerEnumVariable<int>(
+    	    "hardware_trigger_signal",
+    	    _device->MotionCam->HardwareTriggerSignal,
+    	    boost::bind(&Camera::set_field<PhoXiMotionCam,
+					   PhoXiHardwareTriggerSignal>,
+			this,
+    			&PhoXi::MotionCam,
+			&PhoXiMotionCam::HardwareTriggerSignal, _1),
+    	    "Hardware trigger siganl",
+	    enum_hardware_trigger_signal, "", "motioncam");
+#    endif
 #  endif
 
   // 2. MotionCam camera mode
@@ -702,8 +725,8 @@ Camera::setup_ddr_common()
 			_1),
 	    "Normals estimation radius", 0, 4, "processing_settings");
 
-  // 3.5 InterreflectionsFiltering
 #if defined(HAVE_INTERREFLECTIONS_FILTERING)
+  // 3.5 InterreflectionsFiltering
     _ddr.registerVariable<bool>(
 	    "interreflections_filtering",
 	    _device->ProcessingSettings->InterreflectionsFiltering,
@@ -713,6 +736,19 @@ Camera::setup_ddr_common()
 			&PhoXiProcessingSettings::InterreflectionsFiltering,
 			_1),
 	    "Interreflections filtering", false, true, "processing_settings");
+
+#  if defined(HAVE_INTERREFLECTION_FILTER_STRENGTH)
+  // 3.6 InterreflectionFilterStrength
+    _ddr.registerVariable<double>(
+	    "interreflection_filter_strength",
+	    _device->ProcessingSettings->InterreflectionFilterStrength,
+	    boost::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
+			this,
+			&PhoXi::ProcessingSettings,
+			&PhoXiProcessingSettings::InterreflectionFilterStrength,
+			_1),
+	    "Interreflection filter strength", 0, 4, "processing_settings");
+#  endif
 #endif
   // 4. OutputSettings
     _ddr.registerVariable<bool>(
