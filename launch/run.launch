@@ -8,6 +8,7 @@
   <arg name="intensity_scale"	default="0.5"/>
   <arg name="frame"		default="calibrated_$(arg camera_name)"/>
   <arg name="rate"		default="10"/>
+  <arg name="point_format"	default="0"/>
   <arg name="external_manager"	default="false"/>
   <arg name="manager"		default=""/>
   <arg name="nthreads"		default="4"/>
@@ -20,6 +21,7 @@
     <param name="intensity_scale"	value="$(arg intensity_scale)"/>
     <param name="frame"			value="$(arg frame)"/>
     <param name="rate"			value="$(arg rate)"/>
+    <param name="point_format"		value="$(arg point_format)"/>
   </node>
 
   <group unless="$(eval manager == '')">
@@ -38,6 +40,7 @@
       <param name="intensity_scale"	value="$(arg intensity_scale)"/>
       <param name="frame"		value="$(arg frame)"/>
       <param name="rate"		value="$(arg rate)"/>
+      <param name="point_format"	value="$(arg point_format)"/>
     </node>
   </group>
 

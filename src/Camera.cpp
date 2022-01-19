@@ -81,7 +81,7 @@ Camera::Camera(const ros::NodeHandle& nh)
      _K({2215.13350577,    0.0        , 1030.47471121 ,
 	    0.0       , 2215.13350577 ,  756.735726174,
             0.0       ,    0.0        ,    1.0        }),
-     _pointFormat(XYZ_ONLY),
+     _pointFormat(_nh.param<int>("point_format", XYZ_ONLY)),
      _intensityScale(0.5),
      _cloud(),
      _normal_map(),
