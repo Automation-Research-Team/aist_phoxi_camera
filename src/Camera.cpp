@@ -90,12 +90,14 @@ Camera::Camera(const ros::NodeHandle& nh)
      _texture(),
      _ddr(_nh),
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
-						&trigger_frame,	this)),
-     _save_frame_server(_nh.advertiseService("save_frame", &save_frame, this)),
+						&Camera::trigger_frame,	this)),
+     _save_frame_server(_nh.advertiseService("save_frame",
+					     &Camera::save_frame, this)),
      _save_settings_server(_nh.advertiseService("save_settings",
-						&save_settings, this)),
+						&Camera::save_settings, this)),
      _restore_settings_server(_nh.advertiseService("restore_settings",
-						   &restore_settings, this)),
+						   &Camera::restore_settings,
+						   this)),
      _it(_nh),
      _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
@@ -846,7 +848,7 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     if (pause && acq)
 	_device->StopAcquisition();
 
-    const auto&	f = _device.operator ->()->*feature;
+    auto&	f = _device.operator ->()->*feature;
     f.SetValue(value);
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
@@ -864,7 +866,7 @@ template <class F, class T> void
 Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		  T F::* field, T value)
 {
-    const auto&	f   = _device.operator ->()->*feature;
+    auto&	f   = _device.operator ->()->*feature;
     auto	val = f.GetValue();
     val.*field = value;
     f.SetValue(val);

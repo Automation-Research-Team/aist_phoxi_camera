@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(aist_phoxi_camera)
 
+## Compile as C++17, supported in ROS melodic and newer
+enable_language(CXX)
+
+set(CMAKE_CXX_STANDARD		17)
+set(CMAKE_CXX_STANDARD_REQUIRED	ON)
+set(CMAKE_CXX_EXTENSIONS	OFF)
+set(CMAKE_CXX_FLAGS_RELEASE	"-Wall -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG	"-g")
+
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
 
 find_package(catkin REQUIRED
@@ -40,12 +49,6 @@ catkin_package(
     message_runtime
     sensor_msgs
 )
-
-add_compile_options(-w)
-add_compile_options(-std=c++14)
-add_compile_options(-fpermissive)
-add_compile_options(-pthread)
-add_compile_options(-O2)
 
 add_executable(
   ${PROJECT_NAME}

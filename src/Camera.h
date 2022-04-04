@@ -119,7 +119,7 @@ class Camera
   private:
     ros::NodeHandle			_nh;
 
-    const pho::api::PhoXiFactory	_factory;
+    pho::api::PhoXiFactory		_factory;
     pho::api::PPhoXi			_device;
     pho::api::PFrame			_frame;
     std::string				_frame_id;	// frame id used by tf
