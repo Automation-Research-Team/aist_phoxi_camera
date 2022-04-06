@@ -67,6 +67,19 @@ class Camera
 	XYZ_ONLY = 0, WITH_RGB = 1, WITH_NORMAL = 2, WITH_RGB_NORMAL = 4
     };
 
+    struct ddynamic_reconfigure_t : ddynamic_reconfigure::DDynamicReconfigure
+    {
+	using super	= ddynamic_reconfigure::DDynamicReconfigure;
+	
+	ddynamic_reconfigure_t(const ros::NodeHandle& nh) :super(nh)	{}
+
+	void	publishServicesTopics()
+		{
+		    super::publishServicesTopics();
+		    super::updateConfigData(generateConfig());
+		}
+    };
+
   public:
 		Camera(const ros::NodeHandle& nh)			;
 		~Camera()						;
@@ -87,7 +100,8 @@ class Camera
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member, T value)			;
+			  T F::* member, T value,
+			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     void	lock_gui(bool enable)					;
@@ -122,8 +136,8 @@ class Camera
     pho::api::PhoXiFactory		_factory;
     pho::api::PPhoXi			_device;
     pho::api::PFrame			_frame;
-    std::string				_frame_id;	// frame id used by tf
-    double				_rate;		// frequency
+    const std::string			_frame_id;	// frame id used by tf
+    const double			_rate;		// frequency
     std::array<double, 8>		_D;		// distortion param.
     std::array<double, 9>		_K;		// intrinsic param.
     int					_pointFormat;
@@ -135,7 +149,7 @@ class Camera
     image_t				_confidence_map;
     image_t				_texture;
 
-    ddynamic_reconfigure::DDynamicReconfigure	_ddr;
+    ddynamic_reconfigure_t		_ddr;
 
     const ros::ServiceServer		_trigger_frame_server;
     const ros::ServiceServer		_save_frame_server;
