@@ -1126,7 +1126,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     using namespace	sensor_msgs;
 
     const auto&	phoxi_cloud = _frame->PointCloud;
-    if (phoxi_cloud.Empty())
+    if (phoxi_cloud.Empty() || _cloud_publisher.getNumSubscribers() == 0)
 	return;
     
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
@@ -1267,7 +1267,7 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
     using namespace	sensor_msgs;
     using		element_ptr = const typename T::ElementChannelType*;
 
-    if (phoxi_image.Empty())
+    if (phoxi_image.Empty() || publisher.getNumSubscribers() == 0)
 	return;
 
     image.header.stamp    = stamp;
@@ -1317,6 +1317,9 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
 void
 Camera::publish_camera_info(const ros::Time& stamp) const
 {
+    if (_camera_info_publisher.getNumSubscribers() == 0)
+	return;
+    
     cinfo_t	cinfo;
 
   // Set header.

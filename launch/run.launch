@@ -35,7 +35,6 @@
   </node>
 
   <group unless="$(eval manager == '')">
-
     <node unless="$(arg external_manager)"
 	  name="$(arg manager)" pkg ="nodelet" type="nodelet"
 	  args="manager" output="screen">
