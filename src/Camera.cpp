@@ -99,6 +99,8 @@ Camera::Camera(const ros::NodeHandle& nh)
      _restore_settings_server(_nh.advertiseService("restore_settings",
 						   &Camera::restore_settings,
 						   this)),
+     _calibrate_server(_nh.advertiseService("calibrate",
+					    &Camera::calibrate, this)),
      _it(_nh),
      _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
@@ -170,17 +172,26 @@ Camera::Camera(const ros::NodeHandle& nh)
 
     _ddr.publishServicesTopics();
 
-  // Read camera intrinsic parameters from device.
-    const auto& calib = _device->CalibrationSettings.GetValue();
-    const auto& D     = calib.DistortionCoefficients;
-    const auto& K     = calib.CameraMatrix;
-    std::copy_n(std::begin(D), std::min(D.size(), _D.size()), std::begin(_D));
-    std::copy(K[0], K[3], std::begin(_K));
-
   // Start acquisition.
     _device->UnlockGUI();
     _device->ClearBuffer();
     _device->StartAcquisition();
+
+  // Read camera intrinsic parameters from device.
+    if (PhoXiDeviceType::Value(_device->GetType()) ==
+	PhoXiDeviceType::MotionCam3D)
+    {
+	calibrate();
+    }
+    else
+    {
+	const auto& calib = _device->CalibrationSettings.GetValue();
+	const auto& D     = calib.DistortionCoefficients;
+	const auto& K     = calib.CameraMatrix;
+	std::copy_n(std::begin(D), std::min(D.size(), _D.size()),
+		    std::begin(_D));
+	std::copy(K[0], K[3], std::begin(_K));
+    }
 
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
@@ -233,7 +244,7 @@ void
 Camera::setup_ddr_phoxi()
 {
     using namespace	pho::api;
-    
+
   // 1. CapturingMode
     const auto	modes = _device->SupportedCapturingModes.GetValue();
     if (modes.size() > 1)
@@ -396,7 +407,7 @@ void
 Camera::setup_ddr_motioncam()
 {
     using namespace	pho::api;
-    
+
   // 1. General settings
   // 1.1 operation mode
     if (_device->MotionCam->OperationMode != PhoXiOperationMode::NoValue)
@@ -560,7 +571,7 @@ Camera::setup_ddr_motioncam()
 		    &PhoXiMotionCamScannerMode::ShutterMultiplier, _1,
 		    "ShutterMultiplier"),
 	"Shutter multiplier", 1, 20, "motioncam_scanner_mode");
-    
+
   // 3.2 scan multiplier
     _ddr.registerVariable<int>(
 	"scan_multiplier",
@@ -592,7 +603,7 @@ Camera::setup_ddr_motioncam()
 	    "Coding  strategy", enum_coding_strategy, "",
 	    "motioncam_scanner_mode");
     }
-    
+
   // 3.4 coding quality
     if (_device->MotionCamScannerMode->CodingQuality !=
 	PhoXiCodingQuality::NoValue)
@@ -919,6 +930,62 @@ Camera::lock_gui(bool enable)
 			<< " GUI");
 }
 
+void
+Camera::calibrate()
+{
+    const auto	frameId = _device->TriggerFrame(true, true);
+
+    if (!(_frame = _device->GetSpecificFrame(frameId, PhoXiTimeout::Infinity)) ||
+	_frame->Successful)
+    {
+	res.message = "failed. [not found frame #"
+	    + std::to_string(frameId) + ']';
+	    break;
+    }
+    if (_frame == nullptr || !_frame->Successful)
+    {
+	res.success = false;
+	res.message = "no frame data";
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") calibrate: "
+			 << res.message);
+	return true;
+    }
+
+    const auto&	phoxi_cloud = _frame->PointCloud;
+    if (phoxi_cloud.Empty())
+    {
+	res.success = false;
+	res.message = "cloud is empty";
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") calibrate: "
+			 << res.message);
+	return true;
+    }
+
+    double	u_sum = 0.0, v_sum = 0.0, x_sum = 0.0, y_sum = 0.0;
+    size_t	npoints = 0;
+    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
+	for (int u = 0; u < phoxi_cloud.Size.Width; ++u)
+	{
+	    const auto&	p = phoxi_cloud.At(v, u);
+
+	    if (float(p.z) != 0.0f)
+	    {
+		u_sum += u;
+		v_sum += v;
+		x_sum += p.x / p.z;
+		y_sum += p.y / p.z;
+
+		++npoints;
+	    }
+	}
+
+    return true;
+}
+
 bool
 Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 		      std_srvs::Trigger::Response& res)
@@ -1080,7 +1147,7 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
 			 << ") restore_settings: "
 			 << res.message);
     }
-    
+
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
@@ -1128,7 +1195,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     const auto&	phoxi_cloud = _frame->PointCloud;
     if (phoxi_cloud.Empty() || _cloud_publisher.getNumSubscribers() == 0)
 	return;
-    
+
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
     _cloud.is_bigendian = false;
     _cloud.is_dense	= false;
@@ -1208,7 +1275,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 			     << ") send_texture must be turned on");
 	    return;
 	}
-	
+
 	PointCloud2Iterator<uint8_t> rgb(_cloud, "rgb");
 
 	for (int v = 0; v < _cloud.height; ++v)
@@ -1220,7 +1287,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 		++rgb;
 	    }
     }
-    
+
     if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
     {
 	if (!_device->OutputSettings->SendNormalMap)
@@ -1238,7 +1305,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 			     << ") normals_estimation_radius must be positive");
 	    return;
 	}
-	
+
 	PointCloud2Iterator<float>	normal(_cloud, "normal_x");
 
 	for (int v = 0; v < _cloud.height; ++v)
@@ -1319,7 +1386,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
 {
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
-    
+
     cinfo_t	cinfo;
 
   // Set header.
