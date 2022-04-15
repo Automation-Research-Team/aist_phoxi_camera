@@ -99,8 +99,6 @@ Camera::Camera(const ros::NodeHandle& nh)
      _restore_settings_server(_nh.advertiseService("restore_settings",
 						   &Camera::restore_settings,
 						   this)),
-     _calibrate_server(_nh.advertiseService("calibrate",
-					    &Camera::calibrate, this)),
      _it(_nh),
      _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
@@ -933,39 +931,31 @@ Camera::lock_gui(bool enable)
 void
 Camera::calibrate()
 {
+    using namespace	pho::api;
+
     const auto	frameId = _device->TriggerFrame(true, true);
 
     if (!(_frame = _device->GetSpecificFrame(frameId, PhoXiTimeout::Infinity)) ||
 	_frame->Successful)
     {
-	res.message = "failed. [not found frame #"
-	    + std::to_string(frameId) + ']';
-	    break;
-    }
-    if (_frame == nullptr || !_frame->Successful)
-    {
-	res.success = false;
-	res.message = "no frame data";
 	ROS_ERROR_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
-			 << ") calibrate: "
-			 << res.message);
-	return true;
+			 << ") calibrate: not found frame #"
+			 << frameId);
+	return;
     }
 
     const auto&	phoxi_cloud = _frame->PointCloud;
     if (phoxi_cloud.Empty())
     {
-	res.success = false;
-	res.message = "cloud is empty";
 	ROS_ERROR_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
-			 << ") calibrate: "
-			 << res.message);
-	return true;
+			 << ") calibrate: cloud is empty.");
+	return;
     }
 
-    double	u_sum = 0.0, v_sum = 0.0, x_sum = 0.0, y_sum = 0.0;
+    double	u_m = 0.0, v_m = 0.0, x_m = 0.0, y_m = 0.0,
+		ux_m = 0.0, vy_m = 0.0;
     size_t	npoints = 0;
     for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	for (int u = 0; u < phoxi_cloud.Size.Width; ++u)
@@ -974,16 +964,30 @@ Camera::calibrate()
 
 	    if (float(p.z) != 0.0f)
 	    {
-		u_sum += u;
-		v_sum += v;
-		x_sum += p.x / p.z;
-		y_sum += p.y / p.z;
-
+		const double	x = p.x / p.z;
+		const double	y = p.y / p.z;
+		
+		u_m  += u;
+		v_m  += v;
+		x_m  += x;
+		y_m  += y;
+		ux_m += u * x;
+		vy_m += v * y;
+		
 		++npoints;
 	    }
 	}
+    u_m  /= npoints;
+    v_m  /= npoints;
+    x_m  /= npoints;
+    y_m  /= npoints;
+    ux_m /= npoints;
+    vy_m /= npoints;
 
-    return true;
+    _K[0] = (ux_m - u_m * x_m);
+    _K[2] = x_m - _K[0] * u_m;
+    _K[4] = (vy_m - v_m * y_m);
+    _K[5] = y_m - _K[4] * v_m;
 }
 
 bool
