@@ -179,7 +179,7 @@ Camera::Camera(const ros::NodeHandle& nh)
     if (PhoXiDeviceType::Value(_device->GetType()) ==
 	PhoXiDeviceType::MotionCam3D)
     {
-	calibrate();
+	calibrate_intrinsics();
     }
     else
     {
@@ -929,19 +929,18 @@ Camera::lock_gui(bool enable)
 }
 
 void
-Camera::calibrate()
+Camera::calibrate_intrinsics()
 {
     using namespace	pho::api;
 
-    const auto	frameId = _device->TriggerFrame(true, true);
+    ros::Duration(0.5).sleep();
 
-    if (!(_frame = _device->GetSpecificFrame(frameId, PhoXiTimeout::Infinity)) ||
-	_frame->Successful)
+    if (!(_frame = _device->GetFrame(PhoXiTimeout::ZeroTimeout)) ||
+	!_frame->Successful)
     {
 	ROS_ERROR_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
-			 << ") calibrate: not found frame #"
-			 << frameId);
+			 << ") calibrate: failed to getframe");
 	return;
     }
 
@@ -954,8 +953,8 @@ Camera::calibrate()
 	return;
     }
 
-    double	u_m = 0.0, v_m = 0.0, x_m = 0.0, y_m = 0.0,
-		ux_m = 0.0, vy_m = 0.0;
+    double	u_m  = 0.0, v_m  = 0.0, x_m  = 0.0, y_m  = 0.0,
+		xx_m = 0.0, yy_m = 0.0, ux_m = 0.0, vy_m = 0.0;
     size_t	npoints = 0;
     for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	for (int u = 0; u < phoxi_cloud.Size.Width; ++u)
@@ -966,14 +965,16 @@ Camera::calibrate()
 	    {
 		const double	x = p.x / p.z;
 		const double	y = p.y / p.z;
-		
+
 		u_m  += u;
 		v_m  += v;
 		x_m  += x;
 		y_m  += y;
+		xx_m += x * x;
+		yy_m += y * y;
 		ux_m += u * x;
 		vy_m += v * y;
-		
+
 		++npoints;
 	    }
 	}
@@ -981,13 +982,15 @@ Camera::calibrate()
     v_m  /= npoints;
     x_m  /= npoints;
     y_m  /= npoints;
+    xx_m /= npoints;
+    yy_m /= npoints;
     ux_m /= npoints;
     vy_m /= npoints;
 
-    _K[0] = (ux_m - u_m * x_m);
-    _K[2] = x_m - _K[0] * u_m;
-    _K[4] = (vy_m - v_m * y_m);
-    _K[5] = y_m - _K[4] * v_m;
+    _K[0] = (ux_m - u_m * x_m) / (xx_m - x_m * x_m);
+    _K[2] = u_m - _K[0] * x_m;
+    _K[4] = (vy_m - v_m * y_m) / (yy_m - y_m * y_m);
+    _K[5] = v_m - _K[4] * y_m;
 }
 
 bool
