@@ -233,7 +233,7 @@ void
 Camera::setup_ddr_phoxi()
 {
     using namespace	pho::api;
-    
+
   // 1. CapturingMode
     const auto	modes = _device->SupportedCapturingModes.GetValue();
     if (modes.size() > 1)
@@ -396,7 +396,7 @@ void
 Camera::setup_ddr_motioncam()
 {
     using namespace	pho::api;
-    
+
   // 1. General settings
   // 1.1 operation mode
     if (_device->MotionCam->OperationMode != PhoXiOperationMode::NoValue)
@@ -560,7 +560,7 @@ Camera::setup_ddr_motioncam()
 		    &PhoXiMotionCamScannerMode::ShutterMultiplier, _1,
 		    "ShutterMultiplier"),
 	"Shutter multiplier", 1, 20, "motioncam_scanner_mode");
-    
+
   // 3.2 scan multiplier
     _ddr.registerVariable<int>(
 	"scan_multiplier",
@@ -592,7 +592,7 @@ Camera::setup_ddr_motioncam()
 	    "Coding  strategy", enum_coding_strategy, "",
 	    "motioncam_scanner_mode");
     }
-    
+
   // 3.4 coding quality
     if (_device->MotionCamScannerMode->CodingQuality !=
 	PhoXiCodingQuality::NoValue)
@@ -1080,7 +1080,7 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
 			 << ") restore_settings: "
 			 << res.message);
     }
-    
+
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
@@ -1128,7 +1128,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     const auto&	phoxi_cloud = _frame->PointCloud;
     if (phoxi_cloud.Empty() || _cloud_publisher.getNumSubscribers() == 0)
 	return;
-    
+
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
     _cloud.is_bigendian = false;
     _cloud.is_dense	= false;
@@ -1208,7 +1208,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 			     << ") send_texture must be turned on");
 	    return;
 	}
-	
+
 	PointCloud2Iterator<uint8_t> rgb(_cloud, "rgb");
 
 	for (int v = 0; v < _cloud.height; ++v)
@@ -1220,7 +1220,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 		++rgb;
 	    }
     }
-    
+
     if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
     {
 	if (!_device->OutputSettings->SendNormalMap)
@@ -1238,7 +1238,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 			     << ") normals_estimation_radius must be positive");
 	    return;
 	}
-	
+
 	PointCloud2Iterator<float>	normal(_cloud, "normal_x");
 
 	for (int v = 0; v < _cloud.height; ++v)
@@ -1319,7 +1319,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
 {
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
-    
+
     cinfo_t	cinfo;
 
   // Set header.
@@ -1348,7 +1348,9 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.P[3] = cinfo.P[7] = cinfo.P[11] = 0.0;
 
   // No binning
-    cinfo.binning_x = cinfo.binning_y = 0;
+    const auto	binning = _device->CameraBinning.GetValue();
+    cinfo.binning_x = binning.Width;
+    cinfo.binning_y = binning.Height;
 
   // ROI is same as entire image.
     cinfo.roi.width = cinfo.roi.height = 0;
