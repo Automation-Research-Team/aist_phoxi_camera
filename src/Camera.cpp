@@ -170,17 +170,26 @@ Camera::Camera(const ros::NodeHandle& nh)
 
     _ddr.publishServicesTopics();
 
-  // Read camera intrinsic parameters from device.
-    const auto& calib = _device->CalibrationSettings.GetValue();
-    const auto& D     = calib.DistortionCoefficients;
-    const auto& K     = calib.CameraMatrix;
-    std::copy_n(std::begin(D), std::min(D.size(), _D.size()), std::begin(_D));
-    std::copy(K[0], K[3], std::begin(_K));
-
   // Start acquisition.
     _device->UnlockGUI();
     _device->ClearBuffer();
     _device->StartAcquisition();
+
+  // Read camera intrinsic parameters from device.
+    if (PhoXiDeviceType::Value(_device->GetType()) ==
+	PhoXiDeviceType::MotionCam3D)
+    {
+	calibrate();
+    }
+    else
+    {
+	const auto& calib = _device->CalibrationSettings.GetValue();
+	const auto& D     = calib.DistortionCoefficients;
+	const auto& K     = calib.CameraMatrix;
+	std::copy_n(std::begin(D), std::min(D.size(), _D.size()),
+		    std::begin(_D));
+	std::copy(K[0], K[3], std::begin(_K));
+    }
 
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
@@ -917,6 +926,68 @@ Camera::lock_gui(bool enable)
 			 << _device->HardwareIdentification.GetValue()
 			 << ") failed to " << (enable ? "lock" : "unlock")
 			<< " GUI");
+}
+
+void
+Camera::calibrate()
+{
+    using namespace	pho::api;
+
+    const auto	frameId = _device->TriggerFrame(true, true);
+
+    if (!(_frame = _device->GetSpecificFrame(frameId, PhoXiTimeout::Infinity)) ||
+	_frame->Successful)
+    {
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") calibrate: not found frame #"
+			 << frameId);
+	return;
+    }
+
+    const auto&	phoxi_cloud = _frame->PointCloud;
+    if (phoxi_cloud.Empty())
+    {
+	ROS_ERROR_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") calibrate: cloud is empty.");
+	return;
+    }
+
+    double	u_m = 0.0, v_m = 0.0, x_m = 0.0, y_m = 0.0,
+		ux_m = 0.0, vy_m = 0.0;
+    size_t	npoints = 0;
+    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
+	for (int u = 0; u < phoxi_cloud.Size.Width; ++u)
+	{
+	    const auto&	p = phoxi_cloud.At(v, u);
+
+	    if (float(p.z) != 0.0f)
+	    {
+		const double	x = p.x / p.z;
+		const double	y = p.y / p.z;
+		
+		u_m  += u;
+		v_m  += v;
+		x_m  += x;
+		y_m  += y;
+		ux_m += u * x;
+		vy_m += v * y;
+		
+		++npoints;
+	    }
+	}
+    u_m  /= npoints;
+    v_m  /= npoints;
+    x_m  /= npoints;
+    y_m  /= npoints;
+    ux_m /= npoints;
+    vy_m /= npoints;
+
+    _K[0] = (ux_m - u_m * x_m);
+    _K[2] = x_m - _K[0] * u_m;
+    _K[4] = (vy_m - v_m * y_m);
+    _K[5] = y_m - _K[4] * v_m;
 }
 
 bool
