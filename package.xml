@@ -26,6 +26,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
   <depend>tf</depend>
+  <depend>aist_utility</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_description.xml"/>

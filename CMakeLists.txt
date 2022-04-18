@@ -23,6 +23,7 @@ find_package(catkin REQUIRED
     tf
     pluginlib
     nodelet
+    aist_utility
 )
 
 include_directories(include
