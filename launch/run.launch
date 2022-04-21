@@ -14,6 +14,7 @@
   <arg name="send_depth_map"	  default="true"/>
   <arg name="send_confidence_map" default="false"/>
   <arg name="send_texture"	  default="true"/>
+  <arg name="laser_power"	  default="4095"
   <arg name="external_manager"	  default="false"/>
   <arg name="manager"		  default=""/>
   <arg name="nthreads"		  default="4"/>
@@ -32,6 +33,7 @@
     <param name="send_depth_map"	value="$(arg send_depth_map)"/>
     <param name="send_confidence_map"	value="$(arg send_confidence_map)"/>
     <param name="send_texture"		value="$(arg send_texture)"/>
+    <param name="laser_power"		value="$(arg laser_power)"
   </node>
 
   <group unless="$(eval manager == '')">
@@ -55,6 +57,7 @@
       <param name="send_depth_map"	value="$(arg send_depth_map)"/>
       <param name="send_confidence_map"	value="$(arg send_confidence_map)"/>
       <param name="send_texture"	value="$(arg send_texture)"/>
+      <param name="laser_power"		value="$(arg laser_power)"
     </node>
   </group>
 
