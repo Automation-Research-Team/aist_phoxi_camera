@@ -105,7 +105,6 @@ class Camera
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     void	lock_gui(bool enable)					;
-    void	calibrate_intrinsics()					;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
