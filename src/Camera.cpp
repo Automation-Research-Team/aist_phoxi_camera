@@ -78,10 +78,6 @@ Camera::Camera(const ros::NodeHandle& nh)
      _frame_id(_nh.param<std::string>("frame",
 				      ros::this_node::getName() + "_sensor")),
      _rate(_nh.param<double>("rate", 10.0)),
-     _D({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}),
-     _K({2215.13350577,    0.0        , 1030.47471121 ,
-	    0.0       , 2215.13350577 ,  756.735726174,
-            0.0       ,    0.0        ,    1.0        }),
      _pointFormat(XYZ_ONLY),
      _intensityScale(0.5),
      _cloud(),
@@ -174,22 +170,6 @@ Camera::Camera(const ros::NodeHandle& nh)
     _device->UnlockGUI();
     _device->ClearBuffer();
     _device->StartAcquisition();
-
-  // Read camera intrinsic parameters from device.
-    if (PhoXiDeviceType::Value(_device->GetType()) ==
-	PhoXiDeviceType::MotionCam3D)
-    {
-	calibrate_intrinsics();
-    }
-    else
-    {
-	const auto& calib = _device->CalibrationSettings.GetValue();
-	const auto& D     = calib.DistortionCoefficients;
-	const auto& K     = calib.CameraMatrix;
-	std::copy_n(std::begin(D), std::min(D.size(), _D.size()),
-		    std::begin(_D));
-	std::copy(K[0], K[3], std::begin(_K));
-    }
 
     ROS_INFO_STREAM('('
 		    << _device->HardwareIdentification.GetValue()
@@ -927,7 +907,7 @@ Camera::lock_gui(bool enable)
 			 << ") failed to " << (enable ? "lock" : "unlock")
 			<< " GUI");
 }
-
+/*
 void
 Camera::calibrate_intrinsics()
 {
@@ -992,7 +972,7 @@ Camera::calibrate_intrinsics()
     _K[4] = (vy_m - v_m * y_m) / (yy_m - y_m * y_m);
     _K[5] = v_m - _K[4] * y_m;
 }
-
+*/
 bool
 Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 		      std_srvs::Trigger::Response& res)
@@ -1394,6 +1374,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
 
+    const auto& calib = _device->CalibrationSettings.GetValue();
     cinfo_t	cinfo;
 
   // Set header.
@@ -1407,9 +1388,11 @@ Camera::publish_camera_info(const ros::Time& stamp) const
 
   // Set distortion and intrinsic parameters.
     cinfo.distortion_model = "plumb_bob";
-    cinfo.D.resize(_D.size());
-    std::copy(std::begin(_D), std::end(_D), std::begin(cinfo.D));
-    std::copy(std::begin(_K), std::end(_K), std::begin(cinfo.K));
+    cinfo.D.resize(8);
+    std::copy_n(std::begin(calib.DistortionCoefficients),
+		std::size(cinfo.D), std::begin(cinfo.D));
+    std::copy_n(calib.CameraMatrix[0],
+		std::size(cinfo.K), std::begin(cinfo.K));
 
   // Set cinfo.R to be an identity matrix.
     std::fill(std::begin(cinfo.R), std::end(cinfo.R), 0.0);

@@ -139,8 +139,6 @@ class Camera
     pho::api::PFrame			_frame;
     const std::string			_frame_id;	// frame id used by tf
     const double			_rate;		// frequency
-    std::array<double, 8>		_D;		// distortion param.
-    std::array<double, 9>		_K;		// intrinsic param.
     int					_pointFormat;
     double				_intensityScale;
 
