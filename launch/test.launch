@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="camera_name"	default="a_phoxi_m_camera"/>
+  <arg name="camera_name"	default="phoxi"/>
   <arg name="config_file"	default="$(dirname
 					 )/../config/$(arg camera_name).yaml"/>
   <arg name="external_manager"	default="false"/>

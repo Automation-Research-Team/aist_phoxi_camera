@@ -1312,7 +1312,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     constexpr static size_t	PhoXiNominalHeight	= 1544;
     constexpr static size_t	MotionCamNominalWidth	= 1680;
     constexpr static size_t	MotionCamNominalHeight	= 1200;
-    
+
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
 
@@ -1331,18 +1331,25 @@ Camera::publish_camera_info(const ros::Time& stamp) const
   // Set distortion and intrinsic parameters.
     bool	isMotionCam = (PhoXiDeviceType::Value(_device->GetType()) ==
 			       PhoXiDeviceType::MotionCam3D);
-    const auto	scale_w = double(mode.Resolution.Width)
+    const auto	scale_u = double(mode.Resolution.Width)
 			/ double(isMotionCam ? MotionCamNominalWidth
 					     : PhoXiNominalWidth);
-    const auto	scale_h = double(mode.Resolution.Height)
+    const auto	scale_v = double(mode.Resolution.Height)
 			/ double(isMotionCam ? MotionCamNominalHeight
 					     : PhoXiNominalHeight);
     cinfo.distortion_model = "plumb_bob";
     cinfo.D.resize(8);
     std::copy_n(std::begin(calib.DistortionCoefficients),
 		std::size(cinfo.D), std::begin(cinfo.D));
-    std::copy_n(calib.CameraMatrix[0],
-		std::size(cinfo.K), std::begin(cinfo.K));
+    cinfo.K[0] = scale_u * calib.CameraMatrix[0][0];
+    cinfo.K[1] = scale_u * calib.CameraMatrix[0][1];
+    cinfo.K[2] = scale_u * calib.CameraMatrix[0][2];
+    cinfo.K[3] = scale_v * calib.CameraMatrix[1][0];
+    cinfo.K[4] = scale_v * calib.CameraMatrix[1][1];
+    cinfo.K[5] = scale_v * calib.CameraMatrix[1][2];
+    cinfo.K[6] =	   calib.CameraMatrix[2][0];
+    cinfo.K[7] =	   calib.CameraMatrix[2][1];
+    cinfo.K[8] =	   calib.CameraMatrix[2][2];
 
   // Set cinfo.R to be an identity matrix.
     std::fill(std::begin(cinfo.R), std::end(cinfo.R), 0.0);
@@ -1355,9 +1362,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.P[3] = cinfo.P[7] = cinfo.P[11] = 0.0;
 
   // No binning
-    const auto	binning = _device->CameraBinning.GetValue();
-    cinfo.binning_x = binning.Width;
-    cinfo.binning_y = binning.Height;
+    cinfo.binning_x = cinfo.binning_y = 0;
 
   // ROI is same as entire image.
     cinfo.roi.width = cinfo.roi.height = 0;
