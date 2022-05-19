@@ -1169,24 +1169,27 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     PointCloud2Iterator<float>	xyz(_cloud, "x");
 
     for (int v = 0; v < _cloud.height; ++v)
-	for (int u = 0; u < _cloud.width; ++u)
+    {
+	auto	p = phoxi_cloud[v];
+	
+	for (const auto q = p + _cloud.width; p != q; ++p)
 	{
-	    const auto&	p = phoxi_cloud.At(v, u);
-
-	    if (float(p.z) == 0.0f)
+	    if (float(p->z) == 0.0f)
 	    {
 		xyz[0] = xyz[1] = xyz[2]
 		       = std::numeric_limits<float>::quiet_NaN();
 	    }
 	    else
 	    {
-		xyz[0] = p.x * distanceScale;
-		xyz[1] = p.y * distanceScale;
-		xyz[2] = p.z * distanceScale;
+		xyz[0] = static_cast<float>(p->x * distanceScale);
+		xyz[1] = static_cast<float>(p->y * distanceScale);
+		xyz[2] = static_cast<float>(p->z * distanceScale);
 	    }
 
 	    ++xyz;
 	}
+    }
+    
 
     if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
     {
@@ -1201,13 +1204,17 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	PointCloud2Iterator<uint8_t> rgb(_cloud, "rgb");
 
 	for (int v = 0; v < _cloud.height; ++v)
-	    for (int u = 0; u < _cloud.width; ++u)
+	{
+	    auto	p = _frame->Texture[v];
+	
+	    for (const auto q = p + _cloud.width; p != q; ++p)
 	    {
-		const auto val = _frame->Texture.At(v, u) * _intensityScale;
-
-		rgb[0] = rgb[1] = rgb[2] = (val > 255 ? 255 : val);
+		rgb[0] = rgb[1] = rgb[2]
+		       = static_cast<uint8_t>(std::min(*p * _intensityScale,
+						       255.0));
 		++rgb;
 	    }
+	}
     }
 
     if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
@@ -1231,15 +1238,17 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	PointCloud2Iterator<float>	normal(_cloud, "normal_x");
 
 	for (int v = 0; v < _cloud.height; ++v)
-	    for (int u = 0; u < _cloud.width; ++u)
+	{
+	    auto	p = _frame->NormalMap[v];
+	    
+	    for (const auto q = p + _cloud.width; p != q; ++p)
 	    {
-		const auto n = _frame->NormalMap.At(v, u);
-
-		normal[0] = n.x;
-		normal[1] = n.y;
-		normal[2] = n.z;
+		normal[0] = p->x;
+		normal[1] = p->y;
+		normal[2] = p->z;
 		++normal;
 	    }
+	}
     }
 
     _cloud_publisher.publish(_cloud);
