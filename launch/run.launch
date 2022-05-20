@@ -1,27 +1,37 @@
 <launch>
 
-  <arg name="camera_name"	  default="a_phoxi_m_camera"/>
+  <arg name="camera_name"		default="phoxi"/>
   <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
   <!-- <arg name="id"		  default='"1711015"'/> -->
-  <arg name="id"		  default="2018-09-015-LC3"/>
-  <arg name="trigger_mode"	  default="1"/>
-  <arg name="intensity_scale"	  default="0.5"/>
-  <arg name="frame"		  default="calibrated_$(arg camera_name)"/>
-  <arg name="rate"		  default="20"/>
-  <arg name="point_format"	  default="0"/>
-  <arg name="send_point_cloud"	  default="true"/>
-  <arg name="send_normal_map"	  default="true"/>
-  <arg name="send_depth_map"	  default="true"/>
-  <arg name="send_confidence_map" default="false"/>
-  <arg name="send_texture"	  default="true"/>
-  <arg name="laser_power"	  default="4095"/>
-  <arg name="external_manager"	  default="false"/>
-  <arg name="manager"		  default=""/>
-  <arg name="nthreads"		  default="4"/>
+  <arg name="id"			default="2018-09-015-LC3"/>
+  <arg name="trigger_mode"		default="1"/>
+  <arg name="intensity_scale"		default="0.5"/>
+  <arg name="frame"			default="calibrated_$(arg camera_name
+						 )_sensor"/>
+  <arg name="rate"			default="20"/>
+  <arg name="point_format"		default="0"/>
+  <arg name="send_point_cloud"		default="true"/>
+  <arg name="send_normal_map"		default="true"/>
+  <arg name="send_depth_map"		default="true"/>
+  <arg name="send_confidence_map"	default="false"/>
+  <arg name="send_texture"		default="true"/>
+  <arg name="laser_power"		default="4095"/>
+  <arg name="external_manager"		default="false"/>
+  <arg name="manager"			default=""/>
+  <arg name="nthreads"			default="4"/>
 
-  <node if="$(eval manager == '')"
-	name="$(arg camera_name)"
-	pkg="aist_phoxi_camera" type="aist_phoxi_camera" output="screen">
+  <arg if="$(eval manager == '')"	name="command"	value="standalone"/>
+  <arg unless="$(eval manager == '')"	name="command"	value="load"/>
+  
+  <node unless="$(arg external_manager)"
+	name="$(arg manager)" pkg ="nodelet" type="nodelet"
+	args="manager" output="screen">
+    <param name="num_worker_threads"	value="$(arg nthreads)"/>
+  </node>
+
+  <node name="$(arg camera_name)" pkg ="nodelet" type="nodelet"
+  	args="$(arg command) aist_phoxi_camera/aist_phoxi_camera
+	      $(arg manager)">
     <param name="id"			value="$(arg id)"/>
     <param name="trigger_mode"		value="$(arg trigger_mode)"/>
     <param name="intensity_scale"	value="$(arg intensity_scale)"/>
@@ -35,30 +45,5 @@
     <param name="send_texture"		value="$(arg send_texture)"/>
     <param name="laser_power"		value="$(arg laser_power)"/>
   </node>
-
-  <group unless="$(eval manager == '')">
-    <node unless="$(arg external_manager)"
-	  name="$(arg manager)" pkg ="nodelet" type="nodelet"
-	  args="manager" output="screen">
-      <param name="num_worker_threads"	value="$(arg nthreads)"/>
-    </node>
-
-    <node name="$(arg camera_name)" pkg ="nodelet" type="nodelet"
-  	  args="load aist_phoxi_camera/aist_phoxi_camera_nodelet
-		$(arg manager)">
-      <param name="id"			value="$(arg id)"/>
-      <param name="trigger_mode"	value="$(arg trigger_mode)"/>
-      <param name="intensity_scale"	value="$(arg intensity_scale)"/>
-      <param name="frame"		value="$(arg frame)"/>
-      <param name="rate"		value="$(arg rate)"/>
-      <param name="point_format"	value="$(arg point_format)"/>
-      <param name="send_point_cloud"	value="$(arg send_point_cloud)"/>
-      <param name="send_normal_map"	value="$(arg send_normal_map)"/>
-      <param name="send_depth_map"	value="$(arg send_depth_map)"/>
-      <param name="send_confidence_map"	value="$(arg send_confidence_map)"/>
-      <param name="send_texture"	value="$(arg send_texture)"/>
-      <param name="laser_power"		value="$(arg laser_power)"/>
-    </node>
-  </group>
 
 </launch>

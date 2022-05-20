@@ -20,10 +20,10 @@ find_package(catkin REQUIRED
     image_transport
     sensor_msgs
     ddynamic_reconfigure
+    std_srvs
     tf
     pluginlib
     nodelet
-    aist_utility
 )
 
 include_directories(include
@@ -51,47 +51,28 @@ catkin_package(
     sensor_msgs
 )
 
-add_executable(
-  ${PROJECT_NAME}
-  src/Camera.cpp
-  src/main.cpp
-)
-
-add_dependencies(
-  ${PROJECT_NAME}
-  ${PROJECT_NAME}_generate_messages_cpp
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-)
-
-target_link_libraries(
-  ${PROJECT_NAME}
-  ${PHOXI_LIBRARY}
-  ${catkin_LIBRARIES}
-)
-
 add_library(
-  ${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}
   src/Camera.cpp
   src/nodelet.cpp
 )
 
 add_dependencies(
-  ${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}
   ${PROJECT_NAME}_generate_messages_cpp
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
 
 target_link_libraries(
-  ${PROJECT_NAME}_nodelet
+  ${PROJECT_NAME}
   ${PHOXI_LIBRARY}
   ${catkin_LIBRARIES}
 )
 
 install(
   TARGETS
-    ${PROJECT_NAME} ${PROJECT_NAME}_nodelet
+    ${PROJECT_NAME}
   ARCHIVE
     DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY

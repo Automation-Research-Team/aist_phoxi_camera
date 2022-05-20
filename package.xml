@@ -14,19 +14,15 @@
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
 
-  <build_depend>pluginlib</build_depend>build_depend>
-  <exec_depend>pluginlib</exec_depend>exec_depend>
-
-  <build_depend>nodelet</build_depend>build_depend>
-  <exec_depend>nodelet</exec_depend>exec_depend>
-
   <depend>roscpp</depend>
   <depend>roslib</depend>
-  <depend>ddynamic_reconfigure</depend>
+  <depend>image_transport</depend>
   <depend>sensor_msgs</depend>
+  <depend>ddynamic_reconfigure</depend>
   <depend>std_srvs</depend>
   <depend>tf</depend>
-  <depend>aist_utility</depend>
+  <depend>pluginlib</depend>
+  <depend>nodelet</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_description.xml"/>
