@@ -1,0 +1,13 @@
+id:                        JKE-001
+trigger_mode:              0
+intensity_scale:           0.05
+frame:                     motioncam_sensor
+rate:                      20
+normals_estimation_radius: 2
+point_format:              0
+send_point_cloud:          true
+send_normal_map:           false
+send_depth_map:            true
+send_confidence_map:       false
+send_texture:              false
+laser_power:               2000

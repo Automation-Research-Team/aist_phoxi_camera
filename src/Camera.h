@@ -84,7 +84,6 @@ class Camera
 		Camera(const ros::NodeHandle& nh)			;
 		~Camera()						;
 
-    void	run()							;
     void	tick()							;
     double	rate()						const	;
 
@@ -123,7 +122,7 @@ class Camera
     template <class T>
     void	publish_image(const pho::api::Mat2D<T>& phoxi_image,
 			      const image_transport::Publisher& publisher,
-			      image_t& image,
+			      const image_p& image,
 			      const ros::Time& stamp,
 			      const std::string& encoding,
 			      typename T::ElementChannelType scale)
@@ -141,11 +140,11 @@ class Camera
     int					_pointFormat;
     double				_intensityScale;
 
-    cloud_t				_cloud;
-    image_t				_normal_map;
-    image_t				_depth_map;
-    image_t				_confidence_map;
-    image_t				_texture;
+    const cloud_p			_cloud;
+    const image_p			_normal_map;
+    const image_p			_depth_map;
+    const image_p			_confidence_map;
+    const image_p			_texture;
 
     ddynamic_reconfigure_t		_ddr;
 

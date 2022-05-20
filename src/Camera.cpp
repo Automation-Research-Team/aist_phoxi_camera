@@ -80,11 +80,11 @@ Camera::Camera(const ros::NodeHandle& nh)
      _rate(_nh.param<double>("rate", 10.0)),
      _pointFormat(XYZ_ONLY),
      _intensityScale(0.5),
-     _cloud(),
-     _normal_map(),
-     _depth_map(),
-     _confidence_map(),
-     _texture(),
+     _cloud(new cloud_t),
+     _normal_map(new image_t),
+     _depth_map(new image_t),
+     _confidence_map(new image_t),
+     _texture(new image_t),
      _ddr(_nh),
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
 						&Camera::trigger_frame,	this)),
@@ -182,19 +182,6 @@ Camera::~Camera()
     {
 	_device->StopAcquisition();
 	_device->Disconnect();
-    }
-}
-
-void
-Camera::run()
-{
-    ros::Rate looprate(_rate);
-
-    while (ros::ok())
-    {
-	tick();
-	ros::spinOnce();
-	looprate.sleep();
     }
 }
 
@@ -1119,10 +1106,10 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	return;
 
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
-    _cloud.is_bigendian = false;
-    _cloud.is_dense	= false;
+    _cloud->is_bigendian = false;
+    _cloud->is_dense	 = false;
 
-    PointCloud2Modifier	modifier(_cloud);
+    PointCloud2Modifier	modifier(*_cloud);
     switch (_pointFormat)
     {
       default:
@@ -1160,33 +1147,36 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     }
     modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
 
-    _cloud.header.stamp	   = stamp;
-    _cloud.header.frame_id = _frame_id;
-    _cloud.height	   = phoxi_cloud.Size.Height;
-    _cloud.width	   = phoxi_cloud.Size.Width;
-    _cloud.row_step	   = _cloud.width * _cloud.point_step;
+    _cloud->header.stamp    = stamp;
+    _cloud->header.frame_id = _frame_id;
+    _cloud->height	    = phoxi_cloud.Size.Height;
+    _cloud->width	    = phoxi_cloud.Size.Width;
+    _cloud->row_step	    = _cloud->width * _cloud->point_step;
 
-    PointCloud2Iterator<float>	xyz(_cloud, "x");
+    PointCloud2Iterator<float>	xyz(*_cloud, "x");
 
-    for (int v = 0; v < _cloud.height; ++v)
-	for (int u = 0; u < _cloud.width; ++u)
+    for (int v = 0; v < _cloud->height; ++v)
+    {
+	auto	p = phoxi_cloud[v];
+	
+	for (const auto q = p + _cloud->width; p != q; ++p)
 	{
-	    const auto&	p = phoxi_cloud.At(v, u);
-
-	    if (float(p.z) == 0.0f)
+	    if (float(p->z) == 0.0f)
 	    {
 		xyz[0] = xyz[1] = xyz[2]
 		       = std::numeric_limits<float>::quiet_NaN();
 	    }
 	    else
 	    {
-		xyz[0] = p.x * distanceScale;
-		xyz[1] = p.y * distanceScale;
-		xyz[2] = p.z * distanceScale;
+		xyz[0] = static_cast<float>(p->x * distanceScale);
+		xyz[1] = static_cast<float>(p->y * distanceScale);
+		xyz[2] = static_cast<float>(p->z * distanceScale);
 	    }
 
 	    ++xyz;
 	}
+    }
+    
 
     if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
     {
@@ -1198,16 +1188,20 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    return;
 	}
 
-	PointCloud2Iterator<uint8_t> rgb(_cloud, "rgb");
+	PointCloud2Iterator<uint8_t> rgb(*_cloud, "rgb");
 
-	for (int v = 0; v < _cloud.height; ++v)
-	    for (int u = 0; u < _cloud.width; ++u)
+	for (int v = 0; v < _cloud->height; ++v)
+	{
+	    auto	p = _frame->Texture[v];
+	
+	    for (const auto q = p + _cloud->width; p != q; ++p)
 	    {
-		const auto val = _frame->Texture.At(v, u) * _intensityScale;
-
-		rgb[0] = rgb[1] = rgb[2] = (val > 255 ? 255 : val);
+		rgb[0] = rgb[1] = rgb[2]
+		       = static_cast<uint8_t>(std::min(*p * _intensityScale,
+						       255.0));
 		++rgb;
 	    }
+	}
     }
 
     if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
@@ -1228,18 +1222,20 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    return;
 	}
 
-	PointCloud2Iterator<float>	normal(_cloud, "normal_x");
+	PointCloud2Iterator<float>	normal(*_cloud, "normal_x");
 
-	for (int v = 0; v < _cloud.height; ++v)
-	    for (int u = 0; u < _cloud.width; ++u)
+	for (int v = 0; v < _cloud->height; ++v)
+	{
+	    auto	p = _frame->NormalMap[v];
+	    
+	    for (const auto q = p + _cloud->width; p != q; ++p)
 	    {
-		const auto n = _frame->NormalMap.At(v, u);
-
-		normal[0] = n.x;
-		normal[1] = n.y;
-		normal[2] = n.z;
+		normal[0] = p->x;
+		normal[1] = p->y;
+		normal[2] = p->z;
 		++normal;
 	    }
+	}
     }
 
     _cloud_publisher.publish(_cloud);
@@ -1248,7 +1244,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 template <class T> void
 Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
 		      const image_transport::Publisher& publisher,
-		      image_t& image,
+		      const image_p& image,
 		      const ros::Time& stamp,
 		      const std::string& encoding,
 		      typename T::ElementChannelType scale) const
@@ -1259,39 +1255,39 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
     if (phoxi_image.Empty() || publisher.getNumSubscribers() == 0)
 	return;
 
-    image.header.stamp    = stamp;
-    image.header.frame_id = _frame_id;
-    image.encoding	  = encoding;
-    image.is_bigendian    = 0;
-    image.height	  = phoxi_image.Size.Height;
-    image.width		  = phoxi_image.Size.Width;
-    image.step		  = image.width
-			  *  image_encodings::numChannels(image.encoding)
-			  * (image_encodings::bitDepth(image.encoding)/8);
-    image.data.resize(image.step * image.height);
+    image->header.stamp    = stamp;
+    image->header.frame_id = _frame_id;
+    image->encoding	   = encoding;
+    image->is_bigendian    = 0;
+    image->height	   = phoxi_image.Size.Height;
+    image->width	   = phoxi_image.Size.Width;
+    image->step		   = image->width
+			   *  image_encodings::numChannels(image->encoding)
+			   * (image_encodings::bitDepth(image->encoding)/8);
+    image->data.resize(image->step * image->height);
 
     const auto	p = reinterpret_cast<element_ptr>(phoxi_image[0]);
     const auto	q = reinterpret_cast<element_ptr>(
 			phoxi_image[phoxi_image.Size.Height]);
 
-    if (image.encoding == image_encodings::MONO8)
+    if (image->encoding == image_encodings::MONO8)
 	std::transform(p, q,
-		       reinterpret_cast<uint8_t*>(image.data.data()),
+		       reinterpret_cast<uint8_t*>(image->data.data()),
 		       [scale](const auto& x)->uint8_t
 		       { auto y = scale * x; return y > 255 ? 255 : y; });
-    else if (image.encoding == image_encodings::MONO16)
+    else if (image->encoding == image_encodings::MONO16)
 	std::transform(p, q,
-		       reinterpret_cast<uint16_t*>(image.data.data()),
+		       reinterpret_cast<uint16_t*>(image->data.data()),
 		       [scale](const auto& x)->uint16_t
 		       { return scale * x; });
-    else if (image.encoding.substr(0, 4) == "32FC")
+    else if (image->encoding.substr(0, 4) == "32FC")
 	std::transform(p, q,
-		       reinterpret_cast<float*>(image.data.data()),
+		       reinterpret_cast<float*>(image->data.data()),
 		       [scale](const auto& x)->float
 		       { return scale * x; });
-    else if (image.encoding.substr(0, 4) == "64FC")
+    else if (image->encoding.substr(0, 4) == "64FC")
 	std::transform(p, q,
-		       reinterpret_cast<double*>(image.data.data()),
+		       reinterpret_cast<double*>(image->data.data()),
 		       [scale](const auto& x)->double
 		       { return scale * x; });
     else
