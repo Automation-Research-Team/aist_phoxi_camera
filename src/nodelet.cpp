@@ -64,7 +64,7 @@ CameraNodelet::onInit()
     NODELET_INFO("aist_phoxi_camera::CameraNodelet::onInit()");
 
     const auto&	nh = getPrivateNodeHandle();
-    _node.reset(new Camera(nh));
+    _node.reset(new Camera(nh, getName()));
     std::cout << "rate = " << 1.0/_node->rate() << std::endl;
     _timer = nh.createTimer(ros::Duration(1.0/_node->rate()),
 			    &CameraNodelet::timer_callback, this);
