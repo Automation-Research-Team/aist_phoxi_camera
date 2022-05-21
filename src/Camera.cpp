@@ -77,8 +77,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(_nh.param<std::string>("frame",
-				      ros::this_node::getName() + "_sensor")),
+     _frame_id(_nh.param<std::string>("frame", "sensor")),
      _rate(_nh.param<double>("rate", 10.0)),
      _pointFormat(XYZ_ONLY),
      _intensityScale(0.5),
@@ -1091,8 +1090,8 @@ Camera::publish_frame()
     publish_camera_info(now);
 
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue() << ") "
-			<< "frame published: "
+			<< _device->HardwareIdentification.GetValue()
+			<< ") frame published: "
 			<< _frame->PointCloud.Size.Width << 'x'
 			<< _frame->PointCloud.Size.Height
 			<< " [frame #" << _frame->Info.FrameIndex << ']');
