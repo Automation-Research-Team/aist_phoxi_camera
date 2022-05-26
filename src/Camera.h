@@ -81,7 +81,8 @@ class Camera
     };
 
   public:
-		Camera(const ros::NodeHandle& nh)			;
+		Camera(const ros::NodeHandle& nh,
+		       const std::string& nodelet_name)			;
 		~Camera()						;
 
     void	tick()							;
@@ -129,9 +130,13 @@ class Camera
 								const	;
     void	publish_camera_info(const ros::Time& stamp)	const	;
 
+    const std::string&
+		getName()	const	{ return _nodelet_name; }
+
   private:
     ros::NodeHandle			_nh;
-
+    const std::string			_nodelet_name;
+    
     pho::api::PhoXiFactory		_factory;
     pho::api::PPhoXi			_device;
     pho::api::PFrame			_frame;

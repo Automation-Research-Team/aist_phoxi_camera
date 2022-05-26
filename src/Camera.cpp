@@ -55,6 +55,7 @@
 #include <ros/package.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/image_encodings.h>
+#include <nodelet/nodelet.h>
 
 namespace aist_phoxi_camera
 {
@@ -70,13 +71,13 @@ operator <<(std::ostream& out, const pho::api::PhoXiFeature<T>& feature)
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
-Camera::Camera(const ros::NodeHandle& nh)
+Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     :_nh(nh),
+     _nodelet_name(nodelet_name),
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(_nh.param<std::string>("frame",
-				      ros::this_node::getName() + "_sensor")),
+     _frame_id(_nh.param<std::string>("frame", "sensor")),
      _rate(_nh.param<double>("rate", 10.0)),
      _pointFormat(XYZ_ONLY),
      _intensityScale(0.5),
@@ -113,7 +114,7 @@ Camera::Camera(const ros::NodeHandle& nh)
 
     if (!_factory.isPhoXiControlRunning())
     {
-	ROS_ERROR_STREAM("PhoXiControll is not running.");
+	NODELET_ERROR_STREAM("PhoXiControll is not running.");
 	throw std::runtime_error("");
     }
 
@@ -125,23 +126,23 @@ Camera::Camera(const ros::NodeHandle& nh)
 	}
     if (!_device)
     {
-	ROS_ERROR_STREAM("Failed to find camera[" << id << "].");
+	NODELET_ERROR_STREAM("Failed to find camera[" << id << "].");
 	throw std::runtime_error("");
     }
 
   // Connect to the device.
     if (!_device->Connect())
     {
-	ROS_ERROR_STREAM("Failed to open camera[" << id << "].");
+	NODELET_ERROR_STREAM("Failed to open camera[" << id << "].");
 	throw std::runtime_error("");
     }
 
   // Stop acquisition.
     _device->StopAcquisition();
 
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") Initializing configuration.");
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") Initializing configuration.");
 
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
@@ -155,10 +156,10 @@ Camera::Camera(const ros::NodeHandle& nh)
 	break;
 #endif
       default:
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") Unknown device type["
-			 << std::string(_device->GetType()) << ']');
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") Unknown device type["
+			     << std::string(_device->GetType()) << ']');
 	throw std::runtime_error("");
     }
 
@@ -171,9 +172,9 @@ Camera::Camera(const ros::NodeHandle& nh)
     _device->ClearBuffer();
     _device->StartAcquisition();
 
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") aist_phoxi_camera is active.");
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") aist_phoxi_camera is active.");
 }
 
 Camera::~Camera()
@@ -821,12 +822,12 @@ Camera::set_resolution(int idx)
     const auto modes = _device->SupportedCapturingModes.GetValue();
     if (idx < modes.size())
 	_device->CapturingMode = modes[idx];
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") set resolution to "
-		    << _device->CapturingMode.GetValue().Resolution.Width
-		    << 'x'
-		    << _device->CapturingMode.GetValue().Resolution.Height);
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set resolution to "
+			<< _device->CapturingMode.GetValue().Resolution.Width
+			<< 'x'
+			<< _device->CapturingMode.GetValue().Resolution.Height);
 
     _device->ClearBuffer();
     if (acq)
@@ -843,9 +844,9 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     auto&	f = _device.operator ->()->*feature;
     f.SetValue(value);
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << f.GetName() << " to " << f.GetValue());
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set " << f.GetName() << " to " << f.GetValue());
 
     if (pause)
     {
@@ -863,19 +864,19 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     auto	val = f.GetValue();
     val.*field = value;
     f.SetValue(val);
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << f.GetName() << "::" << field_name
-		    << " to "   << f.GetValue().*field);
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set " << f.GetName() << "::" << field_name
+			<< " to "   << f.GetValue().*field);
 }
 
 template <class T> void
 Camera::set_member(T& member, T value, const std::string& name)
 {
     member = value;
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") set " << name << " to " << member);
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set " << name << " to " << member);
 }
 
 void
@@ -884,15 +885,15 @@ Camera::lock_gui(bool enable)
     const auto	success = (enable ? _device->LockGUI() : _device->UnlockGUI());
 
     if (success)
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") succesfully " << (enable ? "locked" : "unlocked")
-			<< " GUI");
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") succesfully "
+			    << (enable ? "locked" : "unlocked") << " GUI");
     else
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") failed to " << (enable ? "lock" : "unlock")
-			<< " GUI");
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") failed to "
+			     << (enable ? "lock" : "unlock") << " GUI");
 }
 
 bool
@@ -901,15 +902,15 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 {
     using namespace	pho::api;
 
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") trigger_frame: service requested");
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") trigger_frame: service requested");
 
     const auto	frameId = _device->TriggerFrame(true, true);
 
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue()
-		    << ") trigger_frame: triggered");
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") trigger_frame: triggered");
 
     switch (frameId)
     {
@@ -939,9 +940,9 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 	    break;
 	}
 
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") trigger_frame: frame got");
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") trigger_frame: frame got");
 
 	if (_frame->Info.FrameIndex != frameId)
 	{
@@ -961,15 +962,15 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
     }
 
     if (res.success)
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") trigger_frame: "
-			<< res.message);
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") trigger_frame: "
+			    << res.message);
     else
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") trigger_frame: "
-			 << res.message);
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") trigger_frame: "
+			     << res.message);
 
     return true;
 }
@@ -980,25 +981,25 @@ Camera::save_frame(SetString::Request& req, SetString::Response& res)
     if (_frame == nullptr || !_frame->Successful)
     {
 	res.success = false;
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") save_frame: failed. [no frame data]");
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") save_frame: failed. [no frame data]");
     }
     else if (!_frame->SaveAsPly(req.in + ".ply"))
     {
 	res.success = false;
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") save_frame: failed to save PLY to "
-			 << req.in + ".ply");
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") save_frame: failed to save PLY to "
+			     << req.in + ".ply");
     }
     else
     {
 	res.success = true;
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") save_frame: succeeded to save PLY to "
-			<< req.in + ".ply");
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") save_frame: succeeded to save PLY to "
+			    << req.in + ".ply");
     }
 
     return true;
@@ -1013,18 +1014,18 @@ Camera::save_settings(std_srvs::Trigger::Request&  req,
     if (res.success)
     {
 	res.message = "succesfully saved settings";
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") save_settings: "
-			<< res.message);
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") save_settings: "
+			    << res.message);
     }
     else
     {
 	res.message = "failed to save settings";
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") save_settings: "
-			 << res.message);
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") save_settings: "
+			     << res.message);
     }
 
     return true;
@@ -1043,18 +1044,18 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     if (res.success)
     {
 	res.message = "succesfully restored settings.";
-	ROS_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") restore_settings: "
-			<< res.message);
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") restore_settings: "
+			    << res.message);
     }
     else
     {
 	res.message = "failed to restore settings.";
-	ROS_ERROR_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
-			 << ") restore_settings: "
-			 << res.message);
+	NODELET_ERROR_STREAM('('
+			     << _device->HardwareIdentification.GetValue()
+			     << ") restore_settings: "
+			     << res.message);
     }
 
     _device->ClearBuffer();
@@ -1088,12 +1089,12 @@ Camera::publish_frame()
   // publish camera_info
     publish_camera_info(now);
 
-    ROS_INFO_STREAM('('
-		    << _device->HardwareIdentification.GetValue() << ") "
-		    << "frame published: "
-		    << _frame->PointCloud.Size.Width << 'x'
-		    << _frame->PointCloud.Size.Height
-		    << " [frame #" << _frame->Info.FrameIndex << ']');
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") frame published: "
+			<< _frame->PointCloud.Size.Width << 'x'
+			<< _frame->PointCloud.Size.Height
+			<< " [frame #" << _frame->Info.FrameIndex << ']');
 }
 
 void
@@ -1182,9 +1183,9 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     {
 	if (!_device->OutputSettings->SendTexture)
 	{
-	    ROS_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") send_texture must be turned on");
+	    NODELET_ERROR_STREAM('('
+				 << _device->HardwareIdentification.GetValue()
+				 << ") send_texture must be turned on");
 	    return;
 	}
 
@@ -1208,17 +1209,17 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     {
 	if (!_device->OutputSettings->SendNormalMap)
 	{
-	    ROS_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") send_normal_map must be turned on");
+	    NODELET_ERROR_STREAM('('
+				 << _device->HardwareIdentification.GetValue()
+				 << ") send_normal_map must be turned on");
 	    return;
 	}
 
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
-	    ROS_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") normals_estimation_radius must be positive");
+	    NODELET_ERROR_STREAM('('
+				 << _device->HardwareIdentification.GetValue()
+				 << ") normals_estimation_radius must be positive");
 	    return;
 	}
 
@@ -1292,7 +1293,7 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
 		       { return scale * x; });
     else
     {
-	ROS_ERROR_STREAM("Unsupported image type!");
+	NODELET_ERROR_STREAM("Unsupported image type!");
 	throw std::logic_error("");
     }
 

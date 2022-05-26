@@ -16,7 +16,7 @@
     <param name="num_worker_threads"	value="$(arg nthreads)"/>
   </node>
 
-  <node name="$(arg camera_name)" pkg ="nodelet" type="nodelet"
+  <node name="$(arg camera_name)" pkg ="nodelet" type="nodelet" output="screen"
   	args="$(arg command) aist_phoxi_camera/aist_phoxi_camera
 	      $(arg manager)">
     <rosparam file="$(arg config_file)" subst_value="true"/>
