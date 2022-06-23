@@ -46,6 +46,11 @@
 #      if PHO_SOFTWARE_VERSION_MINOR >= 7
 #        define HAVE_HARDWARE_TRIGGER_SIGNAL
 #        define HAVE_INTERREFLECTION_FILTER_STRENGTH
+#	 if PHO_SOFTWARE_VERSION_MINOR >= 8
+#          define HAVE_LED_POWER
+#          define HAVE_LED_SHUTTER_MULTIPLIER
+#          define HAVE_CAMERA_MATRIX_CORRESPONDING_TO_OPERATION_MODE
+#        endif
 #      endif
 #    endif
 #  endif
@@ -275,7 +280,7 @@ Camera::setup_ddr_phoxi()
 			&PhoXiCapturingSettings::MaximumFPS, _1,
 			"MaximumFPS"),
 	    "Maximum fps in freerun mode",
-	    0.1, 30.0, "capturing_settings");
+	    0.0, 30.0, "capturing_settings");
 
   // 2.5 SinglePatternExposure
     const auto	exposures = _device->SupportedSinglePatternExposures.GetValue();
@@ -366,6 +371,28 @@ Camera::setup_ddr_phoxi()
 			&PhoXiCapturingSettings::LaserPower, _1,
 			"LaserPower"),
 	    "Laser power", 1000, 4095, "capturing_settings");
+
+  // 2.10 LEDPower
+    _ddr.registerVariable<int>(
+	    "led_power",
+	    _device->CapturingSettings->LEDPower,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::LEDPower, _1,
+			"LEDPower"),
+	    "LED power", 1000, 4095, "capturing_settings");
+
+#if defined(HAVE_LED_SHUTTER_MULTIPLIER)
+  // 2.11 LEDShutterMultiplier
+    _ddr.registerVariable<int>(
+	    "led_shutter_multiplier",
+	    _device->CapturingSettings->LEDShutterMultiplier,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::LEDShutterMultiplier, _1,
+			"LEDShutterMultiplier"),
+	    "LED shutter multiplier", 1, 20, "capturing_settings");
+#endif
 }
 
 #if defined(HAVE_MOTIONCAM)
@@ -402,7 +429,20 @@ Camera::setup_ddr_motioncam()
 	    "Laser power",
 	    1000, 4095, "motioncam");
 
-  // 1.3 maximum fps
+#if defined(HAVE_LED_POWER)
+  // 1.3 led power
+    _ddr.registerVariable<int>(
+	    "led_power",
+	    _device->MotionCam->LEDPower,
+	    boost::bind(&Camera::set_field<PhoXiMotionCam, int>, this,
+			&PhoXi::MotionCam, &PhoXiMotionCam::LEDPower, _1,
+			"LEDPower"),
+	    "LED power",
+	    1000, 4095, "motioncam");
+
+#endif
+
+  // 1.4 maximum fps
     _ddr.registerVariable<double>(
 	    "maximum_fps",
 	    _device->MotionCam->MaximumFPS,
@@ -413,7 +453,7 @@ Camera::setup_ddr_motioncam()
 	    0.0, 20.0, "motioncam");
 
 #  if defined(HAVE_HARDWARE_TRIGGER)
-  // 1.4 hardware trigger
+  // 1.5 hardware trigger
     _ddr.registerVariable<bool>(
 	    "hardware_trigger",
 	    _device->MotionCam->HardwareTrigger,
@@ -425,7 +465,7 @@ Camera::setup_ddr_motioncam()
 	    false, true, "motioncam");
 
 #    if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
-  // 1.5 hardware trigger signal
+  // 1.6 hardware trigger signal
     const std::map<std::string, int>
 	enum_hardware_trigger_signal =
 	{{"Falling", PhoXiHardwareTriggerSignal::Falling},
@@ -1325,7 +1365,24 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.height = mode.Resolution.Height;
     cinfo.width  = mode.Resolution.Width;
 
-  // Set distortion and intrinsic parameters.
+  // Set distortion parameters.
+    cinfo.distortion_model = "plumb_bob";
+    cinfo.D.resize(8);
+    std::copy_n(std::begin(calib.DistortionCoefficients),
+		std::size(cinfo.D), std::begin(cinfo.D));
+
+  // Set intrinsic parameters.
+#if defined(HAVE_CAMERA_MATRIX_CORRESPONDING_TO_OPERATION_MODE)
+    cinfo.K[0] = calib.CameraMatrix[0][0];
+    cinfo.K[1] = calib.CameraMatrix[0][1];
+    cinfo.K[2] = calib.CameraMatrix[0][2];
+    cinfo.K[3] = calib.CameraMatrix[1][0];
+    cinfo.K[4] = calib.CameraMatrix[1][1];
+    cinfo.K[5] = calib.CameraMatrix[1][2];
+    cinfo.K[6] = calib.CameraMatrix[2][0];
+    cinfo.K[7] = calib.CameraMatrix[2][1];
+    cinfo.K[8] = calib.CameraMatrix[2][2];
+#else
     bool	isMotionCam = (PhoXiDeviceType::Value(_device->GetType()) ==
 			       PhoXiDeviceType::MotionCam3D);
     const auto	scale_u = double(mode.Resolution.Width)
@@ -1334,10 +1391,6 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     const auto	scale_v = double(mode.Resolution.Height)
 			/ double(isMotionCam ? MotionCamNominalHeight
 					     : PhoXiNominalHeight);
-    cinfo.distortion_model = "plumb_bob";
-    cinfo.D.resize(8);
-    std::copy_n(std::begin(calib.DistortionCoefficients),
-		std::size(cinfo.D), std::begin(cinfo.D));
     cinfo.K[0] = scale_u * calib.CameraMatrix[0][0];
     cinfo.K[1] = scale_u * calib.CameraMatrix[0][1];
     cinfo.K[2] = scale_u * calib.CameraMatrix[0][2];
@@ -1347,7 +1400,8 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.K[6] =	   calib.CameraMatrix[2][0];
     cinfo.K[7] =	   calib.CameraMatrix[2][1];
     cinfo.K[8] =	   calib.CameraMatrix[2][2];
-
+#endif
+    
   // Set cinfo.R to be an identity matrix.
     std::fill(std::begin(cinfo.R), std::end(cinfo.R), 0.0);
     cinfo.R[0] = cinfo.R[4] = cinfo.R[8] = 1.0;
