@@ -49,7 +49,6 @@
 #	 if PHO_SOFTWARE_VERSION_MINOR >= 8
 #          define HAVE_LED_POWER
 #          define HAVE_LED_SHUTTER_MULTIPLIER
-#          define HAVE_CAMERA_MATRIX_CORRESPONDING_TO_OPERATION_MODE
 #        endif
 #      endif
 #    endif
@@ -1372,17 +1371,6 @@ Camera::publish_camera_info(const ros::Time& stamp) const
 		std::size(cinfo.D), std::begin(cinfo.D));
 
   // Set intrinsic parameters.
-#if defined(HAVE_CAMERA_MATRIX_CORRESPONDING_TO_OPERATION_MODE)
-    cinfo.K[0] = calib.CameraMatrix[0][0];
-    cinfo.K[1] = calib.CameraMatrix[0][1];
-    cinfo.K[2] = calib.CameraMatrix[0][2];
-    cinfo.K[3] = calib.CameraMatrix[1][0];
-    cinfo.K[4] = calib.CameraMatrix[1][1];
-    cinfo.K[5] = calib.CameraMatrix[1][2];
-    cinfo.K[6] = calib.CameraMatrix[2][0];
-    cinfo.K[7] = calib.CameraMatrix[2][1];
-    cinfo.K[8] = calib.CameraMatrix[2][2];
-#else
     bool	isMotionCam = (PhoXiDeviceType::Value(_device->GetType()) ==
 			       PhoXiDeviceType::MotionCam3D);
     const auto	scale_u = double(mode.Resolution.Width)
@@ -1400,7 +1388,6 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.K[6] =	   calib.CameraMatrix[2][0];
     cinfo.K[7] =	   calib.CameraMatrix[2][1];
     cinfo.K[8] =	   calib.CameraMatrix[2][2];
-#endif
     
   // Set cinfo.R to be an identity matrix.
     std::fill(std::begin(cinfo.R), std::end(cinfo.R), 0.0);
