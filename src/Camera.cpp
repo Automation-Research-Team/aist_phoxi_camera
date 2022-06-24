@@ -369,7 +369,7 @@ Camera::setup_ddr_phoxi()
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::LaserPower, _1,
 			"LaserPower"),
-	    "Laser power", 1000, 4095, "capturing_settings");
+	    "Laser power", 1, 4095, "capturing_settings");
 
   // 2.10 LEDPower
     _ddr.registerVariable<int>(
@@ -379,7 +379,7 @@ Camera::setup_ddr_phoxi()
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::LEDPower, _1,
 			"LEDPower"),
-	    "LED power", 1000, 4095, "capturing_settings");
+	    "LED power", 0, 4095, "capturing_settings");
 
 #if defined(HAVE_LED_SHUTTER_MULTIPLIER)
   // 2.11 LEDShutterMultiplier
@@ -426,7 +426,7 @@ Camera::setup_ddr_motioncam()
 			&PhoXi::MotionCam, &PhoXiMotionCam::LaserPower, _1,
 			"LaserPower"),
 	    "Laser power",
-	    1000, 4095, "motioncam");
+	    1, 4095, "motioncam");
 
 #if defined(HAVE_LED_POWER)
   // 1.3 led power
@@ -437,7 +437,7 @@ Camera::setup_ddr_motioncam()
 			&PhoXi::MotionCam, &PhoXiMotionCam::LEDPower, _1,
 			"LEDPower"),
 	    "LED power",
-	    1000, 4095, "motioncam");
+	    0, 4095, "motioncam");
 
 #endif
 
