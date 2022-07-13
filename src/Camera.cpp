@@ -1128,12 +1128,12 @@ Camera::publish_frame()
   // publish camera_info
     publish_camera_info(now);
 
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") frame published: "
-			<< _frame->PointCloud.Size.Width << 'x'
-			<< _frame->PointCloud.Size.Height
-			<< " [frame #" << _frame->Info.FrameIndex << ']');
+    // NODELET_INFO_STREAM('('
+    // 			<< _device->HardwareIdentification.GetValue()
+    // 			<< ") frame published: "
+    // 			<< _frame->PointCloud.Size.Width << 'x'
+    // 			<< _frame->PointCloud.Size.Height
+    // 			<< " [frame #" << _frame->Info.FrameIndex << ']');
 }
 
 void
@@ -1198,7 +1198,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     for (int v = 0; v < _cloud->height; ++v)
     {
 	auto	p = phoxi_cloud[v];
-	
+
 	for (const auto q = p + _cloud->width; p != q; ++p)
 	{
 	    if (float(p->z) == 0.0f)
@@ -1216,7 +1216,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    ++xyz;
 	}
     }
-    
+
 
     if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
     {
@@ -1233,7 +1233,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	for (int v = 0; v < _cloud->height; ++v)
 	{
 	    auto	p = _frame->Texture[v];
-	
+
 	    for (const auto q = p + _cloud->width; p != q; ++p)
 	    {
 		rgb[0] = rgb[1] = rgb[2]
@@ -1267,7 +1267,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	for (int v = 0; v < _cloud->height; ++v)
 	{
 	    auto	p = _frame->NormalMap[v];
-	    
+
 	    for (const auto q = p + _cloud->width; p != q; ++p)
 	    {
 		normal[0] = p->x;
@@ -1388,7 +1388,7 @@ Camera::publish_camera_info(const ros::Time& stamp) const
     cinfo.K[6] =	   calib.CameraMatrix[2][0];
     cinfo.K[7] =	   calib.CameraMatrix[2][1];
     cinfo.K[8] =	   calib.CameraMatrix[2][2];
-    
+
   // Set cinfo.R to be an identity matrix.
     std::fill(std::begin(cinfo.R), std::end(cinfo.R), 0.0);
     cinfo.R[0] = cinfo.R[4] = cinfo.R[8] = 1.0;
