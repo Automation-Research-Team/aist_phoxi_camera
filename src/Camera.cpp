@@ -64,12 +64,28 @@
 namespace aist_phoxi_camera
 {
 /************************************************************************
-*  global functions							*
+*  static functions							*
 ************************************************************************/
 template <class T> static std::ostream&
 operator <<(std::ostream& out, const pho::api::PhoXiFeature<T>& feature)
 {
     return out << feature.GetValue();
+}
+
+static size_t
+npoints_valid(const pho::api::PointCloud32f& cloud)
+{
+    size_t	n = 0;
+    for (int v = 0; v < cloud.Size.Height; ++v)
+    {
+	auto	p = cloud[v];
+
+	for (const auto q = p +  cloud.Size.Width; p != q; ++p)
+	    if (float(p->z) != 0.0f)
+		++n;
+    }
+
+    return n;
 }
 
 /************************************************************************
@@ -84,6 +100,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _frame_id(_nh.param<std::string>("frame", "sensor")),
      _rate(_nh.param<double>("rate", 10.0)),
      _pointFormat(XYZ_ONLY),
+     _denseCloud(false),
      _intensityScale(0.5),
      _cloud(new cloud_t),
      _normal_map(new image_t),
@@ -824,7 +841,7 @@ Camera::setup_ddr_common()
 			&FrameOutputSettings::SendTexture, _1, "SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
 
-  // 5. Intensity format of the points in point cloud
+  // 5. Point format of the cloud
     std::map<std::string, int>
 	enum_point_format = {{"xyz_only",	 XYZ_ONLY},
 			     {"with_rgb",	 WITH_RGB},
@@ -837,7 +854,14 @@ Camera::setup_ddr_common()
 	    "Format of points in published point cloud",
 	    enum_point_format);
 
-  // 6. Intensity scale
+  // 6. Density of the cloud
+    _ddr.registerVariable<bool>(
+	    "dense_cloud", _denseCloud,
+	    boost::bind(&Camera::set_member<bool>, this,
+			boost::ref(_denseCloud), _1, "dense_cloud"),
+	    "Dense cloud if set.", false, true);
+
+  // 7. Intensity scale
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
 	    boost::bind(&Camera::set_member<double>, this,
@@ -845,7 +869,7 @@ Camera::setup_ddr_common()
 	    "Multiplier for intensity values of published texture",
 	    0.05, 5.0);
 
-  // 7. Lock/unlock GUI
+  // 8. Lock/unlock GUI
     _ddr.registerVariable<bool>(
 	    "lock_gui", false, boost::bind(&Camera::lock_gui, this, _1),
 	    "Lock/unlock GUI", false, true);
@@ -1146,8 +1170,10 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	return;
 
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
-    _cloud->is_bigendian = false;
-    _cloud->is_dense	 = false;
+    _cloud->header.stamp    = stamp;
+    _cloud->header.frame_id = _frame_id;
+    _cloud->is_bigendian    = false;
+    _cloud->is_dense	    = _denseCloud;
 
     PointCloud2Modifier	modifier(*_cloud);
     switch (_pointFormat)
@@ -1185,35 +1211,46 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 				      "normal_z", 1, PointField::FLOAT32);
 	break;
     }
-    modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
 
-    _cloud->header.stamp    = stamp;
-    _cloud->header.frame_id = _frame_id;
-    _cloud->height	    = phoxi_cloud.Size.Height;
-    _cloud->width	    = phoxi_cloud.Size.Width;
-    _cloud->row_step	    = _cloud->width * _cloud->point_step;
+    if (_cloud->is_dense)
+    {
+	const auto	npoints = npoints_valid(phoxi_cloud);
+	modifier.resize(npoints);
+	_cloud->height = 1;
+	_cloud->width  = npoints;
+    }
+    else
+    {
+	modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
+	_cloud->height = phoxi_cloud.Size.Height;
+	_cloud->width  = phoxi_cloud.Size.Width;
+    }
+    _cloud->row_step = _cloud->width * _cloud->point_step;
 
     PointCloud2Iterator<float>	xyz(*_cloud, "x");
 
-    for (int v = 0; v < _cloud->height; ++v)
+    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
     {
 	auto	p = phoxi_cloud[v];
 
-	for (const auto q = p + _cloud->width; p != q; ++p)
+	for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p)
 	{
 	    if (float(p->z) == 0.0f)
 	    {
-		xyz[0] = xyz[1] = xyz[2]
-		       = std::numeric_limits<float>::quiet_NaN();
+		if (!_cloud->is_dense)
+		{
+		    xyz[0] = xyz[1] = xyz[2]
+			   = std::numeric_limits<float>::quiet_NaN();
+		    ++xyz;
+		}
 	    }
 	    else
 	    {
-		xyz[0] = static_cast<float>(p->x * distanceScale);
-		xyz[1] = static_cast<float>(p->y * distanceScale);
-		xyz[2] = static_cast<float>(p->z * distanceScale);
+		xyz[0] = float(p->x) * distanceScale;
+		xyz[1] = float(p->y) * distanceScale;
+		xyz[2] = float(p->z) * distanceScale;
+		++xyz;
 	    }
-
-	    ++xyz;
 	}
     }
 
@@ -1230,17 +1267,18 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
 	PointCloud2Iterator<uint8_t> rgb(*_cloud, "rgb");
 
-	for (int v = 0; v < _cloud->height; ++v)
+	for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	{
-	    auto	p = _frame->Texture[v];
+	    auto	p = phoxi_cloud[v];
+	    auto	r = _frame->Texture[v];
 
-	    for (const auto q = p + _cloud->width; p != q; ++p)
-	    {
-		rgb[0] = rgb[1] = rgb[2]
-		       = static_cast<uint8_t>(std::min(*p * _intensityScale,
-						       255.0));
-		++rgb;
-	    }
+	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
+		if (float(p->z) != 0.0f || !_cloud->is_dense)
+		{
+		    rgb[0] = rgb[1] = rgb[2]
+			   = uint8_t(std::min(*r * _intensityScale, 255.0));
+		    ++rgb;
+		}
 	}
     }
 
@@ -1264,17 +1302,19 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
 	PointCloud2Iterator<float>	normal(*_cloud, "normal_x");
 
-	for (int v = 0; v < _cloud->height; ++v)
+	for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	{
-	    auto	p = _frame->NormalMap[v];
+	    auto	p = phoxi_cloud[v];
+	    auto	r = _frame->NormalMap[v];
 
-	    for (const auto q = p + _cloud->width; p != q; ++p)
-	    {
-		normal[0] = p->x;
-		normal[1] = p->y;
-		normal[2] = p->z;
-		++normal;
-	    }
+	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
+		if (double(p->z) != 0.0 || !_cloud->is_dense)
+		{
+		    normal[0] = r->x;
+		    normal[1] = r->y;
+		    normal[2] = r->z;
+		    ++normal;
+		}
 	}
     }
 

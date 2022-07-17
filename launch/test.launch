@@ -1,14 +1,13 @@
 <launch>
 
-  <arg name="camera_name"	default="phoxi"/>
-  <arg name="config_file"	default="$(dirname
-					 )/../config/$(arg camera_name).yaml"/>
+  <arg name="config"		default="phoxi"/>
   <arg name="external_manager"	default="false"/>
   <arg name="manager"		default=""/>
 
   <include file="$(find aist_phoxi_camera)/launch/run_with_config.launch">
-    <arg name="camera_name"	value="$(arg camera_name)"/>
-    <arg name="config_file"	value="$(arg config_file)"/>
+    <arg name="camera_name"	value="phoxi"/>
+    <arg name="config_file"	value="$(dirname
+				       )/../config/$(arg config).yaml"/>
     <arg name="manager"		value="$(arg manager)"/>
   </include>
 
