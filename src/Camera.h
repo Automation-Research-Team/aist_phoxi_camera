@@ -136,13 +136,14 @@ class Camera
   private:
     ros::NodeHandle			_nh;
     const std::string			_nodelet_name;
-    
+
     pho::api::PhoXiFactory		_factory;
     pho::api::PPhoXi			_device;
     pho::api::PFrame			_frame;
     const std::string			_frame_id;	// frame id used by tf
     const double			_rate;		// frequency
     int					_pointFormat;
+    bool				_denseCloud;
     double				_intensityScale;
 
     const cloud_p			_cloud;

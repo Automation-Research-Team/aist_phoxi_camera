@@ -9,7 +9,7 @@
 
   <arg if="$(eval manager == '')"	name="command"	value="standalone"/>
   <arg unless="$(eval manager == '')"	name="command"	value="load"/>
-  
+
   <node unless="$(arg external_manager)"
 	name="$(arg manager)" pkg ="nodelet" type="nodelet"
 	args="manager" output="screen">
