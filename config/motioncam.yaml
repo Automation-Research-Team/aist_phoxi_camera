@@ -1,7 +1,7 @@
 id:                        JKE-001
 trigger_mode:              0
 intensity_scale:           0.05
-frame:                     motioncam_sensor
+frame:                     phoxi_sensor
 rate:                      20
 normals_estimation_radius: 2
 point_format:              0
