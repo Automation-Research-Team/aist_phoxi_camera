@@ -104,7 +104,6 @@ class Camera
 			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
-    void	lock_gui(bool enable)					;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
@@ -142,7 +141,6 @@ class Camera
     pho::api::PFrame			_frame;
     const std::string			_frame_id;	// frame id used by tf
     const double			_rate;		// frequency
-    int					_pointFormat;
     bool				_denseCloud;
     double				_intensityScale;
 

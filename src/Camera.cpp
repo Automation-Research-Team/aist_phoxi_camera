@@ -99,7 +99,6 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _frame(nullptr),
      _frame_id(_nh.param<std::string>("frame", "sensor")),
      _rate(_nh.param<double>("rate", 10.0)),
-     _pointFormat(XYZ_ONLY),
      _denseCloud(false),
      _intensityScale(0.5),
      _cloud(new cloud_t),
@@ -189,7 +188,6 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     _ddr.publishServicesTopics();
 
   // Start acquisition.
-    _device->UnlockGUI();
     _device->ClearBuffer();
     _device->StartAcquisition();
 
@@ -841,38 +839,20 @@ Camera::setup_ddr_common()
 			&FrameOutputSettings::SendTexture, _1, "SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
 
-  // 5. Point format of the cloud
-    std::map<std::string, int>
-	enum_point_format = {{"xyz_only",	 XYZ_ONLY},
-			     {"with_rgb",	 WITH_RGB},
-			     {"with_normal",	 WITH_NORMAL},
-			     {"with_rgb_normal", WITH_RGB_NORMAL}};
-    _ddr.registerEnumVariable<int>(
-	    "point_format", _pointFormat,
-	    boost::bind(&Camera::set_member<int>, this,
-			boost::ref(_pointFormat), _1, "point_format"),
-	    "Format of points in published point cloud",
-	    enum_point_format);
-
-  // 6. Density of the cloud
+  // 5. Density of the cloud
     _ddr.registerVariable<bool>(
 	    "dense_cloud", _denseCloud,
 	    boost::bind(&Camera::set_member<bool>, this,
 			boost::ref(_denseCloud), _1, "dense_cloud"),
 	    "Dense cloud if set.", false, true);
 
-  // 7. Intensity scale
+  // 6. Intensity scale
     _ddr.registerVariable<double>(
 	    "intensity_scale", _intensityScale,
 	    boost::bind(&Camera::set_member<double>, this,
 			boost::ref(_intensityScale), _1, "intensity_scale"),
 	    "Multiplier for intensity values of published texture",
 	    0.05, 5.0);
-
-  // 8. Lock/unlock GUI
-    _ddr.registerVariable<bool>(
-	    "lock_gui", false, boost::bind(&Camera::lock_gui, this, _1),
-	    "Lock/unlock GUI", false, true);
 }
 
 void
@@ -940,23 +920,6 @@ Camera::set_member(T& member, T value, const std::string& name)
     NODELET_INFO_STREAM('('
 			<< _device->HardwareIdentification.GetValue()
 			<< ") set " << name << " to " << member);
-}
-
-void
-Camera::lock_gui(bool enable)
-{
-    const auto	success = (enable ? _device->LockGUI() : _device->UnlockGUI());
-
-    if (success)
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") succesfully "
-			    << (enable ? "locked" : "unlocked") << " GUI");
-    else
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") failed to "
-			     << (enable ? "lock" : "unlock") << " GUI");
 }
 
 bool
@@ -1176,41 +1139,36 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     _cloud->is_dense	    = _denseCloud;
 
     PointCloud2Modifier	modifier(*_cloud);
-    switch (_pointFormat)
-    {
-      default:
-	modifier.setPointCloud2Fields(3,
-				      "x", 1, PointField::FLOAT32,
-				      "y", 1, PointField::FLOAT32,
-				      "z", 1, PointField::FLOAT32);
-	break;
-      case WITH_RGB:
-	modifier.setPointCloud2Fields(4,
-				      "x",   1, PointField::FLOAT32,
-				      "y",   1, PointField::FLOAT32,
-				      "z",   1, PointField::FLOAT32,
-				      "rgb", 1, PointField::UINT32);
-	break;
-      case WITH_NORMAL:
-	modifier.setPointCloud2Fields(6,
-				      "x",	  1, PointField::FLOAT32,
-				      "y",	  1, PointField::FLOAT32,
-				      "z",	  1, PointField::FLOAT32,
-				      "normal_x", 1, PointField::FLOAT32,
-				      "normal_y", 1, PointField::FLOAT32,
-				      "normal_z", 1, PointField::FLOAT32);
-	break;
-      case WITH_RGB_NORMAL:
-	modifier.setPointCloud2Fields(7,
-				      "x",	  1, PointField::FLOAT32,
-				      "y",	  1, PointField::FLOAT32,
-				      "z",	  1, PointField::FLOAT32,
-				      "rgb",	  1, PointField::UINT32,
-				      "normal_x", 1, PointField::FLOAT32,
-				      "normal_y", 1, PointField::FLOAT32,
-				      "normal_z", 1, PointField::FLOAT32);
-	break;
-    }
+    if (_device->OutputSettings->SendTexture)
+	if (_device->OutputSettings->SendNormalMap)
+	    modifier.setPointCloud2Fields(7,
+					  "x",	      1, PointField::FLOAT32,
+					  "y",	      1, PointField::FLOAT32,
+					  "z",	      1, PointField::FLOAT32,
+					  "rgb",      1, PointField::UINT32,
+					  "normal_x", 1, PointField::FLOAT32,
+					  "normal_y", 1, PointField::FLOAT32,
+					  "normal_z", 1, PointField::FLOAT32);
+	else
+	    modifier.setPointCloud2Fields(4,
+					  "x",	      1, PointField::FLOAT32,
+					  "y",	      1, PointField::FLOAT32,
+					  "z",	      1, PointField::FLOAT32,
+					  "rgb",      1, PointField::UINT32);
+    else
+	if (_device->OutputSettings->SendNormalMap)
+	    modifier.setPointCloud2Fields(6,
+					  "x",	      1, PointField::FLOAT32,
+					  "y",	      1, PointField::FLOAT32,
+					  "z",	      1, PointField::FLOAT32,
+					  "normal_x", 1, PointField::FLOAT32,
+					  "normal_y", 1, PointField::FLOAT32,
+					  "normal_z", 1, PointField::FLOAT32);
+	else
+	    modifier.setPointCloud2Fields(3,
+					  "x",	      1, PointField::FLOAT32,
+					  "y",	      1, PointField::FLOAT32,
+					  "z",	      1, PointField::FLOAT32);
 
     if (_cloud->is_dense)
     {
@@ -1255,16 +1213,8 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     }
 
 
-    if (_pointFormat == WITH_RGB || _pointFormat == WITH_RGB_NORMAL)
+    if (_device->OutputSettings->SendTexture)
     {
-	if (!_device->OutputSettings->SendTexture)
-	{
-	    NODELET_ERROR_STREAM('('
-				 << _device->HardwareIdentification.GetValue()
-				 << ") send_texture must be turned on");
-	    return;
-	}
-
 	PointCloud2Iterator<uint8_t> rgb(*_cloud, "rgb");
 
 	for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
@@ -1282,16 +1232,8 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	}
     }
 
-    if (_pointFormat == WITH_NORMAL || _pointFormat == WITH_RGB_NORMAL)
+    if (_device->OutputSettings->SendNormalMap)
     {
-	if (!_device->OutputSettings->SendNormalMap)
-	{
-	    NODELET_ERROR_STREAM('('
-				 << _device->HardwareIdentification.GetValue()
-				 << ") send_normal_map must be turned on");
-	    return;
-	}
-
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
 	    NODELET_ERROR_STREAM('('

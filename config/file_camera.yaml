@@ -3,7 +3,6 @@ trigger_mode:        0
 intensity_scale:     0.5
 frame:               phoxi_sensor
 rate:                20
-point_format:        1
 dense_cloud:         true
 send_point_cloud:    true
 send_normal_map:     true

@@ -4,7 +4,6 @@ intensity_scale:           0.05
 frame:                     phoxi_sensor
 rate:                      20
 normals_estimation_radius: 2
-point_format:              0
 send_point_cloud:          true
 send_normal_map:           false
 send_depth_map:            true
