@@ -96,11 +96,11 @@ class Camera
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			    T value, bool pause)			;
+			    T value, bool suspend)			;
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member, T value,
+			  T F::* member, T value, bool suspend,
 			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
