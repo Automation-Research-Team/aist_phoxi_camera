@@ -96,15 +96,14 @@ class Camera
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			    T value, bool pause)			;
+			    T value, bool suspend)			;
     template <class F, class T>
     void	set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
-			  T F::* member, T value,
+			  T F::* member, T value, bool suspend,
 			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
-    void	lock_gui(bool enable)					;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
@@ -142,7 +141,6 @@ class Camera
     pho::api::PFrame			_frame;
     const std::string			_frame_id;	// frame id used by tf
     const double			_rate;		// frequency
-    int					_pointFormat;
     bool				_denseCloud;
     double				_intensityScale;
 
