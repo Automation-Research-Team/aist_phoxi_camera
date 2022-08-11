@@ -1130,10 +1130,8 @@ Camera::publish_frame()
 
     NODELET_DEBUG_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
-			 << ") frame published: "
-			 << _frame->DepthMap.Size.Width << 'x'
-			 << _frame->DepthMap.Size.Height
-			 << " [#" << _frame->Info.FrameIndex << ']');
+			 << ") frame published [#"
+			 << _frame->Info.FrameIndex << ']');
 }
 
 void
