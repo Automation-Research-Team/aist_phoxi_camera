@@ -1128,12 +1128,10 @@ Camera::publish_frame()
   // publish camera_info
     publish_camera_info(now);
 
-    NODELET_INFO_STREAM('('
-    			<< _device->HardwareIdentification.GetValue()
-    			<< ") frame published: "
-    			<< _frame->PointCloud.Size.Width << 'x'
-    			<< _frame->PointCloud.Size.Height
-    			<< " [frame #" << _frame->Info.FrameIndex << ']');
+    NODELET_DEBUG_STREAM('('
+			 << _device->HardwareIdentification.GetValue()
+			 << ") frame published [#"
+			 << _frame->Info.FrameIndex << ']');
 }
 
 void
