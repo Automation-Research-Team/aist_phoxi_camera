@@ -60,6 +60,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/image_encodings.h>
 #include <nodelet/nodelet.h>
+#include <x86intrin.h>
 
 namespace aist_phoxi_camera
 {
@@ -88,11 +89,66 @@ npoints_valid(const pho::api::PointCloud32f& cloud)
     return n;
 }
 
+static void
+scale_copy(const float* in, const float* ie, uint8_t* out, float scale)
+{
+#if defined(AVX2)
+    const auto	s = _mm256_set1_ps(scale);
+
+    for (; in != ie; out += 32)
+    {
+	auto i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_load_ps(in), s));
+	in += 8;
+	auto i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_load_ps(in), s));
+	in += 8;
+	const auto s_lo = _mm256_packs_epi32(
+				_mm256_permute2f128_si256(i_lo, i_hi, 0x20),
+				_mm256_permute2f128_si256(i_lo, i_hi, 0x31));
+
+	i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_load_ps(in), s));
+	in += 8;
+	i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_load_ps(in), s));
+	in += 8;
+	const auto s_hi = _mm256_packs_epi32(
+				_mm256_permute2f128_si256(i_lo, i_hi, 0x20),
+				_mm256_permute2f128_si256(i_lo, i_hi, 0x31));
+
+	_mm256_storeu_si256(reinterpret_cast<__m256i*>(out),
+			    _mm256_packus_epi16(
+				_mm256_permute2f128_si256(s_lo, s_hi, 0x20),
+				_mm256_permute2f128_si256(s_lo, s_hi, 0x31)));
+    }
+#else
+    std::transform(in, ie, out,
+		   [scale](const auto& x)->uint8_t
+		   { auto y = scale * x; return y > 255 ? 255 : y; });
+#endif
+}
+
+static void
+scale_copy(const float* in, const float* ie, float* out, float scale)
+{
+#if defined(AVX2)
+    const auto	s = _mm256_set1_ps(scale);
+
+    for (; in != ie; in += 8, out += 8)
+	_mm256_storeu_ps(out, _mm256_mul_ps(_mm256_load_ps(in), s));
+#else
+    std::transform(in, ie, out,
+		   [scale](const auto& x)->float
+		   { return scale * x; });
+#endif
+}
+
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
 Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
-    :_nh(nh),
+    :
+#if defined(PROFILE)
+     profiler_t(6),
+#endif
+     _nh(nh),
      _nodelet_name(nodelet_name),
      _factory(),
      _device(nullptr),
@@ -1111,22 +1167,30 @@ Camera::publish_frame()
     const auto	now = ros::Time::now();
 
   // Publish point cloud.
+    profiler_start(0);
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
     publish_cloud(now, distanceScale);
 
   // Publish normal_map, depth_map, confidence_map and texture.
+    profiler_start(1);
     publish_image(_frame->NormalMap, _normal_map_publisher, _normal_map, now,
 		  sensor_msgs::image_encodings::TYPE_32FC3, 1);
+    profiler_start(2);
     publish_image(_frame->DepthMap, _depth_map_publisher, _depth_map, now,
 		  sensor_msgs::image_encodings::TYPE_32FC1, distanceScale);
+    profiler_start(3);
     publish_image(_frame->ConfidenceMap, _confidence_map_publisher,
 		  _confidence_map, now,
 		  sensor_msgs::image_encodings::TYPE_32FC1, 1);
+    profiler_start(4);
     publish_image(_frame->Texture, _texture_publisher, _texture, now,
 		  sensor_msgs::image_encodings::MONO8, _intensityScale);
 
   // publish camera_info
+    profiler_start(5);
     publish_camera_info(now);
+
+    profiler_print(std::cerr);
 
     NODELET_DEBUG_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
@@ -1234,12 +1298,11 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    auto	r = _frame->Texture[v];
 
 	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
-		if (float(p->z) != 0.0f || !_cloud->is_dense)
-		{
-		    rgb[0] = rgb[1] = rgb[2]
-			   = uint8_t(std::min(*r * _intensityScale, 255.0));
-		    ++rgb;
-		}
+	    {
+		rgb[0] = rgb[1] = rgb[2]
+		       = uint8_t(std::min(*r * _intensityScale, 255.0));
+		++rgb;
+	    }
 	}
     }
 
@@ -1261,13 +1324,12 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    auto	r = _frame->NormalMap[v];
 
 	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
-		if (double(p->z) != 0.0 || !_cloud->is_dense)
-		{
-		    normal[0] = r->x;
-		    normal[1] = r->y;
-		    normal[2] = r->z;
-		    ++normal;
-		}
+	    {
+		normal[0] = r->x;
+		normal[1] = r->y;
+		normal[2] = r->z;
+		++normal;
+	    }
 	}
     }
 
@@ -1302,27 +1364,10 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
     const auto	p = reinterpret_cast<element_ptr>(phoxi_image[0]);
     const auto	q = reinterpret_cast<element_ptr>(
 			phoxi_image[phoxi_image.Size.Height]);
-
     if (image->encoding == image_encodings::MONO8)
-	std::transform(p, q,
-		       reinterpret_cast<uint8_t*>(image->data.data()),
-		       [scale](const auto& x)->uint8_t
-		       { auto y = scale * x; return y > 255 ? 255 : y; });
-    else if (image->encoding == image_encodings::MONO16)
-	std::transform(p, q,
-		       reinterpret_cast<uint16_t*>(image->data.data()),
-		       [scale](const auto& x)->uint16_t
-		       { return scale * x; });
+	scale_copy(p, q, image->data.data(), scale);
     else if (image->encoding.substr(0, 4) == "32FC")
-	std::transform(p, q,
-		       reinterpret_cast<float*>(image->data.data()),
-		       [scale](const auto& x)->float
-		       { return scale * x; });
-    else if (image->encoding.substr(0, 4) == "64FC")
-	std::transform(p, q,
-		       reinterpret_cast<double*>(image->data.data()),
-		       [scale](const auto& x)->double
-		       { return scale * x; });
+	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
     else
     {
 	NODELET_ERROR_STREAM("Unsupported image type!");
