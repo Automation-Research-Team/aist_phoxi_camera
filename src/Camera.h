@@ -146,7 +146,6 @@ class Camera
 		    profiler_t::start(n);
 #endif
 		}
-
     void	profiler_print(std::ostream& out) const
 		{
 #if defined(PROFILE)
