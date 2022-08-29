@@ -8,5 +8,5 @@ send_point_cloud:          true
 send_normal_map:           false
 send_depth_map:            true
 send_confidence_map:       false
-send_texture:              false
+send_texture:              true
 laser_power:               2000

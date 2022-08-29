@@ -68,6 +68,7 @@ class Camera
     using image_t = sensor_msgs::Image;
     using image_p = sensor_msgs::ImagePtr;
     using cinfo_t = sensor_msgs::CameraInfo;
+    using cinfo_p = sensor_msgs::CameraInfoPtr;
 #if defined(PROFILE)
     using profiler_t = TU::Profiler<>;
 #endif
@@ -121,10 +122,7 @@ class Camera
 			      std_srvs::Trigger::Response& res)		;
     bool	restore_settings(std_srvs::Trigger::Request&  req,
 				 std_srvs::Trigger::Response& res)	;
-    template <class T>
-    static bool	save_image(const std::string& filename,
-			   const pho::api::Mat2D<T>& phoxi_image,
-			   float scale)					;
+    void	set_camera_info()					;
     void	publish_frame()						;
     void	publish_cloud(const ros::Time& stamp,
 			      float distanceScale)			;
@@ -171,6 +169,7 @@ class Camera
     const image_p			_depth_map;
     const image_p			_confidence_map;
     const image_p			_texture;
+    const cinfo_p			_cinfo;
 
     ddynamic_reconfigure_t		_ddr;
 
