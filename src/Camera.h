@@ -48,12 +48,19 @@
 
 #include <PhoXi.h>
 
+#if defined(PROFILE)
+#  include "TU/Profiler.h"
+#endif
+
 namespace aist_phoxi_camera
 {
 /************************************************************************
 *   class Camera                                                        *
 ************************************************************************/
 class Camera
+#if defined(PROFILE)
+    : public TU::Profiler<>
+#endif
 {
   private:
     using cloud_t = sensor_msgs::PointCloud2;
@@ -61,7 +68,10 @@ class Camera
     using image_t = sensor_msgs::Image;
     using image_p = sensor_msgs::ImagePtr;
     using cinfo_t = sensor_msgs::CameraInfo;
-
+    using cinfo_p = sensor_msgs::CameraInfoPtr;
+#if defined(PROFILE)
+    using profiler_t = TU::Profiler<>;
+#endif
     enum
     {
 	XYZ_ONLY = 0, WITH_RGB = 1, WITH_NORMAL = 2, WITH_RGB_NORMAL = 4
@@ -112,10 +122,7 @@ class Camera
 			      std_srvs::Trigger::Response& res)		;
     bool	restore_settings(std_srvs::Trigger::Request&  req,
 				 std_srvs::Trigger::Response& res)	;
-    template <class T>
-    static bool	save_image(const std::string& filename,
-			   const pho::api::Mat2D<T>& phoxi_image,
-			   float scale)					;
+    void	set_camera_info()					;
     void	publish_frame()						;
     void	publish_cloud(const ros::Time& stamp,
 			      float distanceScale)			;
@@ -130,7 +137,20 @@ class Camera
     void	publish_camera_info(const ros::Time& stamp)	const	;
 
     const std::string&
-		getName()	const	{ return _nodelet_name; }
+		getName()		const	{ return _nodelet_name; }
+    void	profiler_start(int n)
+		{
+#if defined(PROFILE)
+		    profiler_t::start(n);
+#endif
+		}
+    void	profiler_print(std::ostream& out) const
+		{
+#if defined(PROFILE)
+		    profiler_t::nextFrame();
+		    profiler_t::print(out);
+#endif
+		}
 
   private:
     ros::NodeHandle			_nh;
@@ -149,6 +169,7 @@ class Camera
     const image_p			_depth_map;
     const image_p			_confidence_map;
     const image_p			_texture;
+    const cinfo_p			_cinfo;
 
     ddynamic_reconfigure_t		_ddr;
 
