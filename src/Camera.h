@@ -114,6 +114,7 @@ class Camera
 			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
+    void	set_color_resolution(int idx)				;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
