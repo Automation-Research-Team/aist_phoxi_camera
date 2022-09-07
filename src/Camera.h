@@ -115,6 +115,7 @@ class Camera
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     void	set_color_resolution(int idx)				;
+    void	set_white_balance_preset(const std::string& preset)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	save_frame(SetString::Request&  req,
@@ -133,10 +134,8 @@ class Camera
 			      const image_p& image,
 			      const ros::Time& stamp,
 			      const std::string& encoding,
-			      typename T::ElementChannelType scale)
-								const	;
+			      float scale)			const	;
     void	publish_camera_info(const ros::Time& stamp)	const	;
-
     const std::string&
 		getName()		const	{ return _nodelet_name; }
     void	profiler_start(int n)
@@ -164,12 +163,15 @@ class Camera
     const double			_rate;		// frequency
     bool				_denseCloud;
     double				_intensityScale;
-
+    bool				_is_color_camera;
+    
     const cloud_p			_cloud;
     const image_p			_normal_map;
     const image_p			_depth_map;
     const image_p			_confidence_map;
+    const image_p			_event_map;
     const image_p			_texture;
+    const image_p			_color_camera_image;
     const cinfo_p			_cinfo;
 
     ddynamic_reconfigure_t		_ddr;
@@ -184,7 +186,9 @@ class Camera
     const image_transport::Publisher	_normal_map_publisher;
     const image_transport::Publisher	_depth_map_publisher;
     const image_transport::Publisher	_confidence_map_publisher;
+    const image_transport::Publisher	_event_map_publisher;
     const image_transport::Publisher	_texture_publisher;
+    const image_transport::Publisher	_color_camera_image_publisher;
     const ros::Publisher		_camera_info_publisher;
 };
 

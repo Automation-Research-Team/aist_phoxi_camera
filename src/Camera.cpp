@@ -124,7 +124,7 @@ scale_copy(const float* in, const float* ie, uint8_t* out, float scale)
 #else
     std::transform(in, ie, out,
 		   [scale](const auto& x)->uint8_t
-		   { auto y = scale * x; return y > 255 ? 255 : y; });
+		   { return std::min(scale * x, 255.0f); });
 #endif
 }
 
@@ -143,13 +143,29 @@ scale_copy(const float* in, const float* ie, float* out, float scale)
 #endif
 }
 
+static void
+scale_copy(const uint16_t* in, const uint16_t* ie, uint8_t* out, float scale)
+{
+    std::transform(in, ie, out,
+		   [scale](const auto& x)->uint8_t
+		   { return std::min(scale * x, 255.0f); });
+}
+
+static void
+scale_copy(const uint16_t* in, const uint16_t* ie, float* out, float scale)
+{
+    std::transform(in, ie, out,
+		   [scale](const auto& x)->float
+		   { return scale * x; });
+}
+    
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
 Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     :
 #if defined(PROFILE)
-     profiler_t(6),
+     profiler_t(8),
 #endif
      _nh(nh),
      _nodelet_name(nodelet_name),
@@ -160,11 +176,14 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _rate(_nh.param<double>("rate", 10.0)),
      _denseCloud(false),
      _intensityScale(0.5),
+     _is_color_camera(false),
      _cloud(new cloud_t),
      _normal_map(new image_t),
      _depth_map(new image_t),
      _confidence_map(new image_t),
+     _event_map(new image_t),
      _texture(new image_t),
+     _color_camera_image(new image_t),
      _cinfo(new cinfo_t),
      _ddr(_nh),
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
@@ -177,12 +196,14 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 						   &Camera::restore_settings,
 						   this)),
      _it(_nh),
-     _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
-     _normal_map_publisher(    _it.advertise(	      "normal_map",	1)),
-     _depth_map_publisher(     _it.advertise(	      "depth_map",	1)),
-     _confidence_map_publisher(_it.advertise(	      "confidence_map", 1)),
-     _texture_publisher(       _it.advertise(	      "texture",	1)),
-     _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1))
+     _cloud_publisher(		   _nh.advertise<cloud_t>("pointcloud",	 1)),
+     _normal_map_publisher(	   _it.advertise("normal_map",		 1)),
+     _depth_map_publisher(	   _it.advertise("depth_map",		 1)),
+     _confidence_map_publisher(	   _it.advertise("confidence_map",	 1)),
+     _event_map_publisher(	   _it.advertise("event_map",		 1)),
+     _texture_publisher(	   _it.advertise("texture",		 1)),
+     _color_camera_image_publisher(_it.advertise("color_camera_image",	 1)),
+     _camera_info_publisher(	   _nh.advertise<cinfo_t>("camera_info", 1))
 {
     using namespace	pho::api;
 
@@ -223,6 +244,11 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     NODELET_INFO_STREAM('('
 			<< _device->HardwareIdentification.GetValue()
 			<< ") Initializing configuration.");
+
+#if defined(HAVE_COLOR)
+  // Check if color is supported.
+    _is_color_camera = (_device->SupportedColorCapturingModes->size() > 0);
+#endif
 
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
@@ -871,102 +897,106 @@ Camera::setup_ddr_common()
 #  endif
 #endif
 
-#if defined(HAVE_COLOR)    
-  // 4. ColorSettings
-  // 4.1 Iso
-    const auto	color_iso = _device->SupportedColorIso.GetValue();
-    if (color_iso.size() > 1)
+#if defined(HAVE_COLOR)
+    if (_is_color_camera)
     {
-	std::map<std::string, int>	enum_color_iso;
-	int				idx = 0;
-	for (int i = 0; i < color_iso.size(); ++i)
-	{
-	    enum_color_iso.emplace(std::to_string(color_iso[i]), color_iso[i]);
-	    if (color_iso[i] == _device->ColorSettings.GetValue().Iso)
-		idx = i;
-	}
-	_ddr.registerEnumVariable<int>(
-	    "color_iso", color_iso[idx],
-	    boost::bind(&Camera::set_field<PhoXiColorSettings, int>, this,
-			&PhoXi::ColorSettings,
-			&PhoXiColorSettings::Iso, _1, false, "Iso"),
-	    "Color ISO", enum_color_iso, "", "color_settings");
-    }
-    
-  // 4.2 Exposure
-    const auto	color_exposure = _device->SupportedColorExposure.GetValue();
-    if (color_exposure.size() > 1)
-    {
-	std::map<std::string, double>	enum_color_exposure;
-	int				idx = 0;
-	for (int i = 0; i < color_exposure.size(); ++i)
-	{
-	    enum_color_exposure.emplace(std::to_string(color_exposure[i]),
-					color_exposure[i]);
-	    if (color_exposure[i] == _device->ColorSettings.GetValue().Exposure)
-		idx = i;
-	}
-	_ddr.registerEnumVariable<double>(
-	    "color_exposure", color_exposure[idx],
-	    boost::bind(&Camera::set_field<PhoXiColorSettings, double>, this,
-			&PhoXi::ColorSettings,
-			&PhoXiColorSettings::Exposure, _1, false, "Exposure"),
-	    "Color exposure", enum_color_exposure, "", "color_settings");
-    }
-    
-  // 4.3 CapturingMode
-    const auto	color_modes = _device->SupportedColorCapturingModes.GetValue();
-    if (color_modes.size() > 1)
-    {
-	std::map<std::string, int>	enum_resolution;
-	int				idx = 0;
-	for (int i = 0; i < color_modes.size(); ++i)
-	{
-	    const auto&	resolution = color_modes[i].Resolution;
-	    enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
-				    std::to_string(resolution.Height), i);
-	    if (color_modes[i] == _device->ColorSettings.GetValue().CapturingMode)
-		idx = i;
-	}
-	_ddr.registerEnumVariable<int>("color_capturing_mode", idx,
-				       boost::bind(
-					   &Camera::set_color_resolution,
-					   this, _1),
-				       "Color capturing mode", enum_resolution,
-				       "", "color_settings");
-    }
+      // 4. ColorSettings
+	const auto	color_settings = _device->ColorSettings.GetValue();
 
-  // 4.4 Gamma
-    _ddr.registerVariable<double>(
-	    "gamma", _intensityScale,
+      // 4.1 Iso
+	const auto	iso = _device->SupportedColorIso.GetValue();
+	if (iso.size() > 1)
+	{
+	    std::map<std::string, int>	enum_iso;
+	    int				idx = 0;
+	    for (int i = 0; i < iso.size(); ++i)
+	    {
+		enum_iso.emplace(std::to_string(iso[i]), iso[i]);
+		if (iso[i] == color_settings.Iso)
+		    idx = i;
+	    }
+	    _ddr.registerEnumVariable<int>(
+		"iso", iso[idx],
+		boost::bind(&Camera::set_field<PhoXiColorSettings, int>, this,
+			    &PhoXi::ColorSettings,
+			    &PhoXiColorSettings::Iso, _1, false, "Iso"),
+		"Color ISO", enum_iso, "", "color_settings");
+	}
+
+      // 4.2 Exposure
+	const auto	exposure = _device->SupportedColorExposure.GetValue();
+	if (exposure.size() > 1)
+	{
+	    std::map<std::string, double>	enum_exposure;
+	    int					idx = 0;
+	    for (int i = 0; i < exposure.size(); ++i)
+	    {
+		enum_exposure.emplace(std::to_string(exposure[i]), exposure[i]);
+		if (exposure[i] == color_settings.Exposure)
+		    idx = i;
+	    }
+	    _ddr.registerEnumVariable<double>(
+		"exposure", exposure[idx],
+		boost::bind(&Camera::set_field<PhoXiColorSettings, double>,
+			    this,
+			    &PhoXi::ColorSettings,
+			    &PhoXiColorSettings::Exposure, _1, false,
+			    "Exposure"),
+		"Color exposure", enum_exposure, "", "color_settings");
+	}
+
+      // 4.3 CapturingMode
+	const auto modes = _device->SupportedColorCapturingModes.GetValue();
+	if (modes.size() > 1)
+	{
+	    std::map<std::string, int>	enum_resolution;
+	    int				idx = 0;
+	    for (int i = 0; i < modes.size(); ++i)
+	    {
+		const auto&	resolution = modes[i].Resolution;
+		enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
+					std::to_string(resolution.Height), i);
+		if (modes[i] == color_settings.CapturingMode)
+		    idx = i;
+	    }
+	    _ddr.registerEnumVariable<int>("color_resolution", idx,
+					   boost::bind(
+					       &Camera::set_color_resolution,
+					       this, _1),
+					   "Color image resolution",
+					   enum_resolution,
+					   "", "color_settings");
+	}
+
+      // 4.4 Gamma
+	_ddr.registerVariable<double>(
+	    "gamma", color_settings.Gamma,
 	    boost::bind(&Camera::set_field<PhoXiColorSettings, double>, this,
 			&PhoXi::ColorSettings,
 			&PhoXiColorSettings::Gamma, _1, false, "Gamma"),
-	    "Color gamma correction", 0.0, 5.0, "", "color_settings");
-    
-  // 4.5 WhiteBalance
-    const auto	white_balance_presets
-		    = _device->SupportedColorWhiteBalancePresets.GetValue();
-    if (white_balance_presets.size() > 1)
-    {
-	std::map<std::string, std::string>	enum_white_balance;
-	int					idx = 0;
-	for (int i = 0; i < white_balance_presets.size(); ++i)
+	    "Color gamma correction", 0.0, 5.0, "color_settings");
+
+      // 4.5 WhiteBalance
+	const auto white_balance_presets
+		       = _device->SupportedColorWhiteBalancePresets.GetValue();
+	if (white_balance_presets.size() > 1)
 	{
-	    const auto&	white_balance = white_balance_presets[i];
-	    enum_white_balance.emplace(white_balance, i);
-	    if (white_balance == _device->ColorSettings.GetValue().WhiteBalance.Preset)
-		idx = i;
+	    std::map<std::string, std::string>	enum_presets;
+	    std::string				current_preset = "Custom";
+	    for (const auto& preset : white_balance_presets)
+	    {
+		enum_presets.emplace(preset, preset);
+		if (preset == color_settings.WhiteBalance.Preset)
+		    current_preset = preset;
+	    }
+	    _ddr.registerEnumVariable<std::string>(
+		"white_balance", current_preset,
+		boost::bind(&Camera::set_white_balance_preset, this, _1),
+		"White balance", enum_presets, "", "color_settings");
 	}
-	_ddr.registerEnumVariable<int>("white_balance", idx,
-				       boost::bind(
-					   &Camera::set_white_balance,
-					   this, _1),
-				       "White balance", enum_white_balance,
-				       "", "color_settings");
     }
 #endif
-    
+
   // 5. OutputSettings
     _ddr.registerVariable<bool>(
 	    "send_point_cloud",
@@ -1001,6 +1031,14 @@ Camera::setup_ddr_common()
 			"SendConfidenceMap"),
 	    "Publish confidence map if set.", false, true, "output_settings");
     _ddr.registerVariable<bool>(
+	    "send_event_map",
+	    _device->OutputSettings->SendEventMap,
+	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
+			&PhoXi::OutputSettings,
+			&FrameOutputSettings::SendEventMap, _1, true,
+			"SendEventMap"),
+	    "Publish event map if set.", false, true, "output_settings");
+    _ddr.registerVariable<bool>(
 	    "send_texture",
 	    _device->OutputSettings->SendTexture,
 	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
@@ -1008,7 +1046,19 @@ Camera::setup_ddr_common()
 			&FrameOutputSettings::SendTexture, _1, true,
 			"SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
-
+#if defined(HAVE_COLOR)
+    if (_is_color_camera)
+	_ddr.registerVariable<bool>(
+	    "send_color_camera_image",
+	    _device->OutputSettings->SendColorCameraImage,
+	    boost::bind(&Camera::set_field<FrameOutputSettings, bool>, this,
+			&PhoXi::OutputSettings,
+			&FrameOutputSettings::SendColorCameraImage, _1, true,
+			"SendColorCameraImage"),
+	    "Publish color camera image if set.", false, true,
+	    "output_settings");
+#endif
+    
   // 6. Density of the cloud
     _ddr.registerVariable<bool>(
 	    "dense_cloud", _denseCloud,
@@ -1116,20 +1166,38 @@ Camera::set_color_resolution(int idx)
 
     const auto modes = _device->SupportedColorCapturingModes.GetValue();
     if (idx < modes.size())
+    {
 	_device->CapturingMode = modes[idx];
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set color resolution to "
-			<< _device->ColorSettings.GetValue()
-				.CapturingMode.Resolution.Width
-			<< 'x'
-			<< _device->ColorSettings.GetValue()
-				.CapturingMode.Resolution.Height);
-
+	NODELET_INFO_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") set color resolution to "
+			    << _device->ColorSettings->CapturingMode
+				   .Resolution.Width
+			    << 'x'
+			    << _device->ColorSettings->CapturingMode
+				   .Resolution.Height);
+    }
+    
     set_camera_info();
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
+}
+
+void
+Camera::set_white_balance_preset(const std::string& preset)
+{
+    using namespace	pho::api;
+
+    PhoXiWhiteBalance	white_balance;
+    white_balance.Enabled		    = true;
+    white_balance.Preset		    = preset;
+    white_balance.ComputeCustomWhiteBalance = false;
+    _device->ColorSettings->WhiteBalance = white_balance;
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set white balande to "
+			<< _device->ColorSettings->WhiteBalance.Preset);
 }
 
 bool
@@ -1387,11 +1455,28 @@ Camera::publish_frame()
 		  _confidence_map, now,
 		  sensor_msgs::image_encodings::TYPE_32FC1, 1);
     profiler_start(4);
-    publish_image(_frame->Texture, _texture_publisher, _texture, now,
-		  sensor_msgs::image_encodings::MONO8, _intensityScale);
-
-  // publish camera_info
+    publish_image(_frame->EventMap, _event_map_publisher,
+		  _event_map, now,
+		  sensor_msgs::image_encodings::TYPE_32FC1, 1);
     profiler_start(5);
+#if defined(HAVE_COLOR)
+    if (_is_color_camera)
+	publish_image(_frame->TextureRGB, _texture_publisher, _texture, now,
+		      sensor_msgs::image_encodings::RGB8, _intensityScale);
+    else
+#endif
+	publish_image(_frame->Texture, _texture_publisher, _texture, now,
+		      sensor_msgs::image_encodings::MONO8, _intensityScale);
+    profiler_start(6);
+#if defined(HAVE_COLOR)
+    if (_is_color_camera)
+	publish_image(_frame->ColorCameraImage,
+		      _color_camera_image_publisher, _color_camera_image, now,
+		      sensor_msgs::image_encodings::RGB8, _intensityScale);
+#endif
+    
+  // Publish camera_info
+    profiler_start(7);
     publish_camera_info(now);
 
     profiler_print(std::cerr);
@@ -1484,9 +1569,9 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    }
 	    else
 	    {
-		xyz[0] = float(p->x) * distanceScale;
-		xyz[1] = float(p->y) * distanceScale;
-		xyz[2] = float(p->z) * distanceScale;
+		xyz[0] = distanceScale * float(p->x);
+		xyz[1] = distanceScale * float(p->y);
+		xyz[2] = distanceScale * float(p->z);
 		++xyz;
 	    }
 	}
@@ -1495,18 +1580,46 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
     if (_device->OutputSettings->SendTexture)
     {
-	PointCloud2Iterator<uint8_t> rgb(*_cloud, "rgb");
-
-	for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
+	PointCloud2Iterator<uint8_t> bgr(*_cloud, "rgb");
+#if defined(HAVE_COLOR)
+	if (_is_color_camera && !_frame->TextureRGB.Empty())
 	{
-	    auto	p = phoxi_cloud[v];
-	    auto	r = _frame->Texture[v];
-
-	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
+	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	    {
-		rgb[0] = rgb[1] = rgb[2]
-		       = uint8_t(std::min(*r * _intensityScale, 255.0));
-		++rgb;
+		auto	p = phoxi_cloud[v];
+		auto	r = _frame->TextureRGB[v];
+
+		for (const auto q = p + phoxi_cloud.Size.Width;
+		     p != q; ++p, ++r)
+		{
+		    if (!_cloud->is_dense || float(p->z) != 0.0f)
+		    {
+			bgr[0] = uint8_t(std::min(_intensityScale*r->b, 255.0));
+			bgr[1] = uint8_t(std::min(_intensityScale*r->g, 255.0));
+			bgr[2] = uint8_t(std::min(_intensityScale*r->r, 255.0));
+			++bgr;
+		    }
+		}
+	    }
+	}
+	else
+#endif
+	{
+	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
+	    {
+		auto	p = phoxi_cloud[v];
+		auto	r = _frame->Texture[v];
+
+		for (const auto q = p + phoxi_cloud.Size.Width;
+		     p != q; ++p, ++r)
+		{
+		    if (!_cloud->is_dense || float(p->z) != 0.0f)
+		    {
+			bgr[0] = bgr[1] = bgr[2]
+			       = uint8_t(std::min(_intensityScale*(*r), 255.0));
+			++bgr;
+		    }
+		}
 	    }
 	}
     }
@@ -1530,10 +1643,13 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
 	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
 	    {
-		normal[0] = r->x;
-		normal[1] = r->y;
-		normal[2] = r->z;
-		++normal;
+		if (!_cloud->is_dense || float(p->z) != 0.0f)
+		{
+		    normal[0] = r->x;
+		    normal[1] = r->y;
+		    normal[2] = r->z;
+		    ++normal;
+		}
 	    }
 	}
     }
@@ -1547,7 +1663,7 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
 		      const image_p& image,
 		      const ros::Time& stamp,
 		      const std::string& encoding,
-		      typename T::ElementChannelType scale) const
+		      float scale) const
 {
     using namespace	sensor_msgs;
     using		element_ptr = const typename T::ElementChannelType*;
@@ -1570,6 +1686,8 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
     const auto	q = reinterpret_cast<element_ptr>(
 			phoxi_image[phoxi_image.Size.Height]);
     if (image->encoding == image_encodings::MONO8)
+	scale_copy(p, q, image->data.data(), scale);
+    else if (image->encoding == image_encodings::RGB8)
 	scale_copy(p, q, image->data.data(), scale);
     else if (image->encoding.substr(0, 4) == "32FC")
 	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
