@@ -158,7 +158,7 @@ scale_copy(const uint16_t* in, const uint16_t* ie, float* out, float scale)
 		   [scale](const auto& x)->float
 		   { return scale * x; });
 }
-    
+
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
@@ -183,8 +183,9 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _confidence_map(new image_t),
      _event_map(new image_t),
      _texture(new image_t),
-     _color_camera_image(new image_t),
      _cinfo(new cinfo_t),
+     _color_camera_image(new image_t),
+     _color_camera_cinfo(new cinfo_t),
      _ddr(_nh),
      _trigger_frame_server(_nh.advertiseService("trigger_frame",
 						&Camera::trigger_frame,	this)),
@@ -196,14 +197,14 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 						   &Camera::restore_settings,
 						   this)),
      _it(_nh),
-     _cloud_publisher(		   _nh.advertise<cloud_t>("pointcloud",	 1)),
-     _normal_map_publisher(	   _it.advertise("normal_map",		 1)),
-     _depth_map_publisher(	   _it.advertise("depth_map",		 1)),
-     _confidence_map_publisher(	   _it.advertise("confidence_map",	 1)),
-     _event_map_publisher(	   _it.advertise("event_map",		 1)),
-     _texture_publisher(	   _it.advertise("texture",		 1)),
-     _color_camera_image_publisher(_it.advertise("color_camera_image",	 1)),
-     _camera_info_publisher(	   _nh.advertise<cinfo_t>("camera_info", 1))
+     _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
+     _normal_map_publisher(    _it.advertise("normal_map",		1)),
+     _depth_map_publisher(     _it.advertise("depth_map",		1)),
+     _confidence_map_publisher(_it.advertise("confidence_map",		1)),
+     _event_map_publisher(     _it.advertise("event_map",		1)),
+     _texture_publisher(       _it.advertise("texture",			1)),
+     _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1))
+     _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
 {
     using namespace	pho::api;
 
@@ -1058,7 +1059,7 @@ Camera::setup_ddr_common()
 	    "Publish color camera image if set.", false, true,
 	    "output_settings");
 #endif
-    
+
   // 6. Density of the cloud
     _ddr.registerVariable<bool>(
 	    "dense_cloud", _denseCloud,
@@ -1177,7 +1178,7 @@ Camera::set_color_resolution(int idx)
 			    << _device->ColorSettings->CapturingMode
 				   .Resolution.Height);
     }
-    
+
     set_camera_info();
     _device->ClearBuffer();
     if (acq)
@@ -1474,7 +1475,7 @@ Camera::publish_frame()
 		      _color_camera_image_publisher, _color_camera_image, now,
 		      sensor_msgs::image_encodings::RGB8, _intensityScale);
 #endif
-    
+
   // Publish camera_info
     profiler_start(7);
     publish_camera_info(now);
@@ -1708,6 +1709,17 @@ Camera::publish_camera_info(const ros::Time& stamp) const
 
     _cinfo->header.stamp = stamp;
     _camera_info_publisher.publish(_cinfo);
+}
+
+void
+Camera::publish_color_camera(const ros::Time& stamp) const
+{
+    if (_color_camera_publisher.getNumSubscribers() == 0)
+	return;
+
+    _color_camera_cinfo->header.stamp = stamp;
+    _color_camera_image->haeder.stamp = stamp;
+    _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
 }
 
 }	// namespace aist_phoxi_camera

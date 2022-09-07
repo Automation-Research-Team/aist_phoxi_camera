@@ -136,6 +136,7 @@ class Camera
 			      const std::string& encoding,
 			      float scale)			const	;
     void	publish_camera_info(const ros::Time& stamp)	const	;
+    void	publish_color_cmera(const ros::Time& stamp)	const	;
     const std::string&
 		getName()		const	{ return _nodelet_name; }
     void	profiler_start(int n)
@@ -153,43 +154,44 @@ class Camera
 		}
 
   private:
-    ros::NodeHandle			_nh;
-    const std::string			_nodelet_name;
+    ros::NodeHandle				_nh;
+    const std::string				_nodelet_name;
 
-    pho::api::PhoXiFactory		_factory;
-    pho::api::PPhoXi			_device;
-    pho::api::PFrame			_frame;
-    const std::string			_frame_id;	// frame id used by tf
-    const double			_rate;		// frequency
-    bool				_denseCloud;
-    double				_intensityScale;
-    bool				_is_color_camera;
-    
-    const cloud_p			_cloud;
-    const image_p			_normal_map;
-    const image_p			_depth_map;
-    const image_p			_confidence_map;
-    const image_p			_event_map;
-    const image_p			_texture;
-    const image_p			_color_camera_image;
-    const cinfo_p			_cinfo;
+    pho::api::PhoXiFactory			_factory;
+    pho::api::PPhoXi				_device;
+    pho::api::PFrame				_frame;
+    const std::string				_frame_id;
+    const double				_rate;
+    bool					_denseCloud;
+    double					_intensityScale;
+    bool					_is_color_camera;
 
-    ddynamic_reconfigure_t		_ddr;
+    const cloud_p				_cloud;
+    const image_p				_normal_map;
+    const image_p				_depth_map;
+    const image_p				_confidence_map;
+    const image_p				_event_map;
+    const image_p				_texture;
+    const cinfo_p				_cinfo;
+    const image_p				_color_camera_image;
+    const cinfo_p				_color_camera_cinfo;
 
-    const ros::ServiceServer		_trigger_frame_server;
-    const ros::ServiceServer		_save_frame_server;
-    const ros::ServiceServer		_save_settings_server;
-    const ros::ServiceServer		_restore_settings_server;
+    ddynamic_reconfigure_t			_ddr;
 
-    image_transport::ImageTransport	_it;
-    const ros::Publisher		_cloud_publisher;
-    const image_transport::Publisher	_normal_map_publisher;
-    const image_transport::Publisher	_depth_map_publisher;
-    const image_transport::Publisher	_confidence_map_publisher;
-    const image_transport::Publisher	_event_map_publisher;
-    const image_transport::Publisher	_texture_publisher;
-    const image_transport::Publisher	_color_camera_image_publisher;
-    const ros::Publisher		_camera_info_publisher;
+    const ros::ServiceServer			_trigger_frame_server;
+    const ros::ServiceServer			_save_frame_server;
+    const ros::ServiceServer			_save_settings_server;
+    const ros::ServiceServer			_restore_settings_server;
+
+    image_transport::ImageTransport		_it;
+    const ros::Publisher			_cloud_publisher;
+    const image_transport::Publisher		_normal_map_publisher;
+    const image_transport::Publisher		_depth_map_publisher;
+    const image_transport::Publisher		_confidence_map_publisher;
+    const image_transport::Publisher		_event_map_publisher;
+    const image_transport::Publisher		_texture_publisher;
+    const ros::Publisher			_camera_info_publisher;
+    const image_transport::CameraPublisher	_color_camera_publisher;
 };
 
 }	// namespace aist_phoxi_camera
