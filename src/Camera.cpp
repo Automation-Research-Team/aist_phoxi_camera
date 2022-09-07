@@ -216,7 +216,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     if (!_factory.isPhoXiControlRunning())
     {
 	NODELET_ERROR_STREAM("PhoXiControll is not running.");
-	throw std::runtime_error("");
+	throw;
     }
 
     for (const auto& devinfo : _factory.GetDeviceList())
@@ -228,14 +228,14 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     if (!_device)
     {
 	NODELET_ERROR_STREAM("Failed to find camera[" << id << "].");
-	throw std::runtime_error("");
+	throw;
     }
 
   // Connect to the device.
     if (!_device->Connect())
     {
 	NODELET_ERROR_STREAM("Failed to open camera[" << id << "].");
-	throw std::runtime_error("");
+	throw;
     }
 
   // Stop acquisition.
@@ -266,7 +266,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 			     << _device->HardwareIdentification.GetValue()
 			     << ") Unknown device type["
 			     << std::string(_device->GetType()) << ']');
-	throw std::runtime_error("");
+	throw;
     }
 
     setup_ddr_common();
@@ -1694,7 +1694,7 @@ Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
     else
     {
 	NODELET_ERROR_STREAM("Unsupported image type!");
-	throw std::logic_error("");
+	throw;
     }
 
     publisher.publish(image);
