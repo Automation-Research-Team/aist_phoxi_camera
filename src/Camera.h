@@ -129,6 +129,7 @@ class Camera
 			  const std::string& frame_id,
 			  const std::string& encoding, float scale,
 			  const pho::api::Mat2D<T>& phoxi_image)	;
+    void	set_camera_matrix()					;
     void	set_camera_info(const cinfo_p& cinfo,
 				const ros::Time& stamp,
 				const std::string& frame_id,
@@ -178,7 +179,8 @@ class Camera
     bool					_denseCloud;
     double					_intensityScale;
     bool					_is_color_camera;
-
+    pho::api::CameraMatrix64f			_camera_matrix;
+    
     const cloud_p				_cloud;
     const image_p				_normal_map;
     const image_p				_depth_map;

@@ -185,6 +185,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _denseCloud(false),
      _intensityScale(0.5),
      _is_color_camera(false),
+     _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _cloud(new cloud_t),
      _normal_map(new image_t),
      _depth_map(new image_t),
@@ -259,6 +260,9 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     _is_color_camera = (_device->SupportedColorCapturingModes->size() > 0);
 #endif
 
+  // Assure _camera_matrix to be set on the arrival of first frame.
+    _cinfo->width = _cinfo->height = 0;
+    
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
     {
@@ -1410,6 +1414,36 @@ Camera::set_image(const image_p& image,
 }
 
 void
+Camera::set_camera_matrix()
+{
+    using namespace	pho::api;
+
+    constexpr static size_t	PhoXiNativeWidth	= 2064;
+    constexpr static size_t	PhoXiNativeHeight	= 1544;
+    constexpr static size_t	MotionCamNativeWidth	= 1680;
+    constexpr static size_t	MotionCamNativeHeight	= 1200;
+
+    const auto	camera_matrix = _device->CalibrationSettings->CameraMatrix;
+    const bool	isMotionCam   = (PhoXiDeviceType::Value(_device->GetType()) ==
+				 PhoXiDeviceType::MotionCam3D);
+    const auto	scale_u	      = double(_frame->DepthMap.Size.Width)
+			      / double(isMotionCam ? MotionCamNativeWidth
+						 : PhoXiNativeWidth);
+    const auto	scale_v       = double(_frame->DepthMap.Size.Height)
+			      / double(isMotionCam ? MotionCamNativeHeight
+						 : PhoXiNativeHeight);
+    _camera_matrix[0][0] = scale_u * camera_matrix[0][0];
+    _camera_matrix[0][1] = scale_u * camera_matrix[0][1];
+    _camera_matrix[0][2] = scale_u * camera_matrix[0][2];
+    _camera_matrix[1][0] = scale_v * camera_matrix[1][0];
+    _camera_matrix[1][1] = scale_v * camera_matrix[1][1];
+    _camera_matrix[1][2] = scale_v * camera_matrix[1][2];
+    _camera_matrix[2][0] =	     camera_matrix[2][0];
+    _camera_matrix[2][1] =	     camera_matrix[2][1];
+    _camera_matrix[2][2] =	     camera_matrix[2][2];
+}
+
+void
 Camera::set_camera_info(const cinfo_p& cinfo,
 			const ros::Time& stamp, const std::string& frame_id,
 			size_t width, size_t height,
@@ -1433,7 +1467,7 @@ Camera::set_camera_info(const cinfo_p& cinfo,
     cinfo->D.resize(5);
     std::fill(std::begin(cinfo->D), std::end(cinfo->D), 0.0);
     std::copy_n(std::begin(D), std::min(std::size(cinfo->D), std::size(D)),
-		std::begin(cinfo->D));
+    		std::begin(cinfo->D));
 
   // Set intrinsic parameters.
     cinfo->K[0] = K[0][0];
@@ -1529,6 +1563,7 @@ Camera::publish_frame()
     if (_is_color_camera)
 	publish_color_camera(now);
 #endif
+
     profiler_print(std::cerr);
     NODELET_DEBUG_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
@@ -1725,9 +1760,19 @@ Camera::publish_camera_info(const ros::Time& stamp)
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
 
+  // We have to extract the camera matrix from
+  // _device->CalibrationSettings->CameraMatrix instead of
+  // _frame->Info.CameraMatrix because the latter becomes empty
+  // for non-reqular pointclooud topology. As accessing the former
+  // is time-consuming, the extracted matrix is cached.
+    if (_frame->DepthMap.Size.Width  != _cinfo->width ||
+    	_frame->DepthMap.Size.Height != _cinfo->height)
+    	set_camera_matrix();
+
     set_camera_info(_cinfo, stamp, _frame_id,
-		    _frame->DepthMap.Size.Width, _frame->DepthMap.Size.Height,
-		    _frame->Info.CameraMatrix,
+		    _frame->DepthMap.Size.Width,
+		    _frame->DepthMap.Size.Height,
+		    _camera_matrix,
 		    _frame->Info.DistortionCoefficients,
 		    _frame->Info.SensorPosition,
 		    _frame->Info.SensorXAxis,
