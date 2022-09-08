@@ -1167,6 +1167,7 @@ Camera::set_member(T& member, T value, const std::string& name)
 			<< ") set " << name << " to " << member);
 }
 
+#if defined(HAVE_COLOR)
 void
 Camera::set_color_resolution(int idx)
 {
@@ -1208,6 +1209,7 @@ Camera::set_white_balance_preset(const std::string& preset)
 			<< ") set white balande to "
 			<< _device->ColorSettings->WhiteBalance.Preset);
 }
+#endif
 
 bool
 Camera::trigger_frame(std_srvs::Trigger::Request&  req,
@@ -1781,6 +1783,7 @@ Camera::publish_camera_info(const ros::Time& stamp)
     _camera_info_publisher.publish(_cinfo);
 }
 
+#if defined(HAVE_COLOR)
 void
 Camera::publish_color_camera(const ros::Time& stamp)
 {
@@ -1818,5 +1821,6 @@ Camera::publish_color_camera(const ros::Time& stamp)
 						    stamp, _frame_id,
 						    _color_camera_frame_id));
 }
+#endif
 
 }	// namespace aist_phoxi_camera
