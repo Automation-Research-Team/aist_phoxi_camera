@@ -124,19 +124,31 @@ class Camera
 			      std_srvs::Trigger::Response& res)		;
     bool	restore_settings(std_srvs::Trigger::Request&  req,
 				 std_srvs::Trigger::Response& res)	;
-    void	set_camera_info()					;
+    template <class T>
+    void	set_image(const image_p& image, const ros::Time& stamp,
+			  const std::string& frame_id,
+			  const std::string& encoding, float scale,
+			  const pho::api::Mat2D<T>& phoxi_image)	;
+    void	set_camera_info(const cinfo_p& cinfo,
+				const ros::Time& stamp,
+				const std::string& frame_id,
+				size_t width, size_t height,
+				const pho::api::CameraMatrix64f& K,
+				const std::vector<double>& D,
+				const pho::api::Point3_64f& t,
+				const pho::api::Point3_64f& rx,
+				const pho::api::Point3_64f& ry,
+				const pho::api::Point3_64f& rz)		;
     void	publish_frame()						;
     void	publish_cloud(const ros::Time& stamp,
 			      float distanceScale)			;
     template <class T>
-    void	publish_image(const pho::api::Mat2D<T>& phoxi_image,
-			      const image_transport::Publisher& publisher,
-			      const image_p& image,
-			      const ros::Time& stamp,
-			      const std::string& encoding,
-			      float scale)			const	;
-    void	publish_camera_info(const ros::Time& stamp)	const	;
-    void	publish_color_cmera(const ros::Time& stamp)	const	;
+    void	publish_image(const image_p& image, const ros::Time& stamp,
+			      const std::string& encoding, float scale,
+			      const pho::api::Mat2D<T>& phoxi_image,
+			      const image_transport::Publisher& publisher);
+    void	publish_camera_info(const ros::Time& stamp)		;
+    void	publish_color_camera(const ros::Time& stamp)		;
     const std::string&
 		getName()		const	{ return _nodelet_name; }
     void	profiler_start(int n)
@@ -161,6 +173,7 @@ class Camera
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
     const std::string				_frame_id;
+    const std::string				_color_camera_frame_id;
     const double				_rate;
     bool					_denseCloud;
     double					_intensityScale;

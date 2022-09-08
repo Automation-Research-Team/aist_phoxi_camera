@@ -76,6 +76,12 @@ operator <<(std::ostream& out, const pho::api::PhoXiFeature<T>& feature)
     return out << feature.GetValue();
 }
 
+static std::ostream&
+operator <<(std::ostream& out, const pho::api::Point3_64f& p)
+{
+    return out << '(' << p.x << ' ' << p.y << ' ' << p.z << ')';
+}
+    
 static size_t
 npoints_valid(const pho::api::PointCloud32f& cloud)
 {
@@ -96,21 +102,21 @@ static void
 scale_copy(const float* in, const float* ie, uint8_t* out, float scale)
 {
 #if defined(AVX2)
-    const auto	s = _mm256_set1_ps(scale);
+    const auto	k = _mm256_set1_ps(scale);
 
     for (; in != ie; out += 32)
     {
-	auto i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), s));
+	auto i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), k));
 	in += 8;
-	auto i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), s));
+	auto i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), k));
 	in += 8;
 	const auto s_lo = _mm256_packs_epi32(
 				_mm256_permute2f128_si256(i_lo, i_hi, 0x20),
 				_mm256_permute2f128_si256(i_lo, i_hi, 0x31));
 
-	i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), s));
+	i_lo = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), k));
 	in += 8;
-	i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), s));
+	i_hi = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_loadu_ps(in), k));
 	in += 8;
 	const auto s_hi = _mm256_packs_epi32(
 				_mm256_permute2f128_si256(i_lo, i_hi, 0x20),
@@ -132,10 +138,10 @@ static void
 scale_copy(const float* in, const float* ie, float* out, float scale)
 {
 #if defined(AVX2)
-    const auto	s = _mm256_set1_ps(scale);
+    const auto	k = _mm256_set1_ps(scale);
 
     for (; in != ie; in += 8, out += 8)
-	_mm256_storeu_ps(out, _mm256_mul_ps(_mm256_loadu_ps(in), s));
+	_mm256_storeu_ps(out, _mm256_mul_ps(_mm256_loadu_ps(in), k));
 #else
     std::transform(in, ie, out,
 		   [scale](const auto& x)->float
@@ -173,6 +179,8 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _device(nullptr),
      _frame(nullptr),
      _frame_id(_nh.param<std::string>("frame", "sensor")),
+     _color_camera_frame_id(_nh.param<std::string>("color_camera_frame",
+						   "color_camera_frame")),
      _rate(_nh.param<double>("rate", 10.0)),
      _denseCloud(false),
      _intensityScale(0.5),
@@ -203,8 +211,8 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _confidence_map_publisher(_it.advertise("confidence_map",		1)),
      _event_map_publisher(     _it.advertise("event_map",		1)),
      _texture_publisher(       _it.advertise("texture",			1)),
-     _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1))
-     _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
+     _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1)),
+     _color_camera_publisher(  _it.advertiseCamera("color/image",	1))
 {
     using namespace	pho::api;
 
@@ -275,7 +283,6 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
     _ddr.publishServicesTopics();
 
   // Start acquisition.
-    set_camera_info();
     _device->ClearBuffer();
     _device->StartAcquisition();
 
@@ -1093,7 +1100,6 @@ Camera::set_resolution(int idx)
 			<< 'x'
 			<< _device->CapturingMode.GetValue().Resolution.Height);
 
-    set_camera_info();
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
@@ -1115,7 +1121,6 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     if (suspend)
     {
-	set_camera_info();
 	_device->ClearBuffer();
 	if (acq)
 	    _device->StartAcquisition();
@@ -1142,7 +1147,6 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     if (suspend)
     {
-	set_camera_info();
 	_device->ClearBuffer();
 	if (acq)
 	    _device->StartAcquisition();
@@ -1179,7 +1183,6 @@ Camera::set_color_resolution(int idx)
 				   .Resolution.Height);
     }
 
-    set_camera_info();
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
@@ -1363,7 +1366,6 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
 			     << res.message);
     }
 
-    set_camera_info();
     _device->ClearBuffer();
     if (acq)
 	_device->StartAcquisition();
@@ -1371,71 +1373,121 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     return true;
 }
 
-void
-Camera::set_camera_info()
+template <class T> void
+Camera::set_image(const image_p& image,
+		  const ros::Time& stamp, const std::string& frame_id,
+		  const std::string& encoding, float scale,
+		  const pho::api::Mat2D<T>& phoxi_image)
 {
-    using namespace	pho::api;
+    using namespace	sensor_msgs;
+    using		element_ptr = const typename T::ElementChannelType*;
 
-    constexpr static size_t	PhoXiNominalWidth	= 2064;
-    constexpr static size_t	PhoXiNominalHeight	= 1544;
-    constexpr static size_t	MotionCamNominalWidth	= 1680;
-    constexpr static size_t	MotionCamNominalHeight	= 1200;
+    image->header.stamp    = stamp;
+    image->header.frame_id = _frame_id;
+    image->encoding	   = encoding;
+    image->is_bigendian    = 0;
+    image->height	   = phoxi_image.Size.Height;
+    image->width	   = phoxi_image.Size.Width;
+    image->step		   = image->width
+			   *  image_encodings::numChannels(image->encoding)
+			   * (image_encodings::bitDepth(image->encoding)/8);
+    image->data.resize(image->step * image->height);
 
-    const auto& calib = _device->CalibrationSettings.GetValue();
+    const auto	p = reinterpret_cast<element_ptr>(phoxi_image[0]);
+    const auto	q = reinterpret_cast<element_ptr>(phoxi_image[
+						      phoxi_image.Size.Height]);
+    if (image->encoding == image_encodings::MONO8)
+	scale_copy(p, q, image->data.data(), scale);
+    else if (image->encoding == image_encodings::RGB8)
+	scale_copy(p, q, image->data.data(), scale);
+    else if (image->encoding.substr(0, 4) == "32FC")
+	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
+    else
+    {
+	NODELET_ERROR_STREAM("Unsupported image type!");
+	throw;
+    }
+}
 
+void
+Camera::set_camera_info(const cinfo_p& cinfo,
+			const ros::Time& stamp, const std::string& frame_id,
+			size_t width, size_t height,
+			const pho::api::CameraMatrix64f& K,
+			const std::vector<double>& D,
+			const pho::api::Point3_64f& t,
+			const pho::api::Point3_64f& rx,
+			const pho::api::Point3_64f& ry,
+			const pho::api::Point3_64f& rz)
+{
   // Set header.
-    _cinfo->header.frame_id = _frame_id;
+    cinfo->header.stamp	   = stamp;
+    cinfo->header.frame_id = frame_id;
 
-  // Set height and width.
-    const auto	mode = _device->CapturingMode.GetValue();
-    _cinfo->height = mode.Resolution.Height;
-    _cinfo->width  = mode.Resolution.Width;
-
+  // Set size.
+    cinfo->width  = width;
+    cinfo->height = height;
+    
   // Set distortion parameters.
-    _cinfo->distortion_model = "plumb_bob";
-    _cinfo->D.resize(8);
-    std::copy_n(std::begin(calib.DistortionCoefficients),
-		std::size(_cinfo->D), std::begin(_cinfo->D));
+    cinfo->distortion_model = "plumb_bob";
+    cinfo->D.resize(5);
+    std::fill(std::begin(cinfo->D), std::end(cinfo->D), 0.0);
+    std::copy_n(std::begin(D), std::min(std::size(cinfo->D), std::size(D)),
+		std::begin(cinfo->D));
 
   // Set intrinsic parameters.
-    bool	isMotionCam = (PhoXiDeviceType::Value(_device->GetType()) ==
-			       PhoXiDeviceType::MotionCam3D);
-    const auto	scale_u = double(mode.Resolution.Width)
-			/ double(isMotionCam ? MotionCamNominalWidth
-					     : PhoXiNominalWidth);
-    const auto	scale_v = double(mode.Resolution.Height)
-			/ double(isMotionCam ? MotionCamNominalHeight
-					     : PhoXiNominalHeight);
-    _cinfo->K[0] = scale_u * calib.CameraMatrix[0][0];
-    _cinfo->K[1] = scale_u * calib.CameraMatrix[0][1];
-    _cinfo->K[2] = scale_u * calib.CameraMatrix[0][2];
-    _cinfo->K[3] = scale_v * calib.CameraMatrix[1][0];
-    _cinfo->K[4] = scale_v * calib.CameraMatrix[1][1];
-    _cinfo->K[5] = scale_v * calib.CameraMatrix[1][2];
-    _cinfo->K[6] =	     calib.CameraMatrix[2][0];
-    _cinfo->K[7] =	     calib.CameraMatrix[2][1];
-    _cinfo->K[8] =	     calib.CameraMatrix[2][2];
+    cinfo->K[0] = K[0][0];
+    cinfo->K[1] = K[0][1];
+    cinfo->K[2] = K[0][2];
+    cinfo->K[3] = K[1][0];
+    cinfo->K[4] = K[1][1];
+    cinfo->K[5] = K[1][2];
+    cinfo->K[6] = K[2][0];
+    cinfo->K[7] = K[2][1];
+    cinfo->K[8] = K[2][2];
 
-  // Set _cinfo->R to be an identity matrix.
-    std::fill(std::begin(_cinfo->R), std::end(_cinfo->R), 0.0);
-    _cinfo->R[0] = _cinfo->R[4] = _cinfo->R[8] = 1.0;
+  // Set rotation matrix.
+    cinfo->R[0] = rx.x;
+    cinfo->R[1] = rx.y;
+    cinfo->R[2] = rx.z;
+    cinfo->R[3] = ry.x;
+    cinfo->R[4] = ry.y;
+    cinfo->R[5] = ry.z;
+    cinfo->R[6] = rz.x;
+    cinfo->R[7] = rz.y;
+    cinfo->R[8] = rz.z;
 
   // Set 3x4 camera matrix.
+    using	pho::api::float64_t;
+    constexpr float64_t	scale = 0.001;		// milimeters ==> meters
+    const float64_t	T[] = {scale * t.x, scale * t.y, scale * t.z};
     for (int i = 0; i < 3; ++i)
+    {
+	cinfo->P[4*i + 3] = 0;
+		 
 	for (int j = 0; j < 3; ++j)
-	    _cinfo->P[4*i + j] = _cinfo->K[3*i + j];
-    _cinfo->P[3] = _cinfo->P[7] = _cinfo->P[11] = 0.0;
+	{
+	    cinfo->P[4*i + j] = 0;
+
+	    for (int k = 0; k < 3; ++k)
+		cinfo->P[4*i + j] += cinfo->K[3*i + k] * cinfo->R[3*k + j];
+
+	    cinfo->P[4*i + 3] -= cinfo->P[4*i + j] * T[j];
+	}
+    }
 
   // No binning
-    _cinfo->binning_x = _cinfo->binning_y = 0;
+    cinfo->binning_x = cinfo->binning_y = 0;
 
   // ROI is same as entire image.
-    _cinfo->roi.width = _cinfo->roi.height = 0;
+    cinfo->roi.width = cinfo->roi.height = 0;
 }
 
 void
 Camera::publish_frame()
 {
+    using	namespace sensor_msgs;
+    
   // Common setting.
     const auto	now = ros::Time::now();
 
@@ -1444,44 +1496,40 @@ Camera::publish_frame()
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
     publish_cloud(now, distanceScale);
 
-  // Publish normal_map, depth_map, confidence_map and texture.
+  // Publish normal_map, depth_map, confidence_map, event_map and texture.
     profiler_start(1);
-    publish_image(_frame->NormalMap, _normal_map_publisher, _normal_map, now,
-		  sensor_msgs::image_encodings::TYPE_32FC3, 1);
+    publish_image(_normal_map, now, image_encodings::TYPE_32FC3, 1,
+		  _frame->NormalMap, _normal_map_publisher);
     profiler_start(2);
-    publish_image(_frame->DepthMap, _depth_map_publisher, _depth_map, now,
-		  sensor_msgs::image_encodings::TYPE_32FC1, distanceScale);
+    publish_image(_depth_map, now, image_encodings::TYPE_32FC1, distanceScale,
+		  _frame->DepthMap, _depth_map_publisher);
     profiler_start(3);
-    publish_image(_frame->ConfidenceMap, _confidence_map_publisher,
-		  _confidence_map, now,
-		  sensor_msgs::image_encodings::TYPE_32FC1, 1);
+    publish_image(_confidence_map, now, image_encodings::TYPE_32FC1, 1,
+		  _frame->ConfidenceMap, _confidence_map_publisher);
     profiler_start(4);
-    publish_image(_frame->EventMap, _event_map_publisher,
-		  _event_map, now,
-		  sensor_msgs::image_encodings::TYPE_32FC1, 1);
+    publish_image(_event_map, now, image_encodings::TYPE_32FC1, 1,
+		  _frame->EventMap, _event_map_publisher);
     profiler_start(5);
 #if defined(HAVE_COLOR)
     if (_is_color_camera)
-	publish_image(_frame->TextureRGB, _texture_publisher, _texture, now,
-		      sensor_msgs::image_encodings::RGB8, _intensityScale);
+	publish_image(_texture, now, image_encodings::RGB8, _intensityScale,
+		      _frame->TextureRGB, _texture_publisher);
     else
 #endif
-	publish_image(_frame->Texture, _texture_publisher, _texture, now,
-		      sensor_msgs::image_encodings::MONO8, _intensityScale);
+	publish_image(_texture, now, image_encodings::MONO8, _intensityScale,
+		      _frame->Texture, _texture_publisher);
+
+  // Publish camera_info.
     profiler_start(6);
+    publish_camera_info(now);
+    
+  // Publish color_camera.
+    profiler_start(7);
 #if defined(HAVE_COLOR)
     if (_is_color_camera)
-	publish_image(_frame->ColorCameraImage,
-		      _color_camera_image_publisher, _color_camera_image, now,
-		      sensor_msgs::image_encodings::RGB8, _intensityScale);
+	publish_color_camera(now);
 #endif
-
-  // Publish camera_info
-    profiler_start(7);
-    publish_camera_info(now);
-
     profiler_print(std::cerr);
-
     NODELET_DEBUG_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
 			 << ") frame published [#"
@@ -1659,66 +1707,53 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 }
 
 template <class T> void
-Camera::publish_image(const pho::api::Mat2D<T>& phoxi_image,
-		      const image_transport::Publisher& publisher,
-		      const image_p& image,
-		      const ros::Time& stamp,
-		      const std::string& encoding,
-		      float scale) const
+Camera::publish_image(const image_p& image, const ros::Time& stamp,
+		      const std::string& encoding, float scale,
+		      const pho::api::Mat2D<T>& phoxi_image,
+		      const image_transport::Publisher& publisher)
 {
-    using namespace	sensor_msgs;
-    using		element_ptr = const typename T::ElementChannelType*;
-
     if (publisher.getNumSubscribers() == 0 || phoxi_image.Empty())
 	return;
 
-    image->header.stamp    = stamp;
-    image->header.frame_id = _frame_id;
-    image->encoding	   = encoding;
-    image->is_bigendian    = 0;
-    image->height	   = phoxi_image.Size.Height;
-    image->width	   = phoxi_image.Size.Width;
-    image->step		   = image->width
-			   *  image_encodings::numChannels(image->encoding)
-			   * (image_encodings::bitDepth(image->encoding)/8);
-    image->data.resize(image->step * image->height);
-
-    const auto	p = reinterpret_cast<element_ptr>(phoxi_image[0]);
-    const auto	q = reinterpret_cast<element_ptr>(
-			phoxi_image[phoxi_image.Size.Height]);
-    if (image->encoding == image_encodings::MONO8)
-	scale_copy(p, q, image->data.data(), scale);
-    else if (image->encoding == image_encodings::RGB8)
-	scale_copy(p, q, image->data.data(), scale);
-    else if (image->encoding.substr(0, 4) == "32FC")
-	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
-    else
-    {
-	NODELET_ERROR_STREAM("Unsupported image type!");
-	throw;
-    }
-
+    set_image(image, stamp, _frame_id, encoding, scale, phoxi_image);
     publisher.publish(image);
 }
 
 void
-Camera::publish_camera_info(const ros::Time& stamp) const
+Camera::publish_camera_info(const ros::Time& stamp)
 {
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
 
-    _cinfo->header.stamp = stamp;
+    set_camera_info(_cinfo, stamp, _frame_id,
+		    _frame->DepthMap.Size.Width, _frame->DepthMap.Size.Height,
+		    _frame->Info.CameraMatrix,
+		    _frame->Info.DistortionCoefficients,
+		    _frame->Info.SensorPosition,
+		    _frame->Info.SensorXAxis,
+		    _frame->Info.SensorYAxis,
+		    _frame->Info.SensorZAxis);
     _camera_info_publisher.publish(_cinfo);
 }
 
 void
-Camera::publish_color_camera(const ros::Time& stamp) const
+Camera::publish_color_camera(const ros::Time& stamp)
 {
     if (_color_camera_publisher.getNumSubscribers() == 0)
 	return;
 
-    _color_camera_cinfo->header.stamp = stamp;
-    _color_camera_image->haeder.stamp = stamp;
+    set_image(_color_camera_image, stamp, _color_camera_frame_id,
+	      sensor_msgs::image_encodings::RGB8, _intensityScale,
+	      _frame->ColorCameraImage);
+    set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
+		    _frame->ColorCameraImage.Size.Width,
+		    _frame->ColorCameraImage.Size.Height,
+		    _frame->Info.ColorCameraMatrix,
+		    _frame->Info.ColorCameraDistortionCoefficients,
+		    _frame->Info.ColorCameraPosition,
+		    _frame->Info.ColorCameraXAxis,
+		    _frame->Info.ColorCameraYAxis,
+		    _frame->Info.ColorCameraZAxis);
     _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
 }
 
