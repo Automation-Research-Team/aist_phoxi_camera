@@ -81,7 +81,7 @@ operator <<(std::ostream& out, const pho::api::Point3_64f& p)
 {
     return out << '(' << p.x << ' ' << p.y << ' ' << p.z << ')';
 }
-    
+
 static size_t
 npoints_valid(const pho::api::PointCloud32f& cloud)
 {
@@ -213,7 +213,8 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
      _event_map_publisher(     _it.advertise("event_map",		1)),
      _texture_publisher(       _it.advertise("texture",			1)),
      _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1)),
-     _color_camera_publisher(  _it.advertiseCamera("color/image",	1))
+     _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
+     _broadcaster()
 {
     using namespace	pho::api;
 
@@ -262,7 +263,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 
   // Assure _camera_matrix to be set on the arrival of first frame.
     _cinfo->width = _cinfo->height = 0;
-    
+
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
     {
@@ -1428,10 +1429,10 @@ Camera::set_camera_matrix()
 				 PhoXiDeviceType::MotionCam3D);
     const auto	scale_u	      = double(_frame->DepthMap.Size.Width)
 			      / double(isMotionCam ? MotionCamNativeWidth
-						 : PhoXiNativeWidth);
+						   : PhoXiNativeWidth);
     const auto	scale_v       = double(_frame->DepthMap.Size.Height)
 			      / double(isMotionCam ? MotionCamNativeHeight
-						 : PhoXiNativeHeight);
+						   : PhoXiNativeHeight);
     _camera_matrix[0][0] = scale_u * camera_matrix[0][0];
     _camera_matrix[0][1] = scale_u * camera_matrix[0][1];
     _camera_matrix[0][2] = scale_u * camera_matrix[0][2];
@@ -1461,7 +1462,7 @@ Camera::set_camera_info(const cinfo_p& cinfo,
   // Set size.
     cinfo->width  = width;
     cinfo->height = height;
-    
+
   // Set distortion parameters.
     cinfo->distortion_model = "plumb_bob";
     cinfo->D.resize(5);
@@ -1492,13 +1493,12 @@ Camera::set_camera_info(const cinfo_p& cinfo,
     cinfo->R[8] = rz.z;
 
   // Set 3x4 camera matrix.
-    using	pho::api::float64_t;
-    constexpr float64_t	scale = 0.001;		// milimeters ==> meters
-    const float64_t	T[] = {scale * t.x, scale * t.y, scale * t.z};
+    constexpr double	scale = 0.001;		// milimeters ==> meters
+    const double	T[] = {scale * t.x, scale * t.y, scale * t.z};
     for (int i = 0; i < 3; ++i)
     {
 	cinfo->P[4*i + 3] = 0;
-		 
+
 	for (int j = 0; j < 3; ++j)
 	{
 	    cinfo->P[4*i + j] = 0;
@@ -1521,7 +1521,7 @@ void
 Camera::publish_frame()
 {
     using	namespace sensor_msgs;
-    
+
   // Common setting.
     const auto	now = ros::Time::now();
 
@@ -1556,7 +1556,7 @@ Camera::publish_frame()
   // Publish camera_info.
     profiler_start(6);
     publish_camera_info(now);
-    
+
   // Publish color_camera.
     profiler_start(7);
 #if defined(HAVE_COLOR)
@@ -1800,6 +1800,23 @@ Camera::publish_color_camera(const ros::Time& stamp)
 		    _frame->Info.ColorCameraYAxis,
 		    _frame->Info.ColorCameraZAxis);
     _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
+
+    const double	scale = 0.001;		// milimeters ==> meters
+    const tf::Vector3	t(scale * _frame->Info.ColorCameraPosition.x,
+			  scale * _frame->Info.ColorCameraPosition.y,
+			  scale * _frame->Info.ColorCameraPosition.z);
+    const tf::Matrix3x3	R(_frame->Info.ColorCameraXAxis.x,
+			  _frame->Info.ColorCameraYAxis.x,
+			  _frame->Info.ColorCameraZAxis.x,
+			  _frame->Info.ColorCameraXAxis.y,
+			  _frame->Info.ColorCameraYAxis.y,
+			  _frame->Info.ColorCameraZAxis.y,
+			  _frame->Info.ColorCameraXAxis.z,
+			  _frame->Info.ColorCameraYAxis.z,
+			  _frame->Info.ColorCameraZAxis.z);
+    _broadcaster.sendTransform(tf::StampedTransform(tf::Transform(R, t),
+						    stamp, _frame_id,
+						    _color_camera_frame_id));
 }
 
 }	// namespace aist_phoxi_camera

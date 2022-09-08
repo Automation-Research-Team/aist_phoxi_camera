@@ -45,6 +45,7 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
+#include <tf/transform_broadcaster.h>
 
 #include <PhoXi.h>
 
@@ -180,7 +181,7 @@ class Camera
     double					_intensityScale;
     bool					_is_color_camera;
     pho::api::CameraMatrix64f			_camera_matrix;
-    
+
     const cloud_p				_cloud;
     const image_p				_normal_map;
     const image_p				_depth_map;
@@ -207,6 +208,7 @@ class Camera
     const image_transport::Publisher		_texture_publisher;
     const ros::Publisher			_camera_info_publisher;
     const image_transport::CameraPublisher	_color_camera_publisher;
+    tf::TransformBroadcaster			_broadcaster;
 };
 
 }	// namespace aist_phoxi_camera
