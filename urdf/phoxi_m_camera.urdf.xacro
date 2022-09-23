@@ -14,7 +14,7 @@
       <xacro:PhoXi3DscannerM_meshes/>
     </xacro:PhoXi3Dscanner>
 
-    <gazebo reference="${name}_sensor">
+    <gazebo reference="${name}_sensor_reference">
       <sensor name="${name}" type="depth">
 	<always_on>true</always_on>
 	<visualize>true</visualize>
