@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="robotiq_epick" params="prefix parent *origin">
+
+    <xacro:property name="epick_length" value="0.101"/>
+    <xacro:property name="epick_offset" value="-0.006"/>
+
+    <link name="${prefix}base_link">
+      <inertial>
+        <origin xyz="0 0 0.0515" rpy="0 0 0" />
+        <mass value="0.706" />
+        <inertia ixx="3.084E-03" ixy="0" ixz="0"
+		 iyy="2.999E-03" iyz="0" izz="0.546E-03"/>
+      </inertial>
+      <visual>
+        <origin xyz="${epick_length + epick_offset} 0 0" rpy="0 0 ${-pi/2}" />
+        <geometry>
+          <mesh filename="package://aist_robotiq/meshes/visual/robotiq_epick.stl"
+	  	scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="${epick_length + epick_offset} 0 0" rpy="0 0 ${-pi/2}" />
+        <geometry>
+          <mesh filename="package://aist_robotiq/meshes/collision/robotiq_epick.stl"
+		scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </link>
+    <gazebo reference="${prefix}base_link">
+      <material>Gazebo/Black</material>
+    </gazebo>
+
+    <!-- Add the force sensor in front of the gripper. -->
+    <joint name="${prefix}base_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child  link="${prefix}base_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+
+    <link name="${prefix}flange_link"/>
+    <joint name="${prefix}flange_joint" type="fixed">
+      <parent link="${prefix}base_link"/>
+      <child  link="${prefix}flange_link"/>
+      <origin xyz="${epick_length} 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+</robot>
