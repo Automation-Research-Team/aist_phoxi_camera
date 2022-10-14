@@ -18,10 +18,19 @@ catkin_python_setup()
 
 add_message_files(
   FILES
-    CModelCommand.msg CModelStatus.msg
+    CModelCommand.msg CModelStatus.msg EPickCommand.msg EPickStatus.msg
 )
 
-generate_messages()
+add_action_files(
+  FILES
+    EPick.action
+)
+
+generate_messages(
+  DEPENDENCIES
+    actionlib_msgs
+    actionlib
+)
 
 find_package(gazebo REQUIRED)
 

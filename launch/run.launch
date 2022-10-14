@@ -1,14 +1,17 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="prefix"		default="a_bot_gripper_"/>
-  <arg name="device"		default="robotiq_85"/>
-  <arg name="driver"		default="urcap"/>
-  <arg name="ip"		default="10.66.171.52"/>
+  <arg name="prefix"	default="a_bot_gripper_"/>
+  <arg name="device"	default="robotiq_85"/>
+  <arg name="driver"	default="urcap"/>
+  <arg name="ip"	default="10.66.171.52"/>
+
+  <arg name="model"
+       value="$(eval 'epick' if device == 'robotiq_epick' else 'cmodel')"/>
 
   <!-- Spawn driver -->
   <node name="$(arg prefix)driver"
-	pkg="aist_robotiq" type="cmodel_$(arg driver)_driver.py"
+	pkg="aist_robotiq" type="$(arg model)_$(arg driver)_driver.py"
 	output="screen" respawn="false" args="$(arg ip)">
     <remap from="/status"	to="$(arg prefix)controller/status"/>
     <remap from="/command"	to="$(arg prefix)controller/command"/>
@@ -16,7 +19,7 @@
 
   <!-- Spawn controller -->
   <node name="$(arg prefix)controller"
-	pkg="aist_robotiq" type="cmodel_controller.py"
+	pkg="aist_robotiq" type="$(arg model)_controller.py"
 	output="screen" respawn="false">
     <rosparam file="$(dirname)/../config/$(arg device).yaml"
 	      subst_value="true"/>
