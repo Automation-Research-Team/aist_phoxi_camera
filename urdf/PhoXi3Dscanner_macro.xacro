@@ -25,7 +25,7 @@
           <color rgba="0.8 0.8 0.8 1"/>
         </material>
       </visual>
-      
+
       <collision>
         <!-- <origin xyz="0 0 0" rpy="0 1.5707 0" /> -->
 	<origin xyz="0 0 0" rpy="0 ${pi/2} ${pi}"/>
@@ -35,8 +35,17 @@
       </collision>
 
     </link>
-    
+
     <link name="${sensor_name}"/>
+
+    <link name="${sensor_name}_reference"/>
+    <joint name="${sensor_name}_to_${sensor_name}_reference_joint"
+	   type="fixed">
+      <parent link="${sensor_name}"/>
+      <child  link="${sensor_name}_reference"/>
+      <origin xyz="0 0 0" rpy="${pi/2} ${-pi/2} 0"/>
+    </joint>
+
 
   </xacro:macro>
 </robot>
