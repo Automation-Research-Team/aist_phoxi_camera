@@ -15,7 +15,7 @@
         <origin xyz="-0.0685 -0.1215 0.024" rpy="${-pi/2} ${-pi/2} 0" />
         <geometry>
           <mesh filename="package://aist_robotiq/meshes/visual/robotiq_dual_bracket.stl"
-		scale="0.001 0.001 0.001"/>
+	  	scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="">
           <color rgba="0.1 0.1 0.1 1" />
@@ -24,7 +24,8 @@
       <collision>
         <origin xyz="-0.068 -0.120 0.024" rpy="${-pi/2} ${-pi/2} 0" />
         <geometry>
-          <mesh filename="package://aist_robotiq/meshes/collision/robotiq_dual_bracket.stl" />
+          <mesh filename="package://aist_robotiq/meshes/collision/robotiq_dual_bracket.stl"
+	  	scale="0.001 0.001 0.001"/>
         </geometry>
       </collision>
     </link>
