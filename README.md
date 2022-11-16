@@ -22,7 +22,7 @@ The controller establishes an [ROS action](http://wiki.ros.org/actionlib) server
 The driver subscribes a command topic published by the controller and transfer it to the gripper. It also receives status from the gripper and publish it as a topic toward the controller. The following three drivers are available.
 
 - **TCP driver** -- To be used when the gripper is connected to the [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm) which acts as a converter between TCP/IP and Modbus. Not tested.
-- **RTU driver** -- Not tested.
+- **RTU driver** -- To be used when the gripper is connected to a USB port of the host PC via a converter between RS485 and USB.
 - **URCap driver** -- To be used when the gripper is connected to the control box of [Universal Robot](https://www.universal-robots.com) CB-series or e-Series with [URCap software](https://robotiq.com/support) installed. The driver sends commands and receives status to/from the gripper via unix socket connected to the URCap server which is exposed to the port `63352` of the box.
 
 ## Gazebo plugin
@@ -34,14 +34,15 @@ Two gazebo plugins conforming to [gazebo_ros_control](http://gazebosim.org/tutor
 
 
 ## Usage (real gripper)
-At first, you should activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), you can do it through the URCap panel of the Teaching Pendant. 
+At first, you should activate the gripper hardware. If the gripper is connected to the controller box of [Universal Robot](https://www.universal-robots.com), you can do it through the URCap panel of the Teaching Pendant.
 
 Then you can start both the driver and the controller by typing:
 ```shell
-$ roslaunch aist_robotiq run.launch ip:=<ip> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>] 
+$ roslaunch aist_robotiq run.launch ip_or_dev:=<ip_or_dev> [driver:=<driver>] [device:=<device>] [prefix:=<prefix>]
 ```
 where
-- **ip** -- If `driver` = `urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com). Otherwise, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
+- **ip_or_dev** -- If `driver` = `urcap`, specify IP address of the controller box of [Universal Robot](https://www.universal-robots.com). If `driver` = `tcp`, specify IP address of [Robotiq Universal Controller](https://assets.robotiq.com/website-assets/support_documents/document/online/Controller_UserManual_HTML5_20181120.zip/Controller_UserManual_HTML5/Default.htm).
+If `driver` = `rtu`, specify tty device name(ex. `/dev/ttyUSB0`) of the host PC to which the gripper cable is conneted via a converter between RS485 and USB.
 - **driver** -- Specify driver type. Currently `tcp`, `rtu` and `urcap` are supported. (default: `urcap`)
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
 - **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
@@ -71,7 +72,7 @@ where
 - **device** -- Specify gripper device. Currently `robotiq_85`, `robotiq_140` and `robotiq_hande` are supported. (default: `robotiq_85`)
 - **prefix** -- Specify a prefix string for identifying a specific device from multiple grippers. (default: `a_bot_gripper_`)
 
-This command starts 
+This command starts
 
 - [gazebo](http://gazebosim.org/) for simulating gripper physics,
 - [joint_state_controller](http://wiki.ros.org/joint_state_controller) for publishing `/joint_states` of the virtual gripper simulated by `gazebo`,
