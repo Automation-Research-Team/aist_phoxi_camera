@@ -2,10 +2,10 @@
 from math import ceil
 import time
 import threading
-from aist_robotiq.msg import CModelStatus
-from pymodbus.client.sync import ModbusTcpClient, ModbusSerialClient
+from aist_robotiq.msg               import CModelStatus, CModelCommand
+from pymodbus.client.sync           import ModbusTcpClient, ModbusSerialClient
 from pymodbus.register_read_message import ReadInputRegistersResponse
-
+from pymodbus.exceptions            import ModbusException, ModbusIOException
 
 class ComModbusTcp:
     def __init__(self):
@@ -17,6 +17,7 @@ class ComModbusTcp:
         Connection to the client - the method takes the IP address (as a string, e.g. '192.168.1.11') as an argument.
         """
         self.client = ModbusTcpClient(address)
+        self.client.connect()
 
     def disconnectFromDevice(self):
         """Close connection"""
@@ -60,24 +61,22 @@ class ComModbusTcp:
 
 
 class ComModbusRtu:
-
     def __init__(self):
         self.client = None
 
     def connectToDevice(self, device):
-        """Connection to the client - the method takes the IP address (as a string, e.g. '192.168.1.11') as an argument."""
-        self.client = ModbusSerialClient(method='rtu',port=device,stopbits=1, bytesize=8, baudrate=115200, timeout=0.2)
+        self.client = ModbusSerialClient(method='rtu', port=device, stopbits=1,
+                                         bytesize=8, parity='N',
+                                         baudrate=115200, timeout=0.2)
         if not self.client.connect():
             print "Unable to connect to %s" % device
             return False
         return True
 
     def disconnectFromDevice(self):
-        """Close connection"""
         self.client.close()
 
     def sendCommand(self, data):
-        """Send a command to the Gripper - the method takes a list of uint8 as an argument. The meaning of each variable depends on the Gripper model (see support.robotiq.com for more details)"""
         #make sure data has an even number of elements
         if(len(data) % 2 == 1):
             data.append(0)
@@ -102,22 +101,19 @@ class ComModbusRtu:
 
         #Get status from the device
         try:
-            response = self.client.read_holding_registers(0x07D0, numRegs, unit=0x0009)
-        except Exception as e:
-            print("Encountered an exception when writing registers:")
+            response = self.client.read_input_registers(0x07D0, numRegs,
+                                                        unit=0x0009)
+        except ModbusIOException as e:
+            print("*** Encountered an exception when reading registers:")
             print(e)
 
         #Instantiate output as an empty list
         output = []
 
         #Fill the output with the bytes in the appropriate order
-        try:
-            for i in range(0, numRegs):
-                output.append((response.getRegister(i) & 0xFF00) >> 8)
-                output.append( response.getRegister(i) & 0x00FF)
-        except Exception as e:
-            print("Encountered an exception when writing registers:")
-            print(e)
+        for i in range(0, numRegs):
+            output.append((response.registers[i] & 0xFF00) >> 8)
+            output.append( response.registers[i] & 0x00FF)
 
         #Output the result
         return output
@@ -127,6 +123,21 @@ class RobotiqCModel:
     def __init__(self):
         #Initiate output message as an empty list
         self.message = []
+
+    def activate(self):
+        # clear and then reset ACT
+        command = CModelCommand()
+        command.rACT = 0
+        command.rGTO = 0
+        command.rATR = 0
+        command.rPR  = 0
+        command.rSP  = 0
+        command.rFR  = 0
+        self.refreshCommand(command)
+        self.sendCommand()
+        command.rACT = 1
+        self.refreshCommand(command)
+        self.sendCommand()
 
     def verifyCommand(self, command):
         # Verify that each variable is in its correct range
@@ -172,15 +183,15 @@ class RobotiqCModel:
         """
         Request the status from the gripper and return it in the CModelStatus msg type.
         """
-        #Acquire status from the Gripper
-        status = self.client.getStatus(6);
+        # Acquire status from the Gripper
+        status = self.client.getStatus(6)
         # Message to report the gripper status
         message = CModelStatus()
         #Assign the values to their respective variables
-        message.gACT = (status[0] >> 0) & 0x01;
-        message.gGTO = (status[0] >> 3) & 0x01;
-        message.gSTA = (status[0] >> 4) & 0x03;
-        message.gOBJ = (status[0] >> 6) & 0x03;
+        message.gACT = (status[0] >> 0) & 0x01
+        message.gGTO = (status[0] >> 3) & 0x01
+        message.gSTA = (status[0] >> 4) & 0x03
+        message.gOBJ = (status[0] >> 6) & 0x03
         message.gFLT =  status[2]
         message.gPR  =  status[3]
         message.gPO  =  status[4]

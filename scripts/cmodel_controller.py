@@ -96,16 +96,22 @@ class CModelController(object):
         # Handle calibration process if not moving
         if not self._is_moving(status):
             if self._calibration_step == 1:
+                rospy.loginfo("(%s) calibration step 1: start calibration"
+                              % self._name)
                 self._calibration_step = 2
                 self._send_raw_move_command(0, 64, 1)    # full-open
                 rospy.sleep(0.5)
             elif self._calibration_step == 2:
                 self._max_gap_counts = status.gPO        # record at full-open
+                rospy.loginfo("(%s) calibration step 2: gap[%d]@full-open"
+                              % (self._name, self._max_gap_counts))
                 self._calibration_step = 3
                 self._send_raw_move_command(255, 64, 1)  # full-close
                 rospy.sleep(0.5)
             elif self._calibration_step == 3:
                 self._min_gap_counts = status.gPO        # record at full-close
+                rospy.loginfo("(%s) calibration step 3: gap[%d]@full-close"
+                              % (self._name, self._min_gap_counts))
                 self._calibration_step = 0
                 self._send_raw_move_command(0, 64, 1)    # full-open
                 rospy.loginfo('(%s) calibrated to [%d, %d]'

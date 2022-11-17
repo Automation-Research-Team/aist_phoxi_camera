@@ -11,6 +11,7 @@ def mainLoop(device):
     # We connect to the device name received as an argument
     rospy.loginfo("Connecting to device " + str(device))
     gripper.client.connectToDevice(device)
+    gripper.activate()
     # The Gripper status
     pub = rospy.Publisher('/status', amsg.CModelStatus, queue_size=3)
     # The Gripper command
