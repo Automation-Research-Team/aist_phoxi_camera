@@ -18,12 +18,12 @@ catkin_python_setup()
 
 add_message_files(
   FILES
-    CModelCommand.msg CModelStatus.msg EPickCommand.msg EPickStatus.msg
+    CModelCommand.msg CModelStatus.msg EPickCommand.msg
 )
 
 add_action_files(
   FILES
-    EPick.action
+    EPickCommand.action
 )
 
 generate_messages(

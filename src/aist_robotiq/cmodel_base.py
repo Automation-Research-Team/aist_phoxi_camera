@@ -1,199 +1,85 @@
-#!/usr/bin/env python
-from math import ceil
-import time
-import threading
-from aist_robotiq.msg               import CModelStatus, CModelCommand
-from pymodbus.client.sync           import ModbusTcpClient, ModbusSerialClient
-from pymodbus.register_read_message import ReadInputRegistersResponse
-from pymodbus.exceptions            import ModbusException, ModbusIOException
+# Software License Agreement (BSD License)
+#
+# Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#  * Neither the name of National Institute of Advanced Industrial
+#    Science and Technology (AIST) nor the names of its contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# Author: Toshio Ueshiba
+#
+import rospy
+from numpy            import clip
+from aist_robotiq.msg import CModelStatus, CModelCommand
 
-class ComModbusTcp:
+#########################################################################
+#  class CModelBase                                                     #
+#########################################################################
+class CModelBase(object):
     def __init__(self):
-        self.client = None
-        self.lock = threading.Lock()
+        super(CModelBase, self).__init__()
 
-    def connectToDevice(self, address):
-        """
-        Connection to the client - the method takes the IP address (as a string, e.g. '192.168.1.11') as an argument.
-        """
-        self.client = ModbusTcpClient(address)
-        self.client.connect()
+        # Publish device status to the controller.
+        self._pub = rospy.Publisher('/status', CModelStatus, queue_size=3)
 
-    def disconnectFromDevice(self):
-        """Close connection"""
-        self.client.close()
+        # Subscribe command form the controller and send it to the device.
+        rospy.Subscriber('/command', CModelCommand, self.put_command)
 
-    def sendCommand(self, data):
-        """
-        Send a command to the Gripper - the method takes a list of uint8 as an argument.
-        The meaning of each variable depends on the Gripper model
-        """
-        # make sure data has an even number of elements
-        if(len(data) % 2 == 1):
-            data.append(0)
-        # Initiate message as an empty list
-        message = []
-        # Fill message by combining two bytes in one register
-        for i in range(0, len(data)/2):
-            message.append((data[2*i] << 8) + data[2*i+1])
-        # TODO: Implement try/except
-        with self.lock:
-            self.client.write_registers(0, message)
+    def run(self):
+        rate = rospy.Rate(20)
+        while not rospy.is_shutdown():
+            status = self.get_status()  # (defined in derived class)
+            self._pub.publish(status)   # Forward device status to controller
+            rate.sleep()
+        self.disconnect()               # (defined in derived class)
 
-    def getStatus(self, numBytes):
-        """
-        Sends a request to read, wait for the response and returns the Gripper status.
-        The method gets the number of bytes to read as an argument
-        """
-        numRegs = int(ceil(numBytes/2.0))
-        # TODO: Implement try/except
-        # Get status from the device
-        with self.lock:
-            response = self.client.read_input_registers(0, numRegs)
-        # Instantiate output as an empty list
-        output = []
-        # Fill the output with the bytes in the appropriate order
-        for i in range(0, numRegs):
-            output.append((response.getRegister(i) & 0xFF00) >> 8)
-            output.append( response.getRegister(i) & 0x00FF)
-        # Output the result
-        return output
-
-
-class ComModbusRtu:
-    def __init__(self):
-        self.client = None
-
-    def connectToDevice(self, device):
-        self.client = ModbusSerialClient(method='rtu', port=device, stopbits=1,
-                                         bytesize=8, parity='N',
-                                         baudrate=115200, timeout=0.2)
-        if not self.client.connect():
-            print "Unable to connect to %s" % device
-            return False
-        return True
-
-    def disconnectFromDevice(self):
-        self.client.close()
-
-    def sendCommand(self, data):
-        #make sure data has an even number of elements
-        if(len(data) % 2 == 1):
-            data.append(0)
-
-        #Initiate message as an empty list
-        message = []
-
-        #Fill message by combining two bytes in one register
-        for i in range(0, len(data)/2):
-            message.append((data[2*i] << 8) + data[2*i+1])
-
-        try:
-            self.client.write_registers(0x03E8, message, unit=0x0009)
-        except Exception as e:
-            print("Encountered an exception when writing registers:")
-            print(e)
-
-
-    def getStatus(self, numBytes):
-        """Sends a request to read, wait for the response and returns the Gripper status. The method gets the number of bytes to read as an argument"""
-        numRegs = int(ceil(numBytes/2.0))
-
-        #Get status from the device
-        try:
-            response = self.client.read_input_registers(0x07D0, numRegs,
-                                                        unit=0x0009)
-        except ModbusIOException as e:
-            print("*** Encountered an exception when reading registers:")
-            print(e)
-
-        #Instantiate output as an empty list
-        output = []
-
-        #Fill the output with the bytes in the appropriate order
-        for i in range(0, numRegs):
-            output.append((response.registers[i] & 0xFF00) >> 8)
-            output.append( response.registers[i] & 0x00FF)
-
-        #Output the result
-        return output
-
-
-class RobotiqCModel:
-    def __init__(self):
-        #Initiate output message as an empty list
-        self.message = []
-
-    def activate(self):
+    def _activate(self):
         # clear and then reset ACT
         command = CModelCommand()
         command.rACT = 0
+        command.rMOD = 0
         command.rGTO = 0
         command.rATR = 0
+        command.rARD = 0
         command.rPR  = 0
         command.rSP  = 0
         command.rFR  = 0
-        self.refreshCommand(command)
-        self.sendCommand()
+        self.put_command(command)        # (defined in derived class)
         command.rACT = 1
-        self.refreshCommand(command)
-        self.sendCommand()
+        self.put_command(command)        # (defined in derived class)
 
-    def verifyCommand(self, command):
-        # Verify that each variable is in its correct range
-        command.rACT = max(0, command.rACT)
-        command.rACT = min(1, command.rACT)
-
-        command.rGTO = max(0, command.rGTO)
-        command.rGTO = min(1, command.rGTO)
-
-        command.rATR = max(0, command.rATR)
-        command.rATR = min(1, command.rATR)
-
-        command.rPR  = max(0,   command.rPR)
-        command.rPR  = min(255, command.rPR)
-
-        command.rSP  = max(0,   command.rSP)
-        command.rSP  = min(255, command.rSP)
-
-        command.rFR  = max(0,   command.rFR)
-        command.rFR  = min(255, command.rFR)
-
-        # Return the cropped command
+    def _clip_command(self, command):
+        command.rACT = clip(command.rACT, 0, 1)
+        command.rMOD = clip(command.rACT, 0, 3)
+        command.rGTO = clip(command.rGTO, 0, 1)
+        command.rATR = clip(command.rATR, 0, 1)
+        command.rARD = clip(command.rATR, 0, 1)
+        command.rPR  = clip(command.rPR,  0, 255)
+        command.rSP  = clip(command.rSP,  0, 255)
+        command.rFR  = clip(command.rFR,  0, 255)
         return command
-
-    def refreshCommand(self, command):
-        # Limit the value of each variable
-        command = self.verifyCommand(command)
-        # Initiate command as an empty list
-        self.message = []
-        # Build the command with each output variable
-        # TODO: add verification that all variables are in their authorized range
-        self.message.append(command.rACT + (command.rGTO << 3) + (command.rATR << 4))
-        self.message.append(0)
-        self.message.append(0)
-        self.message.append(command.rPR)
-        self.message.append(command.rSP)
-        self.message.append(command.rFR)
-
-    def sendCommand(self):
-        self.client.sendCommand(self.message)
-
-    def getStatus(self):
-        """
-        Request the status from the gripper and return it in the CModelStatus msg type.
-        """
-        # Acquire status from the Gripper
-        status = self.client.getStatus(6)
-        # Message to report the gripper status
-        message = CModelStatus()
-        #Assign the values to their respective variables
-        message.gACT = (status[0] >> 0) & 0x01
-        message.gGTO = (status[0] >> 3) & 0x01
-        message.gSTA = (status[0] >> 4) & 0x03
-        message.gOBJ = (status[0] >> 6) & 0x03
-        message.gFLT =  status[2]
-        message.gPR  =  status[3]
-        message.gPO  =  status[4]
-        message.gCU  =  status[5]
-        return message

@@ -6,12 +6,12 @@
   <arg name="driver"	default="urcap"/>	<!-- "urcap", "tcp", "rtu" -->
   <arg name="ip_or_dev"	default="10.66.171.52"/>
 
-  <arg name="model"
+  <arg name="controller"
        value="$(eval 'epick' if device == 'robotiq_epick' else 'cmodel')"/>
 
   <!-- Spawn driver -->
   <node name="$(arg prefix)driver"
-	pkg="aist_robotiq" type="$(arg model)_$(arg driver)_driver.py"
+	pkg="aist_robotiq" type="cmodel_$(arg driver)_driver.py"
 	output="screen" respawn="false" args="$(arg ip_or_dev)">
     <remap from="/status"	to="$(arg prefix)controller/status"/>
     <remap from="/command"	to="$(arg prefix)controller/command"/>
@@ -19,7 +19,7 @@
 
   <!-- Spawn controller -->
   <node name="$(arg prefix)controller"
-	pkg="aist_robotiq" type="$(arg model)_controller.py"
+	pkg="aist_robotiq" type="$(arg controller)_controller.py"
 	output="screen" respawn="false">
     <rosparam file="$(dirname)/../config/$(arg device).yaml"
 	      subst_value="true"/>
