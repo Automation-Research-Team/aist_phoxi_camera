@@ -48,7 +48,7 @@ if __name__ == '__main__':
         else:
             return True
 
-    rospy.init_node('test_client')
+    rospy.init_node('test_cmodel_client')
 
     prefix  = rospy.get_param('~prefix', 'a_bot_gripper_')
     gripper = RobotiqGripper(prefix)

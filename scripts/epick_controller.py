@@ -95,27 +95,27 @@ class EPickController(object):
             self._server.set_preempted()
             return
 
-        self._send_move_command(goal.command.max_pressure,
+        self._send_move_command(goal.command.advanced_mode,
+                                goal.command.max_pressure,
                                 goal.command.min_pressure,
-                                goal.command.timeout,
-                                goal.command.advanced_mode)
+                                goal.command.timeout)
 
     def _preempt_cb(self):
         self._stop()
         rospy.loginfo('(%s) preempted' % self._name)
         self._server.set_preempted()
 
-    def _send_move_command(self, max_pressure, min_pressure,
-                           timeout, advanced_mode):
+    def _send_move_command(self, advanced_mode,
+                           max_pressure, min_pressure, timeout):
         max_prs = np.clip(int(max_pressure) + 100, 0, 255)
-        min_prs = np.clip(int(min_pressure) + 100, 0, 255)
+        min_prs = np.clip(int(min_pressure) + 100, 0, 100)
         tout    = np.clip(int(10.0*timeout.to_sec()), 0, 255)
-        self._send_raw_move_command(advanced_mode, max_prs, tout, min_prs)
+        self._send_raw_move_command(advanced_mode, max_prs, min_prs, tout)
 
-    def _send_raw_move_command(self, advanced_mode, max_prs, tout, min_prs):
+    def _send_raw_move_command(self, advanced_mode, max_prs, min_prs, tout):
         command = CModelCommand()
         command.rACT = 1
-        command.rMOD = 0 if not advanced_mode else 1
+        command.rMOD = 1 if advanced_mode else 0
         command.rGTO = 1
         command.rATR = 0
         command.rPR  = max_prs
