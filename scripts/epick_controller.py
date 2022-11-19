@@ -37,36 +37,32 @@
 #
 import rospy, os
 import numpy as np
-from control_msgs import msg as cmsg
-from aist_robotiq import msg as amsg
-from actionlib    import SimpleActionServer
+from aist_robotiq.msg import (CModelStatus, CModelCommand,
+                              EPickCommandAction, EPickCommandGoal,
+                              EPickCommandResult, EPickCommandFeedback)
+from actionlib        import SimpleActionServer
 
+#########################################################################
+#  class EPickController                                                #
+#########################################################################
 class EPickController(object):
     def __init__(self):
         super(EPickController, self).__init__()
 
         self._name = rospy.get_name()
 
-        # Read configuration parameters
-        self._max_pressure = rospy.get_param('~max_pressure', 0.085)
-
         # Status recevied from driver, command sent to driver
-        self._status_sub      = rospy.Subscriber('~status', amsg.EPickStatus,
-                                                 self._status_cb, queue_size=1)
-        self._command_pub     = rospy.Publisher('~command', amsg.EPickCommand,
-                                                queue_size=1)
-        self._goal_rPR        = 0
+        self._status_sub  = rospy.Subscriber('~status', CModelStatus,
+                                             self._status_cb, queue_size=1)
+        self._command_pub = rospy.Publisher('~command', CModelCommand,
+                                            queue_size=1)
 
         # Configure and start the action server
-        self._server = SimpleActionServer('~gripper_cmd',
-                                          amsg.EPickAction,
+        self._server = SimpleActionServer('~gripper_cmd', EPickCommandAction,
                                           auto_start=False)
         self._server.register_goal_callback(self._goal_cb)
         self._server.register_preempt_callback(self._preempt_cb)
         self._server.start()
-
-        # Calibrate gripper
-        rospy.sleep(2.0)              # wait for server comes up
 
         rospy.logdebug('(%s) Started' % self._name)
 
@@ -83,17 +79,13 @@ class EPickController(object):
             rospy.logwarn('(%s) faulted with code: %x'
                           % (self._name, self._error(status)))
             self._server.set_aborted()
-        elif self._reached_goal(status):
-            rospy.loginfo('(%s) reached goal' % self._name)
-            self._server.set_succeeded(
-                amsg.EPickResult(*self._status_values(status)))
         elif self._stalled(status):
             rospy.loginfo('(%s) stalled' % self._name)
             self._server.set_succeeded(
-                amsg.EPickResult(*self._status_values(status)))
+                EPickCommandResult(*self._status_values(status)))
         else:
             self._server.publish_feedback(
-                amsg.EPickFeedback(*self._status_values(status)))
+                EPickCommandFeedback(*self._status_values(status)))
 
     def _goal_cb(self):
         goal = self._server.accept_new_goal()  # requested goal
@@ -103,63 +95,49 @@ class EPickController(object):
             self._server.set_preempted()
             return
 
-        self._goal_rPR = self._send_move_command(goal.command.pressure,
-                                                 (self._min_velocity +
-                                                  self._max_velocity) * 0.5,
-                                                 goal.command.max_effort)
+        self._send_move_command(goal.command.max_pressure,
+                                goal.command.min_pressure,
+                                goal.command.timeout,
+                                goal.command.advanced_mode)
 
     def _preempt_cb(self):
         self._stop()
         rospy.loginfo('(%s) preempted' % self._name)
         self._server.set_preempted()
 
-    def _calibrate(self):
-        self._calibration_step = 1
+    def _send_move_command(self, max_pressure, min_pressure,
+                           timeout, advanced_mode):
+        max_prs = np.clip(int(max_pressure) + 100, 0, 255)
+        min_prs = np.clip(int(min_pressure) + 100, 0, 255)
+        tout    = np.clip(int(10.0*timeout.to_sec()), 0, 255)
+        self._send_raw_move_command(advanced_mode, max_prs, tout, min_prs)
 
-    def _send_move_command(self, pressure, velocity, effort):
-        pos = np.clip(int((pressure - self._min_pressure)
-                          / self.pressure_per_tick + self._min_gap_counts),
-                      self._max_gap_counts, self._min_gap_counts)
-        vel = np.clip(int((velocity - self._min_velocity)
-                          / self.velocity_per_tick),
-                      0, 255)
-        eff = np.clip(int((effort - self._min_effort) / self.effort_per_tick),
-                      0, 255)
-        self._send_raw_move_command(pos, vel, eff)
-        return pos
-
-    def _send_raw_move_command(self, pos, vel, eff):
-        command = amsg.EPickCommand()
+    def _send_raw_move_command(self, advanced_mode, max_prs, tout, min_prs):
+        command = CModelCommand()
         command.rACT = 1
+        command.rMOD = 0 if not advanced_mode else 1
         command.rGTO = 1
-        command.rPR  = pos
-        command.rSP  = vel
-        command.rFR  = eff
+        command.rATR = 0
+        command.rPR  = max_prs
+        command.rSP  = tout
+        command.rFR  = min_prs  # threshold for object detection(gOBJ)
         self._command_pub.publish(command)
 
     def _stop(self):
-        command = amsg.EPickCommand()
+        command = CModelCommand()
         command.rACT = 1
         command.rGTO = 0
         self._command_pub.publish(command)
         rospy.logdebug('(%s) stopping' % (self._name))
 
     def _pressure(self, status):
-        return (status.gPO - self._min_gap_counts) * self.pressure_per_tick \
-             + self._min_pressure
-
-    def _effort(self, status):
-        return status.gCU * self.effort_per_tick + self._min_effort
+        return status.gPO - 100
 
     def _stalled(self, status):
         return status.gOBJ == 1 or status.gOBJ == 2
 
-    def _reached_goal(self, status):
-        return abs(status.gPO - self._goal_rPR) <= 1
-
     def _status_values(self, status):
-        return self._pressure(status), self._effort(status), \
-               self._stalled(status),  self._reached_goal(status)
+        return self._pressure(status), self._stalled(status)
 
     def _error(self, status):
         return status.gFLT
@@ -167,24 +145,8 @@ class EPickController(object):
     def _is_active(self, status):
         return status.gSTA == 3 and status.gACT == 1
 
-    def _is_moving(self, status):
-        return status.gGTO == 1 and status.gOBJ == 0
-
-    @property
-    def pressure_per_tick(self):
-        return (self._max_pressure - self._min_pressure) \
-             / (self._max_gap_counts - self._min_gap_counts)
-
-    @property
-    def velocity_per_tick(self):
-        return (self._max_velocity - self._min_velocity) / 255
-
-    @property
-    def effort_per_tick(self):
-        return (self._max_effort - self._min_effort) / 255
-
 
 if __name__ == '__main__':
-    rospy.init_node('cmodel_controller')
+    rospy.init_node('epick_controller')
     controller = EPickController()
     rospy.spin()

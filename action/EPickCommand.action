@@ -2,8 +2,6 @@ EPickCommand command
 ---
 float64 pressure
 bool    stalled
-bool    reached_goal
 ---
-float64 presuure
+float64 pressure
 bool    stalled
-bool    reached_goal

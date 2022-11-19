@@ -37,11 +37,15 @@
 #
 import rospy, os
 import numpy as np
-from sensor_msgs  import msg as smsg
-from control_msgs import msg as cmsg
-from aist_robotiq import msg as amsg
-from actionlib    import SimpleActionServer
+from sensor_msgs.msg  import JointState
+from control_msgs.msg import (GripperCommandAction, GripperCommandGoal,
+                              GripperCommandResult, GripperCommandFeedback)
+from aist_robotiq.msg import CModelStatus, CModelCommand
+from actionlib        import SimpleActionServer
 
+#########################################################################
+#  class CModelController                                               #
+#########################################################################
 class CModelController(object):
     def __init__(self):
         super(CModelController, self).__init__()
@@ -58,12 +62,12 @@ class CModelController(object):
         self._joint_name   = rospy.get_param('~joint_name', 'finger_joint')
 
         # Status recevied from driver, command sent to driver
-        self._status_sub      = rospy.Subscriber('~status', amsg.CModelStatus,
+        self._status_sub      = rospy.Subscriber('~status', CModelStatus,
                                                  self._status_cb, queue_size=1)
-        self._command_pub     = rospy.Publisher('~command', amsg.CModelCommand,
+        self._command_pub     = rospy.Publisher('~command', CModelCommand,
                                                 queue_size=1)
         self._joint_state_pub = rospy.Publisher('/joint_states',
-                                                smsg.JointState, queue_size=1)
+                                                JointState, queue_size=1)
         self._goal_rPR        = 0
 
         # Position parameters to be calibrated
@@ -72,8 +76,7 @@ class CModelController(object):
         self._calibration_step = 0    # ready for calibration
 
         # Configure and start the action server
-        self._server = SimpleActionServer('~gripper_cmd',
-                                          cmsg.GripperCommandAction,
+        self._server = SimpleActionServer('~gripper_cmd', GripperCommandAction,
                                           auto_start=False)
         self._server.register_goal_callback(self._goal_cb)
         self._server.register_preempt_callback(self._preempt_cb)
@@ -87,7 +90,7 @@ class CModelController(object):
 
     def _status_cb(self, status):
         # Publish the joint_states for the gripper
-        joint_state = smsg.JointState()
+        joint_state = JointState()
         joint_state.header.stamp = rospy.Time.now()
         joint_state.name         = [self._joint_name]
         joint_state.position     = [self._position(status)]
@@ -133,14 +136,14 @@ class CModelController(object):
         elif self._reached_goal(status):
             rospy.loginfo('(%s) reached goal' % self._name)
             self._server.set_succeeded(
-                cmsg.GripperCommandResult(*self._status_values(status)))
+                GripperCommandResult(*self._status_values(status)))
         elif self._stalled(status):
             rospy.loginfo('(%s) stalled' % self._name)
             self._server.set_succeeded(
-                cmsg.GripperCommandResult(*self._status_values(status)))
+                GripperCommandResult(*self._status_values(status)))
         else:
             self._server.publish_feedback(
-                cmsg.GripperCommandFeedback(*self._status_values(status)))
+                GripperCommandFeedback(*self._status_values(status)))
 
     def _goal_cb(self):
         goal = self._server.accept_new_goal()  # requested goal
@@ -176,7 +179,7 @@ class CModelController(object):
         return pos
 
     def _send_raw_move_command(self, pos, vel, eff):
-        command = amsg.CModelCommand()
+        command = CModelCommand()
         command.rACT = 1
         command.rGTO = 1
         command.rPR  = pos
@@ -185,7 +188,7 @@ class CModelController(object):
         self._command_pub.publish(command)
 
     def _stop(self):
-        command = amsg.CModelCommand()
+        command = CModelCommand()
         command.rACT = 1
         command.rGTO = 0
         self._command_pub.publish(command)
