@@ -34,7 +34,6 @@
 # Author: Toshio Ueshiba
 #
 import threading
-from math                     import ceil
 from aist_robotiq.cmodel_base import CModelBase
 from aist_robotiq.msg         import CModelStatus
 from pymodbus.client.sync     import ModbusTcpClient, ModbusSerialClient
@@ -45,6 +44,10 @@ from pymodbus.client.sync     import ModbusTcpClient, ModbusSerialClient
 class CModelModbusBase(CModelBase):
     def __init__(self):
         super(CModelModbusBase, self).__init__()
+
+    def disconnect(self):
+        if self._client:          # (self._client is defined in derived class)
+            self._client.close()
 
     def put_command(self, command):
         # Clip each field of command within a valid range.
@@ -60,7 +63,7 @@ class CModelModbusBase(CModelBase):
         self.data.append(command.rPR)                                # Byte3
         self.data.append(command.rSP)                                # Byte4
         self.data.append(command.rFR)                                # Byte5
-        self._put_command(data)
+        self._put_command(self.data)
 
     def get_status(self):
         # Acquire status from the Gripper
@@ -82,17 +85,17 @@ class CModelModbusBase(CModelBase):
 
     def _put_command(self, data):
         # Make sure data has an even number of elements
-        if(len(data) % 2 == 1):
+        if len(data) % 2 == 1:
             data.append(0)
 
-        # Arrange every two bytes to one word in big-endian order.
+        # Compose every two bytes into one word in big-endian order.
         message = []
         for i in range(0, len(data), 2):
             message.append((data[i] << 8) + data[i+1])
         self._write_registers(message)            # (defined in derived class)
 
     def _get_status(self, nbytes):
-        nregs    = int(ceil(nbytes/2.0))
+        nregs    = 2*((nbytes - 1)/2)
         response = self._read_registers(nregs)    # (defined in derived class)
 
         # Arrange each register word to little-endian order.
@@ -112,10 +115,6 @@ class CModelModbusTCP(CModelModbusBase):
         self._client = ModbusTcpClient(ip_address)
         self._client.connect()
 
-    def disconnect(self):
-        if self._client:
-            self._client.close()
-
     def _write_registers(self, message):
         with self._lock:
             self._client.write_registers(0, message)
@@ -130,17 +129,16 @@ class CModelModbusTCP(CModelModbusBase):
 class CModelModbusRTU(CModelModbusBase):
     def __init__(self, port):
         super(CModelModbusRTU, self).__init__()
+        self._lock   = threading.Lock()
         self._client = ModbusSerialClient(method='rtu', port=port,
                                           stopbits=1, bytesize=8, parity='N',
                                           baudrate=115200, timeout=0.2)
         self._client.connect()
 
-    def disconnect(self):
-        if self._client:
-            self._client.close()
-
     def _write_registers(self, message):
-        self._client.write_registers(0x03E8, message, unit=0x0009)
+        with self._lock:
+            self._client.write_registers(0x03E8, message, unit=0x0009)
 
     def _read_registers(self, nregs):
-        return self._client.read_input_registers(0x07D0, nregs, unit=0x0009)
+        with self._lock:
+            return self._client.read_input_registers(0x07D0, nregs, unit=0x0009)

@@ -97,7 +97,7 @@ class CModelController(object):
         self._joint_state_pub.publish(joint_state)
 
         # Handle calibration process if not moving
-        if not self._is_moving(status):
+        if self._is_active(status) and not self._is_moving(status):
             if self._calibration_step == 1:
                 rospy.loginfo("(%s) calibration step 1: start calibration"
                               % self._name)

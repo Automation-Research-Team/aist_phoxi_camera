@@ -36,11 +36,15 @@ class CModelURCap(CModelBase):
     ENCODING = 'UTF-8'  # ASCII and UTF-8 both seem to work
 
     def __init__(self, address):
-        """Constructor."""
+        """
+        Constructor
+        """
+        super(CModelURCap, self).__init__()
         self._lock   = threading.Lock()
         self._socket = self.connect(address)
+        #self.activate()
 
-    def connect(self, hostname, port = 63352, socket_timeout = 2.0):
+    def connect(self, hostname, port=63352, socket_timeout=2.0):
         """
         Connects to a gripper at the given address.
         :param hostname: Hostname or ip.
@@ -50,17 +54,29 @@ class CModelURCap(CModelBase):
         # print("Connecting to: " + str(hostname) + ", port: " + str(port))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((hostname, port))
-        s.socket.settimeout(socket_timeout)
+        s.settimeout(socket_timeout)
         return s
 
     def disconnect(self):
-        """Closes the connection with the gripper."""
+        """
+        Closes the connection with the gripper
+        """
         self._socket.close()
+
+    def activate(self):
+        # Clear and then reset ACT
+        self._set_var(self.ACT, 0)
+        self._set_var(self.ACT, 1)
+
+        # Wait until STA == 3.
+        while self._get_var(self.STA) != 3:
+            rospy.sleep(0.01)
 
     def put_command(self, command):
         command  = self._clip_command(command)
-        var_dict = dict([(self.ACT, command.rACT),
-                         (self.MOD, command.rMOD),
+        # Do not set variable 'ACT' because setting zero value will cause
+        # the device reset.
+        var_dict = dict([(self.MOD, command.rMOD),
                          (self.GTO, command.rGTO),
                          (self.ATR, command.rATR),
                          (self.ARD, command.rARD),
@@ -71,7 +87,7 @@ class CModelURCap(CModelBase):
 
     def get_status(self):
         status = CModelStatus()
-        #Assign the values to their respective variables
+        # Assign values to their respective variables
         status.gACT = self._get_var(self.ACT)
         status.gMOD = self._get_var(self.MOD)
         status.gGTO = self._get_var(self.GTO)
@@ -84,11 +100,14 @@ class CModelURCap(CModelBase):
         return status
 
     def _set_vars(self, var_dict):
-        """Sends the appropriate command via socket to set the value of n variables, and waits for its 'ack' response.
+        """
+        Sends the appropriate command via socket to set the value
+        of n variables, and waits for its 'ack' response.
 
         :param var_dict: Dictionary of variables to set (variable_name, value).
-        :return: True on successful reception of ack, false if no ack was received, indicating the set may not
-        have been effective.
+        :return:         True on successful reception of ack,
+                         false if no ack was received,
+                         indicating the set may not have been effective.
         """
         # construct unique command
         cmd = "SET"
@@ -103,21 +122,26 @@ class CModelURCap(CModelBase):
         return self._is_ack(data)
 
     def _set_var(self, variable, value):
-        """Sends the appropriate command via socket to set the value of a variable, and waits for its 'ack' response.
+        """
+        Sends the appropriate command via socket to set the value
+        of a variable, and waits for its 'ack' response.
 
         :param variable: Variable to set.
-        :param value: Value to set for the variable.
-        :return: True on successful reception of ack, false if no ack was received, indicating the set may not
-        have been effective.
+        :param value:    Value to set for the variable.
+        :return:         True on successful reception of ack,
+                         false if no ack was received,
+                         indicating the set may not have been effective.
         """
         return self._set_vars({variable:value})
 
     def _get_var(self, variable):
-        """Sends the appropriate command to retrieve the value of a variable from the gripper, blocking until the
-        response is received or the socket times out.
+        """
+        Sends the appropriate command to retrieve the value
+        of a variable from the gripper, blocking until the response
+        is received or the socket times out.
 
         :param variable: Name of the variable to retrieve.
-        :return: Value of the variable as integer.
+        :return:         Value of the variable as integer.
         """
         # atomic commands send/rcv
         with self._lock:
@@ -125,8 +149,10 @@ class CModelURCap(CModelBase):
             self._socket.sendall(cmd.encode(self.ENCODING))
             data = self._socket.recv(1024)
 
-        # expect data of the form 'VAR x', where VAR is an echo of the variable name, and X the value
-        # note some special variables (like FLT) may send 2 bytes, instead of an integer. We assume integer here
+        # expect data of the form 'VAR x', where VAR is an echo
+        # of the variable name, and X the value
+        # note some special variables (like FLT) may send 2 bytes,
+        # instead of an integer. We assume integer here
         var_name, value_str = data.decode(self.ENCODING).split()
         if var_name != variable:
             raise ValueError("Unexpected response " + str(data)

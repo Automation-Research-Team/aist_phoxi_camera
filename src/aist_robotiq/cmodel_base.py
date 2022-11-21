@@ -58,21 +58,6 @@ class CModelBase(object):
             rate.sleep()
         self.disconnect()               # (defined in derived class)
 
-    def _activate(self):
-        # clear and then reset ACT
-        command = CModelCommand()
-        command.rACT = 0
-        command.rMOD = 0
-        command.rGTO = 0
-        command.rATR = 0
-        command.rARD = 0
-        command.rPR  = 0
-        command.rSP  = 0
-        command.rFR  = 0
-        self.put_command(command)        # (defined in derived class)
-        command.rACT = 1
-        self.put_command(command)        # (defined in derived class)
-
     def _clip_command(self, command):
         command.rACT = clip(command.rACT, 0, 1)
         command.rMOD = clip(command.rACT, 0, 3)
