@@ -36,6 +36,7 @@
 import threading
 from aist_robotiq.cmodel_base import CModelBase
 from aist_robotiq.msg         import CModelStatus
+from pymodbus.exceptions      import ModbusIOException
 from pymodbus.client.sync     import ModbusTcpClient, ModbusSerialClient
 
 #########################################################################
@@ -69,7 +70,7 @@ class CModelModbusBase(CModelBase):
         # Acquire status from the Gripper
         data = self._get_status(6)
 
-        #Assign the values to their respective variables
+        # Assign the values to their respective variables
         status = CModelStatus()
         status.gACT =  data[0]       & 0x01
         status.gMOD = (data[0] >> 1) & 0x03
@@ -88,7 +89,7 @@ class CModelModbusBase(CModelBase):
         if len(data) % 2 == 1:
             data.append(0)
 
-        # Compose every two bytes into one word in big-endian order.
+        # Compose every two bytes into one register word in big-endian order.
         message = []
         for i in range(0, len(data), 2):
             message.append((data[i] << 8) + data[i+1])
@@ -98,7 +99,10 @@ class CModelModbusBase(CModelBase):
         nregs    = 2*((nbytes - 1)/2)
         response = self._read_registers(nregs)    # (defined in derived class)
 
-        # Arrange each register word to little-endian order.
+        if isinstance(response, ModbusIOException):
+            raise RuntimeError(response)
+
+        # Decompose each register word to two bytes in little-endian order.
         data = []
         for val in response.registers:
             data.append((val & 0xFF00) >> 8)

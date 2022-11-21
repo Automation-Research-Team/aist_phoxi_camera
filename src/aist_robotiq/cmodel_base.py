@@ -53,10 +53,13 @@ class CModelBase(object):
     def run(self):
         rate = rospy.Rate(20)
         while not rospy.is_shutdown():
-            status = self.get_status()  # (defined in derived class)
-            self._pub.publish(status)   # Forward device status to controller
+            try:
+                status = self.get_status()     # (defined in derived class)
+                self._pub.publish(status)  # Forward device status to controller
+            except Exception as e:
+                rospy.logerr(e)
             rate.sleep()
-        self.disconnect()               # (defined in derived class)
+        self.disconnect()                  # (defined in derived class)
 
     def _clip_command(self, command):
         command.rACT = clip(command.rACT, 0, 1)

@@ -55,6 +55,7 @@ if __name__ == '__main__':
     grasp_pressure     = rospy.get_param('~grasp_pressure',     -78.0)
     detection_pressure = rospy.get_param('~detection_pressure', -10.0)
     release_pressure   = rospy.get_param('~release_pressure',     0.0)
+    timeout            = rospy.Duration(rospy.get_param('~timeout',  1.0))
 
     gripper = EPickGripper(prefix, advanced_mode, grasp_pressure,
                            detection_pressure, release_pressure)
@@ -68,11 +69,11 @@ if __name__ == '__main__':
 
         key = raw_input('>> ')
         if key == 'g':
-            result = gripper.grasp()
+            result = gripper.grasp(timeout)
         elif key == 'r':
             result = gripper.release()
         elif is_float(key):
-            result = gripper.move(float(key))
+            result = gripper.move(float(key), detection_pressure, timeout)
         elif key=='q':
             break
         else:

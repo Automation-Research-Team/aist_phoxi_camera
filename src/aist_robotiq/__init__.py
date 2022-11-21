@@ -278,7 +278,7 @@ class EPickGripper(object):
                          self.parameters['detection_pressure'],
                          timeout)
 
-    def release(self, timeout=rospy.Duration(0)):
+    def release(self, timeout=rospy.Duration(-1)):
         """
         Release an object grasped by the gripper.
         Value of applied pressure is specified by a parameter

@@ -4,10 +4,13 @@
   <arg name="prefix"			default="a_bot_gripper_"/>
   <arg name="device"			default="robotiq_85"/>
   <arg name="sim"			default="false"/>
-  <arg name="advanced_mode"		default="false"/>
+
+  <!-- For device='robotiq_epick' only -->
+  <arg name="advanced_mode"		default="true"/>
   <arg name="grasp_pressure"		default="-78.0"/>
   <arg name="detection_pressure"	default="-10.0"/>
   <arg name="release_pressure"		default="0.0"/>
+  <arg name="timeout"			default="1.0"/>
 
   <group unless="$(eval device == 'robotiq_epick')">
     <!-- Push robot_description to factory and spawn robot in gazebo -->
@@ -33,15 +36,17 @@
 	  args="-d $(dirname)/../config/aist_robotiq.rviz" output="screen"/>
   </group>
 
-  <node if="$(eval device == 'robotiq_epick')"
-	name="test_epick_client"
+  <group if="$(eval device == 'robotiq_epick')">
+    <node name="test_epick_client"
 	  pkg="aist_robotiq" type="test_epick_client.py"
   	  respawn="false" output="screen">
-    <param name="prefix"		value="$(arg prefix)"/>
-    <param name="advanced_mode"		value="$(arg advanced_mode)"/>
-    <param name="grasp_pressure"	value="$(arg grasp_pressure)"/>
-    <param name="detection_pressure"	value="$(arg detection_pressure)"/>
-    <param name="release_pressure"	value="$(arg release_pressure)"/>
-  </node>
+      <param name="prefix"		value="$(arg prefix)"/>
+      <param name="advanced_mode"	value="$(arg advanced_mode)"/>
+      <param name="grasp_pressure"	value="$(arg grasp_pressure)"/>
+      <param name="detection_pressure"	value="$(arg detection_pressure)"/>
+      <param name="release_pressure"	value="$(arg release_pressure)"/>
+      <param name="timeout"		value="$(arg timeout)"/>
+    </node>
+  </group>
 
 </launch>
