@@ -54,7 +54,7 @@ class CModelBase(object):
         rate = rospy.Rate(20)
         while not rospy.is_shutdown():
             try:
-                status = self.get_status()     # (defined in derived class)
+                status = self.get_status() # (defined in derived class)
                 self._pub.publish(status)  # Forward device status to controller
             except Exception as e:
                 rospy.logerr(e)

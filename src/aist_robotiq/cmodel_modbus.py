@@ -43,8 +43,9 @@ from pymodbus.client.sync     import ModbusTcpClient, ModbusSerialClient
 #  class CModelModbusBase                                               #
 #########################################################################
 class CModelModbusBase(CModelBase):
-    def __init__(self):
+    def __init__(self, slave_id):
         super(CModelModbusBase, self).__init__()
+        self._slave_id = slave_id
 
     def disconnect(self):
         if self._client:          # (self._client is defined in derived class)
@@ -113,8 +114,8 @@ class CModelModbusBase(CModelBase):
 #  class CModelModbusTCP                                                #
 #########################################################################
 class CModelModbusTCP(CModelModbusBase):
-    def __init__(self, ip_address):
-        super(CModelModbusTCP, self).__init__()
+    def __init__(self, ip_address, slave_id=0x0009):
+        super(CModelModbusTCP, self).__init__(slave_id)
         self._lock   = threading.Lock()
         self._client = ModbusTcpClient(ip_address)
         self._client.connect()
@@ -131,8 +132,8 @@ class CModelModbusTCP(CModelModbusBase):
 #  class CModelModbusRTU                                                #
 #########################################################################
 class CModelModbusRTU(CModelModbusBase):
-    def __init__(self, port):
-        super(CModelModbusRTU, self).__init__()
+    def __init__(self, port, slave_id=0x0009):
+        super(CModelModbusRTU, self).__init__(slave_id)
         self._lock   = threading.Lock()
         self._client = ModbusSerialClient(method='rtu', port=port,
                                           stopbits=1, bytesize=8, parity='N',
@@ -141,8 +142,9 @@ class CModelModbusRTU(CModelModbusBase):
 
     def _write_registers(self, message):
         with self._lock:
-            self._client.write_registers(0x03E8, message, unit=0x0009)
+            self._client.write_registers(0x03E8, message, unit=self._slave_id)
 
     def _read_registers(self, nregs):
         with self._lock:
-            return self._client.read_input_registers(0x07D0, nregs, unit=0x0009)
+            return self._client.read_input_registers(0x07D0, nregs,
+                                                     unit=self._slave_id)

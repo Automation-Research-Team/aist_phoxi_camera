@@ -18,6 +18,7 @@ class CModelURCap(CModelBase):
     and receives ASCII commands.
     """
     # WRITE VARIABLES (CAN ALSO READ)
+    SID = 'SID'  # sid : socket slave ID
     ACT = 'ACT'  # act : activate (1 while activated, can be reset to clear fault status)
     MOD = 'MOD'  # mod : mode for EPick suction gripper (0: auto, 1: advanced)
     GTO = 'GTO'  # gto : go to (will perform go to with the actions set in pos, for, spe)
@@ -31,15 +32,15 @@ class CModelURCap(CModelBase):
     OBJ = 'OBJ'  # object detection (0 = moving, 1 = outer grip, 2 = inner grip, 3 = no object at rest)
     PRE = 'PRE'  # position request (echo of last commanded position)
     FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)
-    CUR = 'CUR'  # cur : current (0-255)
+    COU = 'COU'  # cou : motor current (0-255)
 
     ENCODING = 'UTF-8'  # ASCII and UTF-8 both seem to work
 
-    def __init__(self, address):
+    def __init__(self, address, slave_id=0x0009):
         """
         Constructor
         """
-        super(CModelURCap, self).__init__()
+        super(CModelURCap, self).__init__(slave_id)
         self._lock   = threading.Lock()
         self._socket = self.connect(address)
         #self.activate()
@@ -76,7 +77,8 @@ class CModelURCap(CModelBase):
         command  = self._clip_command(command)
         # Do not set variable 'ACT' because setting zero value will cause
         # the device reset.
-        var_dict = dict([(self.MOD, command.rMOD),
+        var_dict = dict([(self.SID, self._slave_id),
+                         (self.MOD, command.rMOD),
                          (self.GTO, command.rGTO),
                          (self.ATR, command.rATR),
                          (self.ARD, command.rARD),
@@ -96,7 +98,7 @@ class CModelURCap(CModelBase):
         status.gFLT = self._get_var(self.FLT)
         status.gPR  = self._get_var(self.PRE)
         status.gPO  = self._get_var(self.POS)
-        #status.gCU  = self._get_var(self.CUR)
+        status.gCOU = self._get_var(self.COU)
         return status
 
     def _set_vars(self, var_dict):

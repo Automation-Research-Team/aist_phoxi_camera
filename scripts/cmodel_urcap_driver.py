@@ -45,6 +45,6 @@ if __name__ == '__main__':
         cmodel = CModelURCap(sys.argv[1])
         cmodel.run()
     except socket.error as err:
-        rospy.logfatal('(cmodel_urcap_driver) socket error: % s' % err)
+        rospy.logfatal('(cmodel_urcap_driver) socket error: %s' % err)
     except rospy.ROSInterruptException:
         pass
