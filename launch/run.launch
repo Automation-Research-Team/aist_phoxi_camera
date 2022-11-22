@@ -4,7 +4,8 @@
   <arg name="prefix"	default="a_bot_gripper_"/>
   <arg name="device"	default="robotiq_85"/>
   <arg name="driver"	default="urcap"/>	<!-- "urcap", "tcp", "rtu" -->
-  <arg name="ip_or_dev"	default="10.66.171.52"/>
+  <arg name="ip_or_dev"	default="163.220.51.110"/>
+  <arg name="slave_id"	default="9"/>
 
   <arg name="controller"
        value="$(eval 'epick' if device == 'robotiq_epick' else 'cmodel')"/>
@@ -12,7 +13,7 @@
   <!-- Spawn driver -->
   <node name="$(arg prefix)driver"
 	pkg="aist_robotiq" type="cmodel_$(arg driver)_driver.py"
-	output="screen" respawn="false" args="$(arg ip_or_dev)">
+	args="$(arg ip_or_dev) $(arg slave_id)" output="screen" respawn="false">
     <remap from="/status"	to="$(arg prefix)controller/status"/>
     <remap from="/command"	to="$(arg prefix)controller/command"/>
   </node>

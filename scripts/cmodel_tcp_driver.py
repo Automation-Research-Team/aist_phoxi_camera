@@ -46,7 +46,7 @@ if __name__ == '__main__':
         ip_address = sys.argv[1]
         socket.inet_aton(ip_address)
 
-        cmodel = CModelModbusTCP(ip_address)
+        cmodel = CModelModbusTCP(ip_address, int(sys.argv[2]))
         cmodel.run()
     except socket.error as err:
         rospy.logfatal('(cmodel_tcp_driver) %s' % err)

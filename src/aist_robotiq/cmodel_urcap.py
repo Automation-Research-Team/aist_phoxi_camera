@@ -32,11 +32,11 @@ class CModelURCap(CModelBase):
     OBJ = 'OBJ'  # object detection (0 = moving, 1 = outer grip, 2 = inner grip, 3 = no object at rest)
     PRE = 'PRE'  # position request (echo of last commanded position)
     FLT = 'FLT'  # fault (0=ok, see manual for errors if not zero)
-    COU = 'COU'  # cou : motor current (0-255)
+    COU = 'COU'  # motor current (0-255)
 
     ENCODING = 'UTF-8'  # ASCII and UTF-8 both seem to work
 
-    def __init__(self, address, slave_id=0x0009):
+    def __init__(self, address, slave_id=9):
         """
         Constructor
         """

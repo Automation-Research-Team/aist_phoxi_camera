@@ -7,4 +7,4 @@ uint8 gVAS  # EPick vacuum actuator status (0: standby, 1: gripping, 2: passive 
 uint8 gFLT  # fault (0: ok, other: see manual for errors)
 uint8 gPR   # position request (echo of last commanded position)
 uint8 gPO   # actual position (0-255, 0 = open)
-uint8 gCU   # actual current (0-255, proportional to actual force)
+uint8 gCOU  # actual current (0-255, proportional to actual force)

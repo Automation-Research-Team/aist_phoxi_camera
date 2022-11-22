@@ -43,9 +43,9 @@ if __name__ == '__main__':
     rospy.init_node('cmodel_rtu_driver')
 
     try:
-        cmodel = CModelModbusRTU(sys.argv[1])
+        cmodel = CModelModbusRTU(sys.argv[1], int(sys.argv[2]))
         cmodel.run()
     except ModbusException as err:
-        rospy.logfatal('(cmodel_tcp_driver) %s' % err)
+        rospy.logfatal('(cmodel_rtu_driver) %s' % err)
     except rospy.ROSInterruptException:
         pass

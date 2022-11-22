@@ -41,13 +41,10 @@ from aist_robotiq.msg import CModelStatus, CModelCommand
 #  class CModelBase                                                     #
 #########################################################################
 class CModelBase(object):
-    def __init__(self):
+    def __init__(self, slave_id):
         super(CModelBase, self).__init__()
-
-        # Publish device status to the controller.
-        self._pub = rospy.Publisher('/status', CModelStatus, queue_size=3)
-
-        # Subscribe command form the controller and send it to the device.
+        self._slave_id = slave_id
+        self._pub      = rospy.Publisher('/status', CModelStatus, queue_size=3)
         rospy.Subscriber('/command', CModelCommand, self.put_command)
 
     def run(self):

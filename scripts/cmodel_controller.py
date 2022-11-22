@@ -199,7 +199,7 @@ class CModelController(object):
              + self._min_position
 
     def _effort(self, status):
-        return status.gCU * self.effort_per_tick + self._min_effort
+        return status.gCOU * self.effort_per_tick + self._min_effort
 
     def _stalled(self, status):
         return status.gOBJ == 1 or status.gOBJ == 2

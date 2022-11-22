@@ -42,7 +42,7 @@ if __name__ == '__main__':
     rospy.init_node('cmodel_urcap_driver')
 
     try:
-        cmodel = CModelURCap(sys.argv[1])
+        cmodel = CModelURCap(sys.argv[1], int(sys.argv[2]))
         cmodel.run()
     except socket.error as err:
         rospy.logfatal('(cmodel_urcap_driver) socket error: %s' % err)
