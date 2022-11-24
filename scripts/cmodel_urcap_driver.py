@@ -41,8 +41,11 @@ from aist_robotiq.cmodel_urcap import CModelURCap
 if __name__ == '__main__':
     rospy.init_node('cmodel_urcap_driver')
 
+    myargv   = rospy.myargv(sys.argv)
+    slave_id = 9 if len(myargv) < 3 else int(myargv[2])
+
     try:
-        cmodel = CModelURCap(sys.argv[1], int(sys.argv[2]))
+        cmodel = CModelURCap(myargv[1], slave_id)
         cmodel.run()
     except socket.error as err:
         rospy.logfatal('(cmodel_urcap_driver) socket error: %s' % err)

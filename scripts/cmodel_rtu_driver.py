@@ -42,8 +42,11 @@ from pymodbus.exceptions        import ModbusException
 if __name__ == '__main__':
     rospy.init_node('cmodel_rtu_driver')
 
+    myargv   = rospy.myargv(sys.argv)
+    slave_id = 9 if len(myargv) < 3 else int(myargv[2])
+
     try:
-        cmodel = CModelModbusRTU(sys.argv[1], int(sys.argv[2]))
+        cmodel = CModelModbusRTU(myargv[1], int(myargv[2]))
         cmodel.run()
     except ModbusException as err:
         rospy.logfatal('(cmodel_rtu_driver) %s' % err)

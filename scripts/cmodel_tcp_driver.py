@@ -42,11 +42,14 @@ from pymodbus.exceptions        import ModbusException
 if __name__ == '__main__':
     rospy.init_node('cmodel_tcp_driver')
 
+    myargv   = rospy.myargv(sys.argv)
+    slave_id = 9 if len(myargv) < 3 else int(myargv[2])
+
     try:
-        ip_address = sys.argv[1]
+        ip_address = myargv[1]
         socket.inet_aton(ip_address)
 
-        cmodel = CModelModbusTCP(ip_address, int(sys.argv[2]))
+        cmodel = CModelModbusTCP(ip_address, slave_id)
         cmodel.run()
     except socket.error as err:
         rospy.logfatal('(cmodel_tcp_driver) %s' % err)
