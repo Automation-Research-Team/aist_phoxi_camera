@@ -254,11 +254,19 @@
       <xacro:insert_block name="origin"/>
     </joint>
     <link  name="${prefix}base_link"/>
+
     <joint name="${prefix}robotiq_arg2f_base_joint" type="fixed">
       <parent link="${prefix}base_link"/>
       <child  link="${prefix}robotiq_arg2f_base_link"/>
       <origin xyz="0 0 0" rpy="${pi} ${-pi/2} 0"/>
     </joint>
+
+    <joint name="${prefix}tip_link_joint" type="fixed">
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}tip_link"/>
+      <origin rpy="0.0 0.0 0.0" xyz=".233 0.0 0.0"/>
+    </joint>
+    <link name="${prefix}tip_link"/>
 
     <xacro:robotiq_arg2f_base_link prefix="${prefix}"/>
     <xacro:finger_links prefix="${prefix}" fingerprefix="left" stroke="140"/>
