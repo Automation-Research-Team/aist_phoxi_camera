@@ -6,8 +6,7 @@
   <arg name="id"			default="2018-09-015-LC3"/>
   <arg name="trigger_mode"		default="1"/>
   <arg name="intensity_scale"		default="0.5"/>
-  <arg name="frame"			default="calibrated_$(arg camera_name
-						 )_sensor"/>
+  <arg name="frame"			default="$(arg camera_name)_sensor"/>
   <arg name="rate"			default="20"/>
   <arg name="point_format"		default="0"/>
   <arg name="send_point_cloud"		default="true"/>
@@ -22,7 +21,7 @@
 
   <arg if="$(eval manager == '')"	name="command"	value="standalone"/>
   <arg unless="$(eval manager == '')"	name="command"	value="load"/>
-  
+
   <node unless="$(arg external_manager)"
 	name="$(arg manager)" pkg ="nodelet" type="nodelet"
 	args="manager" output="screen">
