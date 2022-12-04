@@ -1,0 +1,29 @@
+<launch>
+
+  <!-- Controller parameters -->
+  <arg name="controller"	default="aist_ftsensor_controller"/>
+  <!-- <arg name="controller"	default="force_torque_sensor_controller"/> -->
+  <arg name="publish_rate"	default="125"/>
+  <arg name="calib_file"	default=""/>
+
+  <!-- Driver parameters -->
+  <arg name="frame_id"		default="a_bot_ftsensor_wrench_link"/>
+  <arg name="hostname"		default="a_bot"/>
+
+  <node name="ft300_hardware_interface"
+        pkg="aist_robotiq" type="ft300_driver" output="screen">
+    <param name="frame_id"	value="$(arg frame_id)"/>
+    <param name="rate"		value="$(arg publish_rate)"/>
+    <param name="hostname"	value="$(arg hostname)"/>
+  </node>
+
+  <rosparam if="$(eval calib_file != '')"
+	    file="$(env HOME)/.ros/aist_ftsensor/$(arg calib_file).yaml"/>
+
+  <rosparam file="$(find aist_ftsensor)/config/ftsensor_controller.yaml"
+  	    subst_value="true"/>
+  <node name="controller_spawner"
+        pkg="controller_manager" type="spawner" output="screen"
+  	args="ftsensor_controller"/>
+
+</launch>

@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<robot name="aaa" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find aist_robotiq)/urdf/ft300.urdf.xacro" />
+
+  <link name ="world"/>
+
+  <xacro:ft300 prefix="" parent="world">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:ft300>
+</robot>

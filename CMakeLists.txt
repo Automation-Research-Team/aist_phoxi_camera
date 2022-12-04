@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   control_msgs
   sensor_msgs
+  controller_manager
+  controller_interface
 )
 
 catkin_python_setup()
@@ -47,15 +49,15 @@ catkin_package(
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(
-    ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS} include
+  ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS} include
 )
 
 add_library(
-    gazebo_mimic_joint_plugin
+  gazebo_mimic_joint_plugin
     src/mimic_joint_plugin.cpp
 )
 target_link_libraries(
-    gazebo_mimic_joint_plugin
+  gazebo_mimic_joint_plugin
     ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES}
 )
 
@@ -64,6 +66,17 @@ add_library(
     src/disable_link_plugin.cpp
 )
 target_link_libraries(
-    gazebo_disable_link_plugin
+  gazebo_disable_link_plugin
     ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES}
+)
+
+add_executable(
+  ft300_driver
+    src/ft300_driver.cpp
+)
+
+target_link_libraries(
+  ft300_driver
+    ${catkin_LIBRARIES}
+    ${roscpp_LIBRARIES}
 )

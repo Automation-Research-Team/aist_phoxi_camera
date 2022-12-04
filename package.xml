@@ -23,6 +23,8 @@
   <depend>actionlib_msgs</depend>
   <depend>control_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>controller_manager</depend>
+  <depend>controller_interface</depend>
 
   <export>
     <gazebo_ros plugin_path="${prefix}/lib" gazebo_media_path="${prefix}" />
