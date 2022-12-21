@@ -3,8 +3,8 @@
 
   <!--PhoXi3Dscanner XS-->
   <xacro:macro name="PhoXi3DscannerXS_default_sensor_origin">
-    <!-- <origin xyz="0.1 0.025 0.035" rpy="0 -0.26965337 0" /> -->
-    <origin xyz="-0.1 -0.03 0.035" rpy="0 0 0" />
+    <!-- <origin xyz="-0.1 -0.03 0.035" rpy="0 0 0" /> -->
+    <origin xyz="-0.090 0.03595 0.0299" rpy="${-pi/2} 0 0" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerXS_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XS.f.STL"
@@ -15,8 +15,9 @@
 
   <!--PhoXi3Dscanner S-->
   <xacro:macro name="PhoXi3DscannerS_default_sensor_origin">
-    <!-- <origin xyz="${0.23 / 2.0} 0.0168 0.035" rpy="0 -0.26965337 0" /> -->
-    <origin xyz="${0.23 / 2.0} -0.03 0.035" rpy="0 -0.26965337 0" />
+    <!-- <origin xyz="${0.23 / 2.0} -0.03 0.035" rpy="0 -0.26965337 0" /> -->
+    <origin xyz="0.1173845315 0.005287752939 0.0299"
+	    rpy="${-pi/2} 0 ${15.45/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerS_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_S.f.STL"
@@ -28,7 +29,8 @@
   <!--PhoXi3Dscanner M-->
   <xacro:macro name="PhoXi3DscannerM_default_sensor_origin">
     <!-- <origin xyz="${0.350 / 2.0} 0.0168 0.035" rpy="0 -0.20507619 0" /> -->
-    <origin xyz="${0.350 / 2.0} -0.03 0.035" rpy="0 -0.20507619 0" />
+    <origin xyz="0.176277236938477 0.002164826095 0.0299"
+	    rpy="${-pi/2} 0 ${11.75/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerM_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_M.f.STL"
@@ -39,8 +41,9 @@
 
   <!--PhoXi3Dscanner L-->
   <xacro:macro name="PhoXi3DscannerL_default_sensor_origin">
-    <!-- <origin xyz="${(0.55 / 2.0)} 0.0168 0.035" rpy="0 -0.1649336 0" /> -->
-    <origin xyz="${(0.55 / 2.0)} -0.03 0.035" rpy="0 -0.1649336 0" />
+    <!-- <origin xyz="${(0.55 / 2.0)} -0.03 0.035" rpy="0 -0.1649336 0" /> -->
+    <origin xyz="0.274213 0.0090044 0.0299"
+	    rpy="${-pi/2} 0 ${9.45/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerL_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_L.f.STL"
@@ -52,7 +55,8 @@
   <!--PhoXi3Dscanner XL-->
   <xacro:macro name="PhoXi3DscannerXL_default_sensor_origin">
     <!-- <origin xyz="${0.850 / 2.0} 0.0168 0.035" rpy="0 -0.1309 0" /> -->
-    <origin xyz="${0.850 / 2.0} -0.03 0.035" rpy="0 -0.1309 0" />
+    <origin xyz="0.4349977156 0.02086702926 0.0299"
+	    rpy="${-pi/2} 0 ${7.5/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerXL_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XL.f.STL"
@@ -63,12 +67,12 @@
 
   <!--MotionCam3D M-->
   <xacro:macro name="MotionCam3D_M_default_sensor_origin">
-    <origin xyz="${0.350 / 2.0} -0.03 0.035" rpy="0 0 0" />
+    <origin xyz="${0.350 / 2.0} 0.03 0.035" rpy="${-pi/2} 0 0" />
   </xacro:macro>
   <xacro:macro name="MotionCam3D_M_meshes">
-    <mesh filename="package://aist_phoxi_camera/meshes/visual/MotionCam3D_M.STL"
+    <mesh filename="package://aist_phoxi_camera/meshes/visual/MotionCam3D_M.f.STL"
 	  scale = "0.001 0.001 0.001"/>
-    <mesh filename="package://aist_phoxi_camera/meshes/collision/MotionCam3D_M.STL"
+    <mesh filename="package://aist_phoxi_camera/meshes/collision/MotionCam3D_M.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
 
