@@ -61,4 +61,15 @@
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
 
+  <!--MotionCam3D M-->
+  <xacro:macro name="MotionCam3D_M_default_sensor_origin">
+    <origin xyz="${0.350 / 2.0} -0.03 0.035" rpy="0 0 0" />
+  </xacro:macro>
+  <xacro:macro name="MotionCam3D_M_meshes">
+    <mesh filename="package://aist_phoxi_camera/meshes/visual/MotionCam3D_M.STL"
+	  scale = "0.001 0.001 0.001"/>
+    <mesh filename="package://aist_phoxi_camera/meshes/collision/MotionCam3D_M.STL"
+	  scale = "0.001 0.001 0.001"/>
+  </xacro:macro>
+
 </robot>
