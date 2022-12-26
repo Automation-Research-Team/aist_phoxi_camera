@@ -2,9 +2,9 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
   <!--PhoXi3Dscanner XS-->
-  <xacro:macro name="PhoXi3DscannerXS_default_sensor_origin">
-    <!-- <origin xyz="0.1 0.025 0.035" rpy="0 -0.26965337 0" /> -->
-    <origin xyz="-0.1 -0.03 0.035" rpy="0 0 0" />
+  <xacro:macro name="PhoXi3DscannerXS_default_reference">
+    <!-- <origin xyz="-0.1 -0.03 0.035" rpy="0 0 0" /> -->
+    <origin xyz="0.03595 0.090 0.0299" rpy="0 0 0" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerXS_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XS.f.STL"
@@ -12,11 +12,17 @@
     <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_XS.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
+  <xacro:property name="PhoXi3DscannerXS_image_width"	 value="2064"/>
+  <xacro:property name="PhoXi3DscannerXS_image_height"	 value="1544"/>
+  <xacro:property name="PhoXi3DscannerXS_horizontal_fov" value="0.6519"/>
+  <xacro:property name="PhoXi3DscannerXS_base_line"	 value="0.085"/>
+  <xacro:property name="PhoXi3DscannerXS_update_rate"	 value="2.5"/>
 
   <!--PhoXi3Dscanner S-->
-  <xacro:macro name="PhoXi3DscannerS_default_sensor_origin">
-    <!-- <origin xyz="${0.23 / 2.0} 0.0168 0.035" rpy="0 -0.26965337 0" /> -->
-    <origin xyz="${0.23 / 2.0} -0.03 0.035" rpy="0 -0.26965337 0" />
+  <xacro:macro name="PhoXi3DscannerS_default_reference">
+    <!-- <origin xyz="${0.23 / 2.0} -0.03 0.035" rpy="0 -0.26965337 0" /> -->
+    <origin xyz="0.005287752939 -0.1173845315 0.0299"
+	    rpy="0 0 ${15.45/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerS_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_S.f.STL"
@@ -24,11 +30,17 @@
     <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_S.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
+  <xacro:property name="PhoXi3DscannerS_image_width"	value="2064"/>
+  <xacro:property name="PhoXi3DscannerS_image_height"	value="1544"/>
+  <xacro:property name="PhoXi3DscannerS_horizontal_fov"	value="0.8145"/>
+  <xacro:property name="PhoXi3DscannerS_base_line"	value="0.23"/>
+  <xacro:property name="PhoXi3DscannerS_update_rate"	value="2.5"/>
 
   <!--PhoXi3Dscanner M-->
-  <xacro:macro name="PhoXi3DscannerM_default_sensor_origin">
+  <xacro:macro name="PhoXi3DscannerM_default_reference">
     <!-- <origin xyz="${0.350 / 2.0} 0.0168 0.035" rpy="0 -0.20507619 0" /> -->
-    <origin xyz="${0.350 / 2.0} -0.03 0.035" rpy="0 -0.20507619 0" />
+    <origin xyz="0.002164826095 -0.176277236938477 0.0299"
+	    rpy="0 0 ${11.75/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerM_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_M.f.STL"
@@ -36,11 +48,17 @@
     <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_M.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
+  <xacro:property name="PhoXi3DscannerM_image_width"	value="2064"/>
+  <xacro:property name="PhoXi3DscannerM_image_height"	value="1544"/>
+  <xacro:property name="PhoXi3DscannerM_horizontal_fov"	value="0.9077"/>
+  <xacro:property name="PhoXi3DscannerM_base_line"	value="0.35"/>
+  <xacro:property name="PhoXi3DscannerM_update_rate"	value="2.5"/>
 
   <!--PhoXi3Dscanner L-->
-  <xacro:macro name="PhoXi3DscannerL_default_sensor_origin">
-    <!-- <origin xyz="${(0.55 / 2.0)} 0.0168 0.035" rpy="0 -0.1649336 0" /> -->
-    <origin xyz="${(0.55 / 2.0)} -0.03 0.035" rpy="0 -0.1649336 0" />
+  <xacro:macro name="PhoXi3DscannerL_default_reference">
+    <!-- <origin xyz="${(0.55 / 2.0)} -0.03 0.035" rpy="0 -0.1649336 0" /> -->
+    <origin xyz="0.0090044 -0.274213 0.0299"
+	    rpy="0 0 ${9.45/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerL_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_L.f.STL"
@@ -48,11 +66,17 @@
     <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_L.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
+  <xacro:property name="PhoXi3DscannerL_image_width"	value="2064"/>
+  <xacro:property name="PhoXi3DscannerL_image_height"	value="1544"/>
+  <xacro:property name="PhoXi3DscannerL_horizontal_fov"	value="0.8733"/>
+  <xacro:property name="PhoXi3DscannerL_base_line"	value="0.55"/>
+  <xacro:property name="PhoXi3DscannerL_update_rate"	value="2.5"/>
 
   <!--PhoXi3Dscanner XL-->
-  <xacro:macro name="PhoXi3DscannerXL_default_sensor_origin">
+  <xacro:macro name="PhoXi3DscannerXL_default_reference">
     <!-- <origin xyz="${0.850 / 2.0} 0.0168 0.035" rpy="0 -0.1309 0" /> -->
-    <origin xyz="${0.850 / 2.0} -0.03 0.035" rpy="0 -0.1309 0" />
+    <origin xyz="0.02086702926 -0.4349977156 0.0299"
+	    rpy="0 0 ${7.5/180*pi}" />
   </xacro:macro>
   <xacro:macro name="PhoXi3DscannerXL_meshes">
     <mesh filename="package://aist_phoxi_camera/meshes/visual/PhoXi_XL.f.STL"
@@ -60,5 +84,26 @@
     <mesh filename="package://aist_phoxi_camera/meshes/collision/PhoXi_XL.c.STL"
 	  scale = "0.001 0.001 0.001"/>
   </xacro:macro>
+  <xacro:property name="PhoXi3DscannerXL_image_width"	 value="2064"/>
+  <xacro:property name="PhoXi3DscannerXL_image_height"	 value="1544"/>
+  <xacro:property name="PhoXi3DscannerXL_horizontal_fov" value="0.8401"/>
+  <xacro:property name="PhoXi3DscannerXL_base_line"	 value="0.85"/>
+  <xacro:property name="PhoXi3DscannerXL_update_rate"	 value="2.5"/>
+
+  <!--MotionCam3D M-->
+  <xacro:macro name="MotionCam3D_M_default_reference">
+    <origin xyz="0.03 ${-0.350 / 2.0} 0.035" rpy="0 0 0" />
+  </xacro:macro>
+  <xacro:macro name="MotionCam3D_M_meshes">
+    <mesh filename="package://aist_phoxi_camera/meshes/visual/MotionCam3D_M.f.STL"
+	  scale = "0.001 0.001 0.001"/>
+    <mesh filename="package://aist_phoxi_camera/meshes/collision/MotionCam3D_M.c.STL"
+	  scale = "0.001 0.001 0.001"/>
+  </xacro:macro>
+  <xacro:property name="MotionCam3D_M_image_width"	value="1120"/>
+  <xacro:property name="MotionCam3D_M_image_height"	value="800"/>
+  <xacro:property name="MotionCam3D_M_horizontal_fov"	value="0.9180"/>
+  <xacro:property name="MotionCam3D_M_base_line"	value="0.35"/>
+  <xacro:property name="MotionCam3D_M_update_rate"	value="20.0"/>
 
 </robot>

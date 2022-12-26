@@ -1,23 +1,25 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="PhoXi3Dscanner"
-	       params="scanner_parent scanner_name *scanner_origin sensor_parent sensor_name *sensor_origin *visual *collision">
-    <joint name="${scanner_parent}_to_${scanner_name}_joint" type="fixed">
-      <parent link="${scanner_parent}"/>
-      <child  link="${scanner_name}"/>
-      <xacro:insert_block name="scanner_origin" />
+	       params="parent name image_width image_height
+		       horizontal_fov base_line update_rate
+		       *origin *reference *visual *collision">
+    <joint name="${name}_link_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child  link="${name}_link"/>
+      <xacro:insert_block name="origin" />
     </joint>
 
-    <joint name="${sensor_parent}_to_${sensor_name}_joint" type="fixed">
-      <parent link="${sensor_parent}"/>
-      <child  link="${sensor_name}"/>
-      <xacro:insert_block name="sensor_origin" />
+    <joint name="${name}_reference_joint" type="fixed">
+      <parent link="${name}_link"/>
+      <child  link="${name}_reference"/>
+      <xacro:insert_block name="reference" />
     </joint>
 
-    <link name="${scanner_name}">
+    <link name="${name}_link">
       <visual>
         <!-- <origin xyz="0 0 0" rpy="0 1.5707 0" /> -->
-	<origin xyz="0 0 0" rpy="0 ${pi/2} ${pi}"/>
+	<origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <xacro:insert_block name="visual" />
         </geometry>
@@ -28,7 +30,7 @@
 
       <collision>
         <!-- <origin xyz="0 0 0" rpy="0 1.5707 0" /> -->
-	<origin xyz="0 0 0" rpy="0 ${pi/2} ${pi}"/>
+	<origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <xacro:insert_block name="collision" />
         </geometry>
@@ -36,16 +38,60 @@
 
     </link>
 
-    <link name="${sensor_name}"/>
+    <link name="${name}_reference"/>
 
-    <link name="${sensor_name}_reference"/>
-    <joint name="${sensor_name}_to_${sensor_name}_reference_joint"
+    <link name="${name}_sensor"/>
+    <joint name="${name}_sensor_joint"
 	   type="fixed">
-      <parent link="${sensor_name}"/>
-      <child  link="${sensor_name}_reference"/>
-      <origin xyz="0 0 0" rpy="${pi/2} ${-pi/2} 0"/>
+      <parent link="${name}_reference"/>
+      <child  link="${name}_sensor"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
     </joint>
 
+    <gazebo reference="${name}_sensor_reference">
+      <sensor name="${name}" type="depth">
+	<always_on>true</always_on>
+	<visualize>true</visualize>
+	<camera>
+          <image>
+            <width>${image_width}</width>
+            <height>${image_height}</height>
+            <format>L8</format>
+          </image>
+          <horizontal_fov>${horizontal_fov}</horizontal_fov>
+          <depth_camera>
+          </depth_camera>
+          <clip>
+            <near>0.1</near>
+            <far>100</far>
+          </clip>
+	</camera>
+	<plugin name="${name}_controller"
+		filename="libgazebo_ros_openni_kinect.so">
+          <baseline>${base_line}</baseline>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>${update_rate}</updateRate>
+          <cameraName>${name}</cameraName>
+          <frameName>${name}_sensor</frameName>
+          <imageTopicName>texture</imageTopicName>
+          <depthImageTopicName>depth_map</depthImageTopicName>
+          <pointCloudTopicName>pointcloud</pointCloudTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <depthImageCameraInfoTopicName>camera_info</depthImageCameraInfoTopicName>
+          <pointCloudCutoff>0.4</pointCloudCutoff>
+          <!-- <hackBaseline>0.35</hackBaseline> -->
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+          <CxPrime>0.0</CxPrime>
+          <Cx>0.0</Cx>
+          <Cy>0.0</Cy>
+          <focalLength>0.0</focalLength>
+	</plugin>
+      </sensor>
+    </gazebo>
 
   </xacro:macro>
 </robot>

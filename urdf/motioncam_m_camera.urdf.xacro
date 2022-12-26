@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot name="motioncam_m_camera" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="motioncam_m_camera" params="name parent *origin">
+
+    <xacro:include filename="$(find aist_phoxi_camera
+			     )/urdf/PhoXi3Dscanner_values.xacro"/>
+    <xacro:include filename="$(find aist_phoxi_camera
+			     )/urdf/PhoXi3Dscanner_macro.xacro"/>
+
+    <xacro:PhoXi3Dscanner parent="${parent}" name="${name}"
+			  image_width="${MotionCam3D_M_image_width}"
+			  image_height="${MotionCam3D_M_image_height}"
+			  horizontal_fov="${MotionCam3D_M_horizontal_fov}"
+			  base_line="${MotionCam3D_M_base_line}"
+			  update_rate="${MotionCam3D_M_update_rate}">
+      <xacro:insert_block name="origin"/>
+      <xacro:MotionCam3D_M_default_reference/>
+      <xacro:MotionCam3D_M_meshes/>
+    </xacro:PhoXi3Dscanner>
+  </xacro:macro>
+</robot>
