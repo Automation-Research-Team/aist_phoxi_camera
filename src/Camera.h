@@ -64,31 +64,20 @@ class Camera
 #endif
 {
   private:
-    using cloud_t = sensor_msgs::PointCloud2;
-    using cloud_p = sensor_msgs::PointCloud2Ptr;
-    using image_t = sensor_msgs::Image;
-    using image_p = sensor_msgs::ImagePtr;
-    using cinfo_t = sensor_msgs::CameraInfo;
-    using cinfo_p = sensor_msgs::CameraInfoPtr;
+    using cloud_t		 = sensor_msgs::PointCloud2;
+    using cloud_p		 = sensor_msgs::PointCloud2Ptr;
+    using image_t		 = sensor_msgs::Image;
+    using image_p		 = sensor_msgs::ImagePtr;
+    using cinfo_t		 = sensor_msgs::CameraInfo;
+    using cinfo_p		 = sensor_msgs::CameraInfoPtr;
+    using ddynamic_reconfigure_t = ddynamic_reconfigure::DDynamicReconfigure;
 #if defined(PROFILE)
-    using profiler_t = TU::Profiler<>;
+    using profiler_t		 = TU::Profiler<>;
 #endif
+
     enum
     {
 	XYZ_ONLY = 0, WITH_RGB = 1, WITH_NORMAL = 2, WITH_RGB_NORMAL = 4
-    };
-
-    struct ddynamic_reconfigure_t : ddynamic_reconfigure::DDynamicReconfigure
-    {
-	using super	= ddynamic_reconfigure::DDynamicReconfigure;
-
-	ddynamic_reconfigure_t(const ros::NodeHandle& nh) :super(nh)	{}
-
-	void	publishServicesTopics()
-		{
-		    super::publishServicesTopics();
-		    super::updateConfigData(generateConfig());
-		}
     };
 
   public:

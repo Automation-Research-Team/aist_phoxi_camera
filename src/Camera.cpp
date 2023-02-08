@@ -285,7 +285,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 
     setup_ddr_common();
 
-    _ddr.publishServicesTopics();
+    _ddr.publishServicesTopicsAndUpdateConfigData();
 
   // Start acquisition.
     _device->ClearBuffer();
