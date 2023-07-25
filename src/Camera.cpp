@@ -50,7 +50,7 @@
 #          define HAVE_LED_POWER
 #          define HAVE_LED_SHUTTER_MULTIPLIER
 #	   if PHO_SOFTWARE_VERSION_MINOR >= 9
-#            define HAVE_COLOR
+#            define HAVE_COLOR_CAMERA
 #          endif
 #        endif
 #      endif
@@ -168,59 +168,50 @@ scale_copy(const uint16_t* in, const uint16_t* ie, float* out, float scale)
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
-Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
+Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
     :
 #if defined(PROFILE)
      profiler_t(8),
 #endif
-     _nh(nh),
      _nodelet_name(nodelet_name),
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(_nh.param<std::string>("frame", "sensor")),
-     _color_camera_frame_id(_nh.param<std::string>("color_camera_frame",
+     _frame_id(nh.param<std::string>("frame", "sensor")),
+     _color_camera_frame_id(nh.param<std::string>("color_camera_frame",
 						   "color_camera_frame")),
-     _rate(_nh.param<double>("rate", 10.0)),
+     _rate(nh.param<double>("rate", 10.0)),
      _denseCloud(false),
      _intensityScale(0.5),
      _is_color_camera(false),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
-     _cloud(new cloud_t),
-     _normal_map(new image_t),
-     _depth_map(new image_t),
-     _confidence_map(new image_t),
-     _event_map(new image_t),
-     _texture(new image_t),
      _cinfo(new cinfo_t),
-     _color_camera_image(new image_t),
-     _color_camera_cinfo(new cinfo_t),
-     _ddr(_nh),
-     _trigger_frame_server(_nh.advertiseService("trigger_frame",
+     _ddr(nh),
+     _trigger_frame_server(nh.advertiseService("trigger_frame",
 						&Camera::trigger_frame,	this)),
-     _save_frame_server(_nh.advertiseService("save_frame",
+     _save_frame_server(nh.advertiseService("save_frame",
 					     &Camera::save_frame, this)),
-     _save_settings_server(_nh.advertiseService("save_settings",
+     _save_settings_server(nh.advertiseService("save_settings",
 						&Camera::save_settings, this)),
-     _restore_settings_server(_nh.advertiseService("restore_settings",
+     _restore_settings_server(nh.advertiseService("restore_settings",
 						   &Camera::restore_settings,
 						   this)),
-     _it(_nh),
-     _cloud_publisher(	       _nh.advertise<cloud_t>("pointcloud",	1)),
+     _it(nh),
+     _cloud_publisher(	       nh.advertise<cloud_t>("pointcloud",	1)),
      _normal_map_publisher(    _it.advertise("normal_map",		1)),
      _depth_map_publisher(     _it.advertise("depth_map",		1)),
      _confidence_map_publisher(_it.advertise("confidence_map",		1)),
      _event_map_publisher(     _it.advertise("event_map",		1)),
      _texture_publisher(       _it.advertise("texture",			1)),
-     _camera_info_publisher(   _nh.advertise<cinfo_t>("camera_info",	1)),
+     _camera_info_publisher(   nh.advertise<cinfo_t>("camera_info",	1)),
      _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
      _broadcaster()
 {
     using namespace	pho::api;
 
   // Search for a device with specified ID.
-    auto	id = _nh.param<std::string>("id",
-					    "InstalledExamples-basic-example");
+    auto	id = nh.param<std::string>("id",
+					   "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
@@ -256,7 +247,7 @@ Camera::Camera(const ros::NodeHandle& nh, const std::string& nodelet_name)
 			<< _device->HardwareIdentification.GetValue()
 			<< ") Initializing configuration.");
 
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
   // Check if color is supported.
     _is_color_camera = (_device->SupportedColorCapturingModes->size() > 0);
 #endif
@@ -910,7 +901,7 @@ Camera::setup_ddr_common()
 #  endif
 #endif
 
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
     {
       // 4. ColorSettings
@@ -1059,7 +1050,7 @@ Camera::setup_ddr_common()
 			&FrameOutputSettings::SendTexture, _1, true,
 			"SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
 	_ddr.registerVariable<bool>(
 	    "send_color_camera_image",
@@ -1167,7 +1158,7 @@ Camera::set_member(T& member, T value, const std::string& name)
 			<< ") set " << name << " to " << member);
 }
 
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
 void
 Camera::set_color_resolution(int idx)
 {
@@ -1380,15 +1371,15 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     return true;
 }
 
-template <class T> void
-Camera::set_image(const image_p& image,
-		  const ros::Time& stamp, const std::string& frame_id,
-		  const std::string& encoding, float scale,
-		  const pho::api::Mat2D<T>& phoxi_image)
+template <class T> Camera::image_cp
+Camera::create_image(const ros::Time& stamp, const std::string& frame_id,
+		     const std::string& encoding, float scale,
+		     const pho::api::Mat2D<T>& phoxi_image) const
 {
     using namespace	sensor_msgs;
     using		element_ptr = const typename T::ElementChannelType*;
 
+    const image_p	image(new image_t);
     image->header.stamp    = stamp;
     image->header.frame_id = _frame_id;
     image->encoding	   = encoding;
@@ -1414,10 +1405,12 @@ Camera::set_image(const image_p& image,
 	NODELET_ERROR_STREAM("Unsupported image type!");
 	throw;
     }
+
+    return image;
 }
 
 void
-Camera::set_camera_matrix()
+Camera::cache_camera_matrix() const
 {
     using namespace	pho::api;
 
@@ -1455,7 +1448,7 @@ Camera::set_camera_info(const cinfo_p& cinfo,
 			const pho::api::Point3_64f& t,
 			const pho::api::Point3_64f& rx,
 			const pho::api::Point3_64f& ry,
-			const pho::api::Point3_64f& rz)
+			const pho::api::Point3_64f& rz) const
 {
   // Set header.
     cinfo->header.stamp	   = stamp;
@@ -1520,50 +1513,50 @@ Camera::set_camera_info(const cinfo_p& cinfo,
 }
 
 void
-Camera::publish_frame()
+Camera::publish_frame() const
 {
     using	namespace sensor_msgs;
 
   // Common setting.
-    const auto	now = ros::Time::now();
+    const auto	stamp = ros::Time::now();
 
   // Publish point cloud.
     profiler_start(0);
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
-    publish_cloud(now, distanceScale);
+    publish_cloud(stamp, distanceScale);
 
   // Publish normal_map, depth_map, confidence_map, event_map and texture.
     profiler_start(1);
-    publish_image(_normal_map, now, image_encodings::TYPE_32FC3, 1,
+    publish_image(stamp, image_encodings::TYPE_32FC3, 1,
 		  _frame->NormalMap, _normal_map_publisher);
     profiler_start(2);
-    publish_image(_depth_map, now, image_encodings::TYPE_32FC1, distanceScale,
+    publish_image(stamp, image_encodings::TYPE_32FC1, distanceScale,
 		  _frame->DepthMap, _depth_map_publisher);
     profiler_start(3);
-    publish_image(_confidence_map, now, image_encodings::TYPE_32FC1, 1,
+    publish_image(stamp, image_encodings::TYPE_32FC1, 1,
 		  _frame->ConfidenceMap, _confidence_map_publisher);
     profiler_start(4);
-    publish_image(_event_map, now, image_encodings::TYPE_32FC1, 1,
+    publish_image(stamp, image_encodings::TYPE_32FC1, 1,
 		  _frame->EventMap, _event_map_publisher);
     profiler_start(5);
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
-	publish_image(_texture, now, image_encodings::RGB8, _intensityScale,
+	publish_image(stamp, image_encodings::RGB8, _intensityScale,
 		      _frame->TextureRGB, _texture_publisher);
     else
 #endif
-	publish_image(_texture, now, image_encodings::MONO8, _intensityScale,
+	publish_image(stamp, image_encodings::MONO8, _intensityScale,
 		      _frame->Texture, _texture_publisher);
 
   // Publish camera_info.
     profiler_start(6);
-    publish_camera_info(now);
+    publish_camera_info(stamp);
 
   // Publish color_camera.
     profiler_start(7);
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
-	publish_color_camera(now);
+	publish_color_camera(stamp);
 #endif
 
     profiler_print(std::cerr);
@@ -1574,7 +1567,7 @@ Camera::publish_frame()
 }
 
 void
-Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
+Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
 {
     using namespace	sensor_msgs;
 
@@ -1584,12 +1577,23 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	return;
 
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
-    _cloud->header.stamp    = stamp;
-    _cloud->header.frame_id = _frame_id;
-    _cloud->is_bigendian    = false;
-    _cloud->is_dense	    = _denseCloud;
+    const cloud_p	cloud(new cloud_t);
+    cloud->header.stamp	   = stamp;
+    cloud->header.frame_id = _frame_id;
+    cloud->is_bigendian    = false;
+    cloud->is_dense	   = _denseCloud;		// cloud->height is not one.
+    if (cloud->is_dense)
+    {
+	cloud->height = 1;
+	cloud->width  = npoints_valid(phoxi_cloud);
+    }
+    else
+    {
+	cloud->height = phoxi_cloud.Size.Height;
+	cloud->width  = phoxi_cloud.Size.Width;
+    }
 
-    PointCloud2Modifier	modifier(*_cloud);
+    PointCloud2Modifier	modifier(*cloud);
     if (_device->OutputSettings->SendTexture)
 	if (_device->OutputSettings->SendNormalMap)
 	    modifier.setPointCloud2Fields(7,
@@ -1621,22 +1625,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 					  "y",	      1, PointField::FLOAT32,
 					  "z",	      1, PointField::FLOAT32);
 
-    if (_cloud->is_dense)
-    {
-	const auto	npoints = npoints_valid(phoxi_cloud);
-	modifier.resize(npoints);
-	_cloud->height = 1;
-	_cloud->width  = npoints;
-    }
-    else
-    {
-	modifier.resize(phoxi_cloud.Size.Height * phoxi_cloud.Size.Width);
-	_cloud->height = phoxi_cloud.Size.Height;
-	_cloud->width  = phoxi_cloud.Size.Width;
-    }
-    _cloud->row_step = _cloud->width * _cloud->point_step;
-
-    PointCloud2Iterator<float>	xyz(*_cloud, "x");
+    PointCloud2Iterator<float>	xyz(*cloud, "x");
 
     for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
     {
@@ -1646,7 +1635,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	{
 	    if (float(p->z) == 0.0f)
 	    {
-		if (!_cloud->is_dense)
+		if (!cloud->is_dense)
 		{
 		    xyz[0] = xyz[1] = xyz[2]
 			   = std::numeric_limits<float>::quiet_NaN();
@@ -1666,8 +1655,8 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
     if (_device->OutputSettings->SendTexture)
     {
-	PointCloud2Iterator<uint8_t> bgr(*_cloud, "rgb");
-#if defined(HAVE_COLOR)
+	PointCloud2Iterator<uint8_t> bgr(*cloud, "rgb");
+#if defined(HAVE_COLOR_CAMERA)
 	if (_is_color_camera && !_frame->TextureRGB.Empty())
 	{
 	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
@@ -1678,7 +1667,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 		for (const auto q = p + phoxi_cloud.Size.Width;
 		     p != q; ++p, ++r)
 		{
-		    if (!_cloud->is_dense || float(p->z) != 0.0f)
+		    if (!cloud->is_dense || float(p->z) != 0.0f)
 		    {
 			bgr[0] = uint8_t(std::min(_intensityScale*r->b, 255.0));
 			bgr[1] = uint8_t(std::min(_intensityScale*r->g, 255.0));
@@ -1699,7 +1688,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 		for (const auto q = p + phoxi_cloud.Size.Width;
 		     p != q; ++p, ++r)
 		{
-		    if (!_cloud->is_dense || float(p->z) != 0.0f)
+		    if (!cloud->is_dense || float(p->z) != 0.0f)
 		    {
 			bgr[0] = bgr[1] = bgr[2]
 			       = uint8_t(std::min(_intensityScale*(*r), 255.0));
@@ -1720,7 +1709,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	    return;
 	}
 
-	PointCloud2Iterator<float>	normal(*_cloud, "normal_x");
+	PointCloud2Iterator<float>	normal(*cloud, "normal_x");
 
 	for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	{
@@ -1729,7 +1718,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 
 	    for (const auto q = p + phoxi_cloud.Size.Width; p != q; ++p, ++r)
 	    {
-		if (!_cloud->is_dense || float(p->z) != 0.0f)
+		if (!cloud->is_dense || float(p->z) != 0.0f)
 		{
 		    normal[0] = r->x;
 		    normal[1] = r->y;
@@ -1740,24 +1729,24 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	}
     }
 
-    _cloud_publisher.publish(_cloud);
+    _cloud_publisher.publish(cloud);
 }
 
 template <class T> void
-Camera::publish_image(const image_p& image, const ros::Time& stamp,
+Camera::publish_image(const ros::Time& stamp,
 		      const std::string& encoding, float scale,
 		      const pho::api::Mat2D<T>& phoxi_image,
-		      const image_transport::Publisher& publisher)
+		      const image_transport::Publisher& publisher) const
 {
     if (publisher.getNumSubscribers() == 0 || phoxi_image.Empty())
 	return;
 
-    set_image(image, stamp, _frame_id, encoding, scale, phoxi_image);
-    publisher.publish(image);
+    publisher.publish(create_image(stamp, _frame_id, encoding, scale,
+				   phoxi_image));
 }
 
 void
-Camera::publish_camera_info(const ros::Time& stamp)
+Camera::publish_camera_info(const ros::Time& stamp) const
 {
     if (_camera_info_publisher.getNumSubscribers() == 0)
 	return;
@@ -1769,31 +1758,31 @@ Camera::publish_camera_info(const ros::Time& stamp)
   // is time-consuming, the extracted matrix is cached.
     if (_frame->DepthMap.Size.Width  != _cinfo->width ||
     	_frame->DepthMap.Size.Height != _cinfo->height)
-    	set_camera_matrix();
+    {
+    	cache_camera_matrix();
+	set_camera_info(_cinfo, stamp, _frame_id,
+			_frame->DepthMap.Size.Width,
+			_frame->DepthMap.Size.Height,
+			_camera_matrix,
+			_frame->Info.DistortionCoefficients,
+			_frame->Info.SensorPosition,
+			_frame->Info.SensorXAxis,
+			_frame->Info.SensorYAxis,
+			_frame->Info.SensorZAxis);
+    }
 
-    set_camera_info(_cinfo, stamp, _frame_id,
-		    _frame->DepthMap.Size.Width,
-		    _frame->DepthMap.Size.Height,
-		    _camera_matrix,
-		    _frame->Info.DistortionCoefficients,
-		    _frame->Info.SensorPosition,
-		    _frame->Info.SensorXAxis,
-		    _frame->Info.SensorYAxis,
-		    _frame->Info.SensorZAxis);
     _camera_info_publisher.publish(_cinfo);
 }
 
-#if defined(HAVE_COLOR)
+#if defined(HAVE_COLOR_CAMERA)
 void
-Camera::publish_color_camera(const ros::Time& stamp)
+Camera::publish_color_camera(const ros::Time& stamp) const
 {
     if (_color_camera_publisher.getNumSubscribers() == 0)
 	return;
 
-    set_image(_color_camera_image, stamp, _color_camera_frame_id,
-	      sensor_msgs::image_encodings::RGB8, _intensityScale,
-	      _frame->ColorCameraImage);
-    set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
+    const cinfo_p	color_camera_cinfo(new cinfo_t);
+    set_camera_info(color_camera_cinfo, stamp, _color_camera_frame_id,
 		    _frame->ColorCameraImage.Size.Width,
 		    _frame->ColorCameraImage.Size.Height,
 		    _frame->Info.ColorCameraMatrix,
@@ -1802,7 +1791,12 @@ Camera::publish_color_camera(const ros::Time& stamp)
 		    _frame->Info.ColorCameraXAxis,
 		    _frame->Info.ColorCameraYAxis,
 		    _frame->Info.ColorCameraZAxis);
-    _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
+    _color_camera_publisher.publish(create_image(
+					stamp, _color_camera_frame_id,
+					sensor_msgs::image_encodings::RGB8,
+					_intensityScale,
+					_frame->ColorCameraImage),
+				    color_camera_cinfo);
 
     const double	scale = 0.001;		// milimeters ==> meters
     const tf::Vector3	t(scale * _frame->Info.ColorCameraPosition.x,
