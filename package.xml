@@ -7,7 +7,7 @@
   <author>Toshio UESHIBA</author>
   <maintainer email="t.ueshiba@paist.go.jp">Toshio UESHIBA</maintainer>
   <license>BSD</license>
-  <url>http://gitlab.com/o2as-aist/artros/aist_phoxi_camera</url>
+  <url>https://github.com/Automation-Research-Team/aist_phoxi_camera</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 
