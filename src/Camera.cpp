@@ -1524,45 +1524,49 @@ Camera::publish_frame()
     using	namespace sensor_msgs;
 
   // Common setting.
-    const auto	now = ros::Time::now();
-
+    const auto	stamp = ros::Time::now();
+		      - ros::Duration((_frame->Info.FrameDuration +
+				       _frame->Info.FrameComputationDuration +
+				       _frame->Info.FrameTransferDuration)
+				      * 0.001);
+    
   // Publish point cloud.
     profiler_start(0);
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
-    publish_cloud(now, distanceScale);
+    publish_cloud(stamp, distanceScale);
 
   // Publish normal_map, depth_map, confidence_map, event_map and texture.
     profiler_start(1);
-    publish_image(_normal_map, now, image_encodings::TYPE_32FC3, 1,
-		  _frame->NormalMap, _normal_map_publisher);
+    publish_image(_normal_map, stamp, image_encodings::TYPE_32FC3,
+		  1, _frame->NormalMap, _normal_map_publisher);
     profiler_start(2);
-    publish_image(_depth_map, now, image_encodings::TYPE_32FC1, distanceScale,
-		  _frame->DepthMap, _depth_map_publisher);
+    publish_image(_depth_map, stamp, image_encodings::TYPE_32FC1,
+		  distanceScale, _frame->DepthMap, _depth_map_publisher);
     profiler_start(3);
-    publish_image(_confidence_map, now, image_encodings::TYPE_32FC1, 1,
-		  _frame->ConfidenceMap, _confidence_map_publisher);
+    publish_image(_confidence_map, stamp, image_encodings::TYPE_32FC1,
+		  1, _frame->ConfidenceMap, _confidence_map_publisher);
     profiler_start(4);
-    publish_image(_event_map, now, image_encodings::TYPE_32FC1, 1,
-		  _frame->EventMap, _event_map_publisher);
+    publish_image(_event_map, stamp, image_encodings::TYPE_32FC1,
+		  1, _frame->EventMap, _event_map_publisher);
     profiler_start(5);
 #if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
-	publish_image(_texture, now, image_encodings::RGB8, _intensityScale,
-		      _frame->TextureRGB, _texture_publisher);
+	publish_image(_texture, stamp, image_encodings::RGB8,
+		      _intensityScale, _frame->TextureRGB, _texture_publisher);
     else
 #endif
-	publish_image(_texture, now, image_encodings::MONO8, _intensityScale,
-		      _frame->Texture, _texture_publisher);
+	publish_image(_texture, stamp, image_encodings::MONO8,
+		      _intensityScale, _frame->Texture, _texture_publisher);
 
   // Publish camera_info.
     profiler_start(6);
-    publish_camera_info(now);
+    publish_camera_info(stamp);
 
   // Publish color_camera.
     profiler_start(7);
 #if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
-	publish_color_camera(now);
+	publish_color_camera(stamp);
 #endif
 
     profiler_print(std::cerr);
