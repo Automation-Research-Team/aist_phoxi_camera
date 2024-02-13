@@ -609,8 +609,8 @@ Camera::setup_ddr_motioncam()
 #    endif
 #  endif
 
-  // 2, MotionCam camera mode
-  // 2,1 exposure
+  // 2. MotionCam camera mode
+  // 2.1 exposure
     std::map<std::string, double>	enum_exposures;
     for (auto exposure : _device->SupportedSinglePatternExposures.GetValue())
 	enum_exposures.emplace(std::to_string(exposure), exposure);
@@ -645,7 +645,7 @@ Camera::setup_ddr_motioncam()
 	    enum_sampling_topology, "", "motioncam_camera_mode");
     }
 
-  // 2,3 output topology
+  // 2.3 output topology
     if (_device->MotionCamCameraMode->OutputTopology !=
 	PhoXiOutputTopology::NoValue)
     {
@@ -669,7 +669,7 @@ Camera::setup_ddr_motioncam()
 	    enum_output_topology, "", "motioncam_camera_mode");
     }
 
-  // 2,4 coding strategy
+  // 2.4 coding strategy
     if (_device->MotionCamCameraMode->CodingStrategy !=
 	PhoXiCodingStrategy::NoValue)
     {
@@ -689,6 +689,29 @@ Camera::setup_ddr_motioncam()
 			"CodingStrategy"),
     	    "Coding strategy",
 	    enum_coding_strategy, "", "motioncam_camera_mode");
+    }
+
+  // 2.5 TextureSource
+    if (_device->MotionCamCameraMode->TextureSource !=
+    	PhoXiTextureSource::NoValue)
+    {
+	const std::map<std::string, int>
+	    enum_texture_source = {{"Computed", PhoXiTextureSource::Computed},
+				   {"LED",	PhoXiTextureSource::LED},
+				   {"Laser",    PhoXiTextureSource::Laser},
+				   {"Focus",    PhoXiTextureSource::Focus},
+				   {"Color",    PhoXiTextureSource::Color}};
+	_ddr.registerEnumVariable<int>(
+    	    "camera_texture_source",
+    	    _device->MotionCamCameraMode->TextureSource,
+    	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
+					   PhoXiTextureSource>,
+    			this,
+    			&PhoXi::MotionCamCameraMode,
+			&PhoXiMotionCamCameraMode::TextureSource, _1, false,
+			"TextureSource"),
+    	    "Source used for texture image",
+	    enum_texture_source, "", "motioncam_camera_mode");
     }
 
   // 3. MotionCam scanner mode
