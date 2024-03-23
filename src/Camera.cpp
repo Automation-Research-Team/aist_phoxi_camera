@@ -332,8 +332,8 @@ Camera::setup_ddr_phoxi()
     if (modes.size() > 1)
     {
 	std::map<std::string, int>	enum_resolution;
-	int				idx = 0;
-	for (int i = 0; i < modes.size(); ++i)
+	size_t				idx = 0;
+	for (size_t i = 0; i < modes.size(); ++i)
 	{
 	    const auto&	resolution = modes[i].Resolution;
 	    enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
@@ -941,8 +941,8 @@ Camera::setup_ddr_common()
 	if (iso.size() > 1)
 	{
 	    std::map<std::string, int>	enum_iso;
-	    int				idx = 0;
-	    for (int i = 0; i < iso.size(); ++i)
+	    size_t			idx = 0;
+	    for (size_t i = 0; i < iso.size(); ++i)
 	    {
 		enum_iso.emplace(std::to_string(iso[i]), iso[i]);
 		if (iso[i] == color_settings.Iso)
@@ -961,8 +961,8 @@ Camera::setup_ddr_common()
 	if (exposure.size() > 1)
 	{
 	    std::map<std::string, double>	enum_exposure;
-	    int					idx = 0;
-	    for (int i = 0; i < exposure.size(); ++i)
+	    size_t				idx = 0;
+	    for (size_t i = 0; i < exposure.size(); ++i)
 	    {
 		enum_exposure.emplace(std::to_string(exposure[i]), exposure[i]);
 		if (exposure[i] == color_settings.Exposure)
@@ -983,8 +983,8 @@ Camera::setup_ddr_common()
 	if (modes.size() > 1)
 	{
 	    std::map<std::string, int>	enum_resolution;
-	    int				idx = 0;
-	    for (int i = 0; i < modes.size(); ++i)
+	    size_t			idx = 0;
+	    for (size_t i = 0; i < modes.size(); ++i)
 	    {
 		const auto&	resolution = modes[i].Resolution;
 		enum_resolution.emplace(std::to_string(resolution.Width) + 'x' +
@@ -1109,7 +1109,7 @@ Camera::setup_ddr_common()
 }
 
 void
-Camera::set_resolution(int idx)
+Camera::set_resolution(size_t idx)
 {
     const auto acq = _device->isAcquiring();
     if (acq)
@@ -1189,7 +1189,7 @@ Camera::set_member(T& member, T value, const std::string& name)
 
 #if defined(HAVE_COLOR_CAMERA)
 void
-Camera::set_color_resolution(int idx)
+Camera::set_color_resolution(size_t idx)
 {
     const auto acq = _device->isAcquiring();
     if (acq)
@@ -1279,7 +1279,7 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 			    << _device->HardwareIdentification.GetValue()
 			    << ") trigger_frame: frame got");
 
-	if (_frame->Info.FrameIndex != frameId)
+	if (_frame->Info.FrameIndex != uint64_t(frameId))
 	{
 	    res.success = false;
 	    res.message = "failed. [triggered frame(#"
@@ -1761,8 +1761,8 @@ Camera::publish_camera_info(const ros::Time& stamp)
   // _frame->Info.CameraMatrix because the latter becomes empty
   // for non-reqular pointclooud topology. As accessing the former
   // is time-consuming, the extracted matrix is cached.
-    if (_frame->DepthMap.Size.Width  != _cinfo->width ||
-    	_frame->DepthMap.Size.Height != _cinfo->height)
+    if (_frame->DepthMap.Size.Width  != int(_cinfo->width) ||
+    	_frame->DepthMap.Size.Height != int(_cinfo->height))
     	set_camera_matrix();
 
     set_camera_info(_cinfo, stamp, _frame_id,
