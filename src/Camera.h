@@ -41,7 +41,6 @@
 
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
-#include <aist_phoxi_camera/SetString.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
@@ -108,8 +107,6 @@ class Camera
     void	set_white_balance_preset(const std::string& preset)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
-    bool	save_frame(SetString::Request&  req,
-			   SetString::Response& res)			;
     bool	save_settings(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
     bool	restore_settings(std_srvs::Trigger::Request&  req,
@@ -183,7 +180,6 @@ class Camera
     ddynamic_reconfigure_t			_ddr;
 
     const ros::ServiceServer			_trigger_frame_server;
-    const ros::ServiceServer			_save_frame_server;
     const ros::ServiceServer			_save_settings_server;
     const ros::ServiceServer			_restore_settings_server;
 

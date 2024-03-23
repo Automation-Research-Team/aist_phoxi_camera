@@ -23,7 +23,7 @@
         <geometry>
           <xacro:insert_block name="visual" />
         </geometry>
-        <material name="">
+        <material name="Gazebo/Black">
           <color rgba="0.8 0.8 0.8 1"/>
         </material>
       </visual>

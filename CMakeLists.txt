@@ -18,7 +18,6 @@ find_package(catkin REQUIRED
   COMPONENTS
     roscpp
     roslib
-    message_generation
     image_transport
     sensor_msgs
     ddynamic_reconfigure
@@ -36,16 +35,6 @@ include_directories(include
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
 
-add_service_files(
-  FILES
-    SetString.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-    sensor_msgs
-)
-
 catkin_package(
   CATKIN_DEPENDS
     roscpp
@@ -61,7 +50,6 @@ add_library(
 
 add_dependencies(
   ${PROJECT_NAME}
-  ${PROJECT_NAME}_generate_messages_cpp
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
