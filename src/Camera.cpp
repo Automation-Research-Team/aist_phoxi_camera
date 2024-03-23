@@ -197,8 +197,6 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _ddr(nh),
      _trigger_frame_server(nh.advertiseService("trigger_frame",
 					       &Camera::trigger_frame,	this)),
-     _save_frame_server(nh.advertiseService("save_frame",
-					    &Camera::save_frame, this)),
      _save_settings_server(nh.advertiseService("save_settings",
 					       &Camera::save_settings, this)),
      _restore_settings_server(nh.advertiseService("restore_settings",
@@ -1308,36 +1306,6 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 			     << _device->HardwareIdentification.GetValue()
 			     << ") trigger_frame: "
 			     << res.message);
-
-    return true;
-}
-
-bool
-Camera::save_frame(SetString::Request& req, SetString::Response& res)
-{
-    if (_frame == nullptr || !_frame->Successful)
-    {
-	res.success = false;
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") save_frame: failed. [no frame data]");
-    }
-    else if (!_frame->SaveAsPly(req.in + ".ply"))
-    {
-	res.success = false;
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") save_frame: failed to save PLY to "
-			     << req.in + ".ply");
-    }
-    else
-    {
-	res.success = true;
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") save_frame: succeeded to save PLY to "
-			    << req.in + ".ply");
-    }
 
     return true;
 }
