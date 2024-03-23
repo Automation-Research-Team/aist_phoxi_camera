@@ -91,7 +91,7 @@ class Camera
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
     void	setup_ddr_common()					;
-    void	set_resolution(int idx)					;
+    void	set_resolution(size_t idx)				;
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
@@ -103,7 +103,7 @@ class Camera
 			  const std::string& field_name)		;
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
-    void	set_color_resolution(int idx)				;
+    void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
 			      std_srvs::Trigger::Response& res)		;
