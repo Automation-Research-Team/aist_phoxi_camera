@@ -39,10 +39,10 @@
 #include <string>
 #include <array>
 
-#include <ros/ros.h>
-#include <std_srvs/Trigger.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/Trigger.h>
+#include <image_transport/image_transport.hpp>
+#include <sensor_msgs/msgs/PointCloud2.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <tf/transform_broadcaster.h>
 
@@ -57,21 +57,21 @@ namespace aist_phoxi_camera
 /************************************************************************
 *   class Camera                                                        *
 ************************************************************************/
-class Camera
+class Camera : public rclcpp::Node
 #if defined(PROFILE)
     : public TU::Profiler<>
 #endif
 {
   private:
-    using cloud_t		 = sensor_msgs::PointCloud2;
-    using cloud_p		 = sensor_msgs::PointCloud2Ptr;
-    using image_t		 = sensor_msgs::Image;
-    using image_p		 = sensor_msgs::ImagePtr;
-    using cinfo_t		 = sensor_msgs::CameraInfo;
-    using cinfo_p		 = sensor_msgs::CameraInfoPtr;
-    using ddynamic_reconfigure_t = ddynamic_reconfigure::DDynamicReconfigure;
+    using cloud_t	= sensor_msgs::msg::PointCloud2;
+    using cloud_p	= cloud_t::Ptr;
+    using image_t	= sensor_msgs::msg::Image;
+    using image_p	= image_t::Ptr;
+    using cinfo_t	= sensor_msgs::msg::CameraInfo;
+    using cinfo_p	= cinfo_t::Ptr;
+    using trigger_srv_p	= rclcpp::Service<std_srvs::srv::Trigger>::Ptr;
 #if defined(PROFILE)
-    using profiler_t		 = TU::Profiler<>;
+    using profiler_t	= TU::Profiler<>;
 #endif
 
     enum
@@ -80,8 +80,8 @@ class Camera
     };
 
   public:
-		Camera(ros::NodeHandle& nh,
-		       const std::string& nodelet_name)			;
+		Camera(const std::string& node_name,
+		       const rclcpp::NodeOptions& options)		;
 		~Camera()						;
 
     void	tick()							;
@@ -105,12 +105,12 @@ class Camera
     void	set_member(T& member, T value, const std::string& name)	;
     void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
-    bool	trigger_frame(std_srvs::Trigger::Request&  req,
-			      std_srvs::Trigger::Response& res)		;
-    bool	save_settings(std_srvs::Trigger::Request&  req,
-			      std_srvs::Trigger::Response& res)		;
-    bool	restore_settings(std_srvs::Trigger::Request&  req,
-				 std_srvs::Trigger::Response& res)	;
+    bool	trigger_frame(std_srvs::srv::Trigger::Request&  req,
+			      std_srvs::srv::Trigger::Response& res)	;
+    bool	save_settings(std_srvs::srv::Trigger::Request&  req,
+			      std_srvs::srv::Trigger::Response& res)	
+    bool	restore_settings(std_srvs::srv::Trigger::Request&  req,
+				 std_srvs::srv::Trigger::Response& res)	;
     template <class T>
     void	set_image(const image_p& image, const ros::Time& stamp,
 			  const std::string& frame_id,
@@ -154,8 +154,6 @@ class Camera
 		}
 
   private:
-    const std::string				_nodelet_name;
-
     pho::api::PhoXiFactory			_factory;
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
@@ -177,11 +175,9 @@ class Camera
     const image_p				_color_camera_image;
     const cinfo_p				_color_camera_cinfo;
 
-    ddynamic_reconfigure_t			_ddr;
-
-    const ros::ServiceServer			_trigger_frame_server;
-    const ros::ServiceServer			_save_settings_server;
-    const ros::ServiceServer			_restore_settings_server;
+    const trigger_srv_p				_trigger_frame_server;
+    const trigger_srv_p				_save_settings_server;
+    const trigger_srv_p				_restore_settings_server;
 
     image_transport::ImageTransport		_it;
     const ros::Publisher			_cloud_publisher;

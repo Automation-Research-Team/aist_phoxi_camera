@@ -59,10 +59,8 @@
 #endif
 
 #include "Camera.h"
-#include <ros/package.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <sensor_msgs/image_encodings.h>
-#include <nodelet/nodelet.h>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 #include <x86intrin.h>
 
 namespace aist_phoxi_camera
@@ -168,12 +166,12 @@ scale_copy(const uint16_t* in, const uint16_t* ie, float* out, float scale)
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
-Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
-    :
+Camera::Camera(const std::string& node_name,
+	       const rclcpp::NodeOptions& options)
+    :rclcpp::Node(node_name, options),
 #if defined(PROFILE)
      profiler_t(8),
 #endif
-     _nodelet_name(nodelet_name),
      _factory(),
      _device(nullptr),
      _frame(nullptr),
@@ -195,21 +193,20 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _color_camera_image(new image_t),
      _color_camera_cinfo(new cinfo_t),
      _ddr(nh),
-     _trigger_frame_server(nh.advertiseService("trigger_frame",
-					       &Camera::trigger_frame,	this)),
-     _save_settings_server(nh.advertiseService("save_settings",
-					       &Camera::save_settings, this)),
-     _restore_settings_server(nh.advertiseService("restore_settings",
-						  &Camera::restore_settings,
-						  this)),
-     _it(nh),
-     _cloud_publisher(	        nh.advertise<cloud_t>("pointcloud",	1)),
+     _trigger_frame_server(creaste_service("trigger_frame",
+					   &Camera::trigger_frame)),
+     _save_settings_server(create_service("save_settings",
+					  &Camera::save_settings)),
+     _restore_settings_server(create_service("restore_settings",
+					     &Camera::restore_settings)),
+     _it(this),
+     _cloud_publisher(create_publisher<cloud_t>("pointcloud",		1)),
      _normal_map_publisher(    _it.advertise("normal_map",		1)),
      _depth_map_publisher(     _it.advertise("depth_map",		1)),
      _confidence_map_publisher(_it.advertise("confidence_map",		1)),
      _event_map_publisher(     _it.advertise("event_map",		1)),
      _texture_publisher(       _it.advertise("texture",			1)),
-     _camera_info_publisher(    nh.advertise<cinfo_t>("camera_info",	1)),
+     _camera_info_publisher(create_publisher<cinfo_t>("camera_info",	1)),
      _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
      _broadcaster()
 {
@@ -223,7 +220,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
 
     if (!_factory.isPhoXiControlRunning())
     {
-	NODELET_ERROR_STREAM("PhoXiControll is not running.");
+	RCLCPP_ERROR_STREAM("PhoXiControll is not running.");
 	throw;
     }
 
@@ -235,23 +232,23 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
 	}
     if (!_device)
     {
-	NODELET_ERROR_STREAM("Failed to find camera[" << id << "].");
+	RCLCPP_ERROR_STREAM("Failed to find camera[" << id << "].");
 	throw;
     }
 
   // Connect to the device.
     if (!_device->Connect())
     {
-	NODELET_ERROR_STREAM("Failed to open camera[" << id << "].");
+	RCLCPP_ERROR_STREAM("Failed to open camera[" << id << "].");
 	throw;
     }
 
   // Stop acquisition.
     _device->StopAcquisition();
 
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") Initializing configuration.");
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") Initializing configuration.");
 
 #if defined(HAVE_COLOR_CAMERA)
   // Check if color is supported.
@@ -273,10 +270,10 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
 	break;
 #endif
       default:
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") Unknown device type["
-			     << std::string(_device->GetType()) << ']');
+	RCLCPP_ERROR_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") Unknown device type["
+			    << std::string(_device->GetType()) << ']');
 	throw;
     }
 
@@ -288,9 +285,9 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
     _device->ClearBuffer();
     _device->StartAcquisition();
 
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") aist_phoxi_camera is active.");
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") aist_phoxi_camera is active.");
 }
 
 Camera::~Camera()
@@ -1118,12 +1115,12 @@ Camera::set_resolution(size_t idx)
     const auto modes = _device->SupportedCapturingModes.GetValue();
     if (idx < modes.size())
 	_device->CapturingMode = modes[idx];
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set resolution to "
-			<< _device->CapturingMode.GetValue().Resolution.Width
-			<< 'x'
-			<< _device->CapturingMode.GetValue().Resolution.Height);
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") set resolution to "
+		       << _device->CapturingMode.GetValue().Resolution.Width
+		       << 'x'
+		       << _device->CapturingMode.GetValue().Resolution.Height);
 
     _device->ClearBuffer();
     if (acq)
@@ -1140,9 +1137,9 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     auto&	f = _device.operator ->()->*feature;
     f.SetValue(value);
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set " << f.GetName() << " to " << f.GetValue());
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") set " << f.GetName() << " to " << f.GetValue());
 
     if (suspend)
     {
@@ -1165,10 +1162,10 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     auto	val = f.GetValue();
     val.*field = value;
     f.SetValue(val);
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set " << f.GetName() << "::" << field_name
-			<< " to "   << f.GetValue().*field);
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") set " << f.GetName() << "::" << field_name
+		       << " to "   << f.GetValue().*field);
 
     if (suspend)
     {
@@ -1182,9 +1179,9 @@ template <class T> void
 Camera::set_member(T& member, T value, const std::string& name)
 {
     member = value;
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set " << name << " to " << member);
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") set " << name << " to " << member);
 }
 
 #if defined(HAVE_COLOR_CAMERA)
@@ -1199,14 +1196,14 @@ Camera::set_color_resolution(size_t idx)
     if (idx < modes.size())
     {
 	_device->CapturingMode = modes[idx];
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") set color resolution to "
-			    << _device->ColorSettings->CapturingMode
-				   .Resolution.Width
-			    << 'x'
-			    << _device->ColorSettings->CapturingMode
-				   .Resolution.Height);
+	RCLCPP_INFO_STREAM('('
+			   << _device->HardwareIdentification.GetValue()
+			   << ") set color resolution to "
+			   << _device->ColorSettings->CapturingMode
+			     .Resolution.Width
+			   << 'x'
+			   << _device->ColorSettings->CapturingMode
+			     .Resolution.Height);
     }
 
     _device->ClearBuffer();
@@ -1224,28 +1221,28 @@ Camera::set_white_balance_preset(const std::string& preset)
     white_balance.Preset		    = preset;
     white_balance.ComputeCustomWhiteBalance = false;
     _device->ColorSettings->WhiteBalance = white_balance;
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set white balande to "
-			<< _device->ColorSettings->WhiteBalance.Preset);
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") set white balande to "
+		       << _device->ColorSettings->WhiteBalance.Preset);
 }
 #endif
 
 bool
-Camera::trigger_frame(std_srvs::Trigger::Request&  req,
-		      std_srvs::Trigger::Response& res)
+Camera::trigger_frame(std_srvs::srv::Trigger::Request&  req,
+		      std_srvs::srv::Trigger::Response& res)
 {
     using namespace	pho::api;
 
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") trigger_frame: service requested");
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") trigger_frame: service requested");
 
     const auto	frameId = _device->TriggerFrame(true, true);
 
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") trigger_frame: triggered");
+    RCLCPP_INFO_STREAM('('
+		       << _device->HardwareIdentification.GetValue()
+		       << ") trigger_frame: triggered");
 
     switch (frameId)
     {
@@ -1275,9 +1272,9 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 	    break;
 	}
 
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") trigger_frame: frame got");
+	RCLCPP_INFO_STREAM('('
+			   << _device->HardwareIdentification.GetValue()
+			   << ") trigger_frame: frame got");
 
 	if (_frame->Info.FrameIndex != uint64_t(frameId))
 	{
@@ -1297,48 +1294,48 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
     }
 
     if (res.success)
-	NODELET_INFO_STREAM('('
+	RCLCPP_INFO_STREAM('('
+			   << _device->HardwareIdentification.GetValue()
+			   << ") trigger_frame: "
+			   << res.message);
+    else
+	RCLCPP_ERROR_STREAM('('
 			    << _device->HardwareIdentification.GetValue()
 			    << ") trigger_frame: "
 			    << res.message);
-    else
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") trigger_frame: "
-			     << res.message);
 
     return true;
 }
 
 bool
-Camera::save_settings(std_srvs::Trigger::Request&  req,
-		      std_srvs::Trigger::Response& res)
+Camera::save_settings(std_srvs::srv::Trigger::Request&  req,
+		      std_srvs::srv::Trigger::Response& res)
 {
     res.success = _device->SaveSettings();
 
     if (res.success)
     {
 	res.message = "succesfully saved settings";
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") save_settings: "
-			    << res.message);
+	RCLCPP_INFO_STREAM('('
+			   << _device->HardwareIdentification.GetValue()
+			   << ") save_settings: "
+			   << res.message);
     }
     else
     {
 	res.message = "failed to save settings";
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") save_settings: "
-			     << res.message);
+	RCLCPP_ERROR_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") save_settings: "
+			    << res.message);
     }
 
     return true;
 }
 
 bool
-Camera::restore_settings(std_srvs::Trigger::Request&  req,
-			 std_srvs::Trigger::Response& res)
+Camera::restore_settings(std_srvs::srv::Trigger::Request&  req,
+			 std_srvs::srv::Trigger::Response& res)
 {
     const auto acq = _device->isAcquiring();
     if (acq)
@@ -1349,18 +1346,18 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     if (res.success)
     {
 	res.message = "succesfully restored settings.";
-	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
-			    << ") restore_settings: "
-			    << res.message);
+	RCLCPP_INFO_STREAM('('
+			   << _device->HardwareIdentification.GetValue()
+			   << ") restore_settings: "
+			   << res.message);
     }
     else
     {
 	res.message = "failed to restore settings.";
-	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
-			     << ") restore_settings: "
-			     << res.message);
+	RCLCPP_ERROR_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") restore_settings: "
+			    << res.message);
     }
 
     _device->ClearBuffer();
@@ -1401,7 +1398,7 @@ Camera::set_image(const image_p& image,
 	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
     else
     {
-	NODELET_ERROR_STREAM("Unsupported image type!");
+	RCLCPP_ERROR_STREAM("Unsupported image type!");
 	throw;
     }
 }
@@ -1561,7 +1558,7 @@ Camera::publish_frame()
 #endif
 
     profiler_print(std::cerr);
-    NODELET_DEBUG_STREAM('('
+    RCLCPP_DEBUG_STREAM('('
 			 << _device->HardwareIdentification.GetValue()
 			 << ") frame published [#"
 			 << _frame->Info.FrameIndex << ']');
@@ -1708,9 +1705,9 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     {
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
-	    NODELET_ERROR_STREAM('('
-				 << _device->HardwareIdentification.GetValue()
-				 << ") normals_estimation_radius must be positive");
+	    RCLCPP_ERROR_STREAM('('
+				<< _device->HardwareIdentification.GetValue()
+				<< ") normals_estimation_radius must be positive");
 	    return;
 	}
 

@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 project(aist_phoxi_camera)
 
-## Compile as C++17, supported in ROS melodic and newer
+## Compile as C++17 code
 enable_language(CXX)
 
 set(CMAKE_CXX_STANDARD		17)
@@ -13,51 +13,46 @@ set(CMAKE_CXX_FLAGS_DEBUG	"-g -DPROFILE")
 set(CMAKE_CXX_BUILD_TYPE	Release)
 
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(common_interfaces REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(ddynamic_reconfigure REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
-find_package(catkin REQUIRED
-  COMPONENTS
-    roscpp
-    roslib
-    image_transport
-    sensor_msgs
-    ddynamic_reconfigure
-    std_srvs
-    tf
-    pluginlib
-    nodelet
-)
-
-include_directories(include
-  ${catkin_INCLUDE_DIRS}
+ament_include_directories(
   ${PHOXI_INCLUDE_DIRS}
 )
 
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
 
-catkin_package(
-  CATKIN_DEPENDS
-    roscpp
-    message_runtime
-    sensor_msgs
-)
-
 add_library(
-  ${PROJECT_NAME}
-  src/Camera.cpp
-  src/nodelet.cpp
+  ${PROJECT_NAME} SHARED
+    src/Camera.cpp
+    src/nodelet.cpp
 )
 
-add_dependencies(
+target_compile_definitions(
   ${PROJECT_NAME}
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
+  PRIVATE COMPOSITION_BUILDING_DLL
+)
+
+ament_target_dependencies(
+  ${PROJECT_NAME}
+    rclcpp
+    rclcpp_components
+)
+
+rclcpp_components_register_nodes(
+  ${PROJECT_NAME} ${PROJECT_NAME}::Camera
 )
 
 target_link_libraries(
   ${PROJECT_NAME}
-  ${PHOXI_LIBRARY}
-  ${catkin_LIBRARIES}
+    ${PHOXI_LIBRARY}
 )
 
 install(
