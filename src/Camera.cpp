@@ -180,7 +180,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _frame_id(nh.param<std::string>("frame", "sensor")),
      _color_camera_frame_id(nh.param<std::string>("color_camera_frame",
 						  "color_camera_frame")),
-     _rate(nh.param<double>("rate", 10.0)),
+     _rate(nh.param<double>("rate", 20.0)),
      _denseCloud(false),
      _intensityScale(0.5),
      _is_color_camera(false),
@@ -1241,6 +1241,17 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 			<< _device->HardwareIdentification.GetValue()
 			<< ") trigger_frame: service requested");
 
+    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::Software)
+    {
+	res.success = true;
+	res.message = "succeded, but device is not in software trigger mode.";
+
+	NODELET_WARN_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") " << res.message);
+	return true;
+    }
+
     const auto	frameId = _device->TriggerFrame(true, true);
 
     NODELET_INFO_STREAM('('
@@ -1520,7 +1531,7 @@ Camera::publish_frame()
 				       _frame->Info.FrameComputationDuration +
 				       _frame->Info.FrameTransferDuration)
 				      * 0.001);
-    
+
   // Publish point cloud.
     profiler_start(0);
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
@@ -1541,7 +1552,7 @@ Camera::publish_frame()
 		  1, _frame->EventMap, _event_map_publisher);
     profiler_start(5);
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
+    if (_is_color_camera && source_is_color())
 	publish_image(_texture, stamp, image_encodings::RGB8,
 		      _intensityScale, _frame->TextureRGB, _texture_publisher);
     else
@@ -1816,5 +1827,41 @@ Camera::publish_color_camera(const ros::Time& stamp)
 						    _color_camera_frame_id));
 }
 #endif
+
+bool
+Camera::source_is_color() const
+{
+#if defined(HAVE_COLOR_CAMERA)
+    if (_is_color_camera)
+    {
+	using namespace	pho::api;
+
+	switch (PhoXiDeviceType::Value(_device->GetType()))
+	{
+	  case PhoXiDeviceType::PhoXiScanner:
+	    return (_device->CapturingSettings->TextureSource ==
+		    PhoXiTextureSource::Color);
+#  if defined(HAVE_MOTIONCAM)
+	  case PhoXiDeviceType::MotionCam3D:
+	    switch (_device->MotionCam->OperationMode)
+	    {
+	      case PhoXiOperationMode::Camera:
+		return (_device->MotionCamCameraMode->TextureSource ==
+			PhoXiTextureSource::Color);
+	      case PhoXiOperationMode::Scanner:
+		return (_device->MotionCamScannerMode->TextureSource ==
+			PhoXiTextureSource::Color);
+	      default:
+		break;
+	    }
+	    break;
+#  endif
+	  default:
+	    break;
+	}
+    }
+#endif
+    return false;
+}
 
 }	// namespace aist_phoxi_camera

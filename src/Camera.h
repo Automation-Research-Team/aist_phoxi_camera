@@ -137,6 +137,7 @@ class Camera
 			      const image_transport::Publisher& publisher);
     void	publish_camera_info(const ros::Time& stamp)		;
     void	publish_color_camera(const ros::Time& stamp)		;
+    bool	source_is_color()				const	;
     const std::string&
 		getName()		const	{ return _nodelet_name; }
     void	profiler_start(int n)
