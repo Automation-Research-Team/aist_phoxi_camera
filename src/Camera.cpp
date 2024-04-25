@@ -1247,6 +1247,17 @@ Camera::trigger_frame(const trigger_req_p, trigger_res_p res)
 		       << _device->HardwareIdentification.GetValue()
 		       << ") trigger_frame: service requested");
 
+    if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::Software)
+    {
+	res.success = true;
+	res.message = "succeded, but device is not in software trigger mode.";
+
+	NODELET_WARN_STREAM('('
+			    << _device->HardwareIdentification.GetValue()
+			    << ") " << res.message);
+	return true;
+    }
+
     const auto	frameId = _device->TriggerFrame(true, true);
 
     RCLCPP_INFO_STREAM(get_logger(), '('
@@ -1545,7 +1556,7 @@ Camera::publish_frame()
 		  1, _frame->EventMap, _event_map_pub);
     profiler_start(5);
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
+    if (_is_color_camera && source_is_color())
 	publish_image(_texture, stamp, image_encodings::RGB8,
 		      _intensityScale, _frame->TextureRGB, _texture_pub);
     else
@@ -1821,5 +1832,41 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
     _broadcaster.sendTransform(tfm);
 }
 #endif
+
+bool
+Camera::source_is_color() const
+{
+#if defined(HAVE_COLOR_CAMERA)
+    if (_is_color_camera)
+    {
+	using namespace	pho::api;
+
+	switch (PhoXiDeviceType::Value(_device->GetType()))
+	{
+	  case PhoXiDeviceType::PhoXiScanner:
+	    return (_device->CapturingSettings->TextureSource ==
+		    PhoXiTextureSource::Color);
+#  if defined(HAVE_MOTIONCAM)
+	  case PhoXiDeviceType::MotionCam3D:
+	    switch (_device->MotionCam->OperationMode)
+	    {
+	      case PhoXiOperationMode::Camera:
+		return (_device->MotionCamCameraMode->TextureSource ==
+			PhoXiTextureSource::Color);
+	      case PhoXiOperationMode::Scanner:
+		return (_device->MotionCamScannerMode->TextureSource ==
+			PhoXiTextureSource::Color);
+	      default:
+		break;
+	    }
+	    break;
+#  endif
+	  default:
+	    break;
+	}
+    }
+#endif
+    return false;
+}
 
 }	// namespace aist_phoxi_camera
