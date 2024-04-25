@@ -40,11 +40,10 @@
 #include <array>
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/Trigger.h>
+#include <std_srvs/srv/trigger.hpp>
 #include <image_transport/image_transport.hpp>
-#include <sensor_msgs/msgs/PointCloud2.h>
-#include <ddynamic_reconfigure/ddynamic_reconfigure.h>
-#include <tf/transform_broadcaster.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <PhoXi.h>
 
@@ -64,15 +63,21 @@ class Camera : public rclcpp::Node
 {
   private:
     using cloud_t	= sensor_msgs::msg::PointCloud2;
-    using cloud_p	= cloud_t::Ptr;
+    using cloud_p	= cloud_t::SharedPtr;
     using image_t	= sensor_msgs::msg::Image;
-    using image_p	= image_t::Ptr;
-    using cinfo_t	= sensor_msgs::msg::CameraInfo;
-    using cinfo_p	= cinfo_t::Ptr;
-    using trigger_srv_p	= rclcpp::Service<std_srvs::srv::Trigger>::Ptr;
+    using image_p	= image_t::SharedPtr;
+    using camera_info_t	= sensor_msgs::msg::CameraInfo;
+    using camera_info_p	= camera_info_t::SharedPtr;
+    using trigger_t	= std_srvs::srv::Trigger;
+    using trigger_srv_p	= rclcpp::Service<trigger_t>::SharedPtr;
+    using trigger_req_p	= std::shared_ptr<trigger_t::Request>;
+    using trigger_res_p	= std::shared_ptr<trigger_t::Response>;
 #if defined(PROFILE)
     using profiler_t	= TU::Profiler<>;
 #endif
+    template <class MSG>
+    using publisher_p	= std::shared_ptr<rclcpp::Publisher<MSG> >;
+    using broadcaster_t	= tf2_ros::TransformBroadcaster;
 
     enum
     {
@@ -105,20 +110,17 @@ class Camera : public rclcpp::Node
     void	set_member(T& member, T value, const std::string& name)	;
     void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
-    bool	trigger_frame(std_srvs::srv::Trigger::Request&  req,
-			      std_srvs::srv::Trigger::Response& res)	;
-    bool	save_settings(std_srvs::srv::Trigger::Request&  req,
-			      std_srvs::srv::Trigger::Response& res)	
-    bool	restore_settings(std_srvs::srv::Trigger::Request&  req,
-				 std_srvs::srv::Trigger::Response& res)	;
+    bool	trigger_frame(const trigger_req_p, trigger_res_p res)	;
+    bool	save_settings(const trigger_req_p, trigger_res_p res)	;
+    bool	restore_settings(const trigger_req_p, trigger_res_p res);
     template <class T>
-    void	set_image(const image_p& image, const ros::Time& stamp,
+    void	set_image(const image_p& image, const rclcpp::Time& stamp,
 			  const std::string& frame_id,
 			  const std::string& encoding, float scale,
 			  const pho::api::Mat2D<T>& phoxi_image)	;
     void	set_camera_matrix()					;
-    void	set_camera_info(const cinfo_p& cinfo,
-				const ros::Time& stamp,
+    void	set_camera_info(const camera_info_p& camera_info,
+				const rclcpp::Time& stamp,
 				const std::string& frame_id,
 				size_t width, size_t height,
 				const pho::api::CameraMatrix64f& K,
@@ -128,17 +130,15 @@ class Camera : public rclcpp::Node
 				const pho::api::Point3_64f& ry,
 				const pho::api::Point3_64f& rz)		;
     void	publish_frame()						;
-    void	publish_cloud(const ros::Time& stamp,
+    void	publish_cloud(const rclcpp::Time& stamp,
 			      float distanceScale)			;
     template <class T>
-    void	publish_image(const image_p& image, const ros::Time& stamp,
+    void	publish_image(const image_p& image, const rclcpp::Time& stamp,
 			      const std::string& encoding, float scale,
 			      const pho::api::Mat2D<T>& phoxi_image,
 			      const image_transport::Publisher& publisher);
-    void	publish_camera_info(const ros::Time& stamp)		;
-    void	publish_color_camera(const ros::Time& stamp)		;
-    const std::string&
-		getName()		const	{ return _nodelet_name; }
+    void	publish_camera_info(const rclcpp::Time& stamp)		;
+    void	publish_color_camera(const rclcpp::Time& stamp)		;
     void	profiler_start(int n)
 		{
 #if defined(PROFILE)
@@ -171,24 +171,24 @@ class Camera : public rclcpp::Node
     const image_p				_confidence_map;
     const image_p				_event_map;
     const image_p				_texture;
-    const cinfo_p				_cinfo;
+    const camera_info_p				_camera_info;
     const image_p				_color_camera_image;
-    const cinfo_p				_color_camera_cinfo;
+    const camera_info_p				_color_camera_camera_info;
 
-    const trigger_srv_p				_trigger_frame_server;
-    const trigger_srv_p				_save_settings_server;
-    const trigger_srv_p				_restore_settings_server;
+    const trigger_srv_p				_trigger_frame_srv;
+    const trigger_srv_p				_save_settings_srv;
+    const trigger_srv_p				_restore_settings_srv;
 
     image_transport::ImageTransport		_it;
-    const ros::Publisher			_cloud_publisher;
-    const image_transport::Publisher		_normal_map_publisher;
-    const image_transport::Publisher		_depth_map_publisher;
-    const image_transport::Publisher		_confidence_map_publisher;
-    const image_transport::Publisher		_event_map_publisher;
-    const image_transport::Publisher		_texture_publisher;
-    const ros::Publisher			_camera_info_publisher;
-    const image_transport::CameraPublisher	_color_camera_publisher;
-    tf::TransformBroadcaster			_broadcaster;
+    const publisher_p<cloud_t>			_cloud_pub;
+    const image_transport::Publisher		_normal_map_pub;
+    const image_transport::Publisher		_depth_map_pub;
+    const image_transport::Publisher		_confidence_map_pub;
+    const image_transport::Publisher		_event_map_pub;
+    const image_transport::Publisher		_texture_pub;
+    const publisher_p<camera_info_t>		_camera_info_pub;
+    const image_transport::CameraPublisher	_color_camera_pub;
+    broadcaster_t				_broadcaster;
 };
 
 }	// namespace aist_phoxi_camera

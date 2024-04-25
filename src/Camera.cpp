@@ -60,7 +60,9 @@
 
 #include "Camera.h"
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <x86intrin.h>
 
 namespace aist_phoxi_camera
@@ -175,10 +177,10 @@ Camera::Camera(const std::string& node_name,
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(nh.param<std::string>("frame", "sensor")),
-     _color_camera_frame_id(nh.param<std::string>("color_camera_frame",
-						  "color_camera_frame")),
-     _rate(nh.param<double>("rate", 10.0)),
+     _frame_id(declare_parameter<std::string>("frame", "sensor")),
+     _color_camera_frame_id(declare_parameter<std::string>(
+				"color_camera_frame", "color_camera_frame")),
+     _rate(declare_parameter<double>("rate", 10.0)),
      _denseCloud(false),
      _intensityScale(0.5),
      _is_color_camera(false),
@@ -189,38 +191,46 @@ Camera::Camera(const std::string& node_name,
      _confidence_map(new image_t),
      _event_map(new image_t),
      _texture(new image_t),
-     _cinfo(new cinfo_t),
+     _camera_info(new camera_info_t),
      _color_camera_image(new image_t),
-     _color_camera_cinfo(new cinfo_t),
-     _ddr(nh),
-     _trigger_frame_server(creaste_service("trigger_frame",
-					   &Camera::trigger_frame)),
-     _save_settings_server(create_service("save_settings",
-					  &Camera::save_settings)),
-     _restore_settings_server(create_service("restore_settings",
-					     &Camera::restore_settings)),
-     _it(this),
-     _cloud_publisher(create_publisher<cloud_t>("pointcloud",		1)),
-     _normal_map_publisher(    _it.advertise("normal_map",		1)),
-     _depth_map_publisher(     _it.advertise("depth_map",		1)),
-     _confidence_map_publisher(_it.advertise("confidence_map",		1)),
-     _event_map_publisher(     _it.advertise("event_map",		1)),
-     _texture_publisher(       _it.advertise("texture",			1)),
-     _camera_info_publisher(create_publisher<cinfo_t>("camera_info",	1)),
-     _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
-     _broadcaster()
+     _color_camera_camera_info(new camera_info_t),
+     _trigger_frame_srv(create_service<trigger_t>(
+			    "trigger_frame",
+			    std::bind(&Camera::trigger_frame, this,
+				      std::placeholders::_1,
+				      std::placeholders::_2))),
+     _save_settings_srv(create_service<trigger_t>(
+			    "save_settings",
+			    std::bind(&Camera::save_settings, this,
+				      std::placeholders::_1,
+				      std::placeholders::_2))),
+     _restore_settings_srv(create_service<trigger_t>(
+			       "restore_settings",
+			       std::bind(&Camera::restore_settings, this,
+					 std::placeholders::_1,
+					 std::placeholders::_2))),
+     _it(std::make_shared<rclcpp::Node>(this)),
+     _cloud_pub(create_publisher<cloud_t>("pointcloud",		1)),
+     _normal_map_pub(    _it.advertise("normal_map",		1)),
+     _depth_map_pub(     _it.advertise("depth_map",		1)),
+     _confidence_map_pub(_it.advertise("confidence_map",	1)),
+     _event_map_pub(     _it.advertise("event_map",		1)),
+     _texture_pub(       _it.advertise("texture",		1)),
+     _camera_info_pub(create_publisher<camera_info_t>("camera_info",	1)),
+     _color_camera_pub(  _it.advertiseCamera("color/image",	1)),
+     _broadcaster(*this)
 {
     using namespace	pho::api;
 
   // Search for a device with specified ID.
-    auto	id = nh.param<std::string>("id",
-					   "InstalledExamples-basic-example");
+    auto	id = declare_parameter<std::string>(
+			"id", "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
     if (!_factory.isPhoXiControlRunning())
     {
-	RCLCPP_ERROR_STREAM("PhoXiControll is not running.");
+	RCLCPP_ERROR_STREAM(get_logger(), "PhoXiControll is not running.");
 	throw;
     }
 
@@ -232,21 +242,23 @@ Camera::Camera(const std::string& node_name,
 	}
     if (!_device)
     {
-	RCLCPP_ERROR_STREAM("Failed to find camera[" << id << "].");
+	RCLCPP_ERROR_STREAM(get_logger(),
+			    "Failed to find camera[" << id << "].");
 	throw;
     }
 
   // Connect to the device.
     if (!_device->Connect())
     {
-	RCLCPP_ERROR_STREAM("Failed to open camera[" << id << "].");
+	RCLCPP_ERROR_STREAM(get_logger(),
+			    "Failed to open camera[" << id << "].");
 	throw;
     }
 
   // Stop acquisition.
     _device->StopAcquisition();
 
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") Initializing configuration.");
 
@@ -256,7 +268,7 @@ Camera::Camera(const std::string& node_name,
 #endif
 
   // Assure _camera_matrix to be set on the arrival of first frame.
-    _cinfo->width = _cinfo->height = 0;
+    _camera_info->width = _camera_info->height = 0;
 
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
@@ -270,7 +282,7 @@ Camera::Camera(const std::string& node_name,
 	break;
 #endif
       default:
-	RCLCPP_ERROR_STREAM('('
+	RCLCPP_ERROR_STREAM(get_logger(), '('
 			    << _device->HardwareIdentification.GetValue()
 			    << ") Unknown device type["
 			    << std::string(_device->GetType()) << ']');
@@ -279,13 +291,11 @@ Camera::Camera(const std::string& node_name,
 
     setup_ddr_common();
 
-    _ddr.publishServicesTopicsAndUpdateConfigData();
-
   // Start acquisition.
     _device->ClearBuffer();
     _device->StartAcquisition();
 
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") aist_phoxi_camera is active.");
 }
@@ -1115,7 +1125,7 @@ Camera::set_resolution(size_t idx)
     const auto modes = _device->SupportedCapturingModes.GetValue();
     if (idx < modes.size())
 	_device->CapturingMode = modes[idx];
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set resolution to "
 		       << _device->CapturingMode.GetValue().Resolution.Width
@@ -1137,7 +1147,7 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     auto&	f = _device.operator ->()->*feature;
     f.SetValue(value);
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set " << f.GetName() << " to " << f.GetValue());
 
@@ -1162,7 +1172,7 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     auto	val = f.GetValue();
     val.*field = value;
     f.SetValue(val);
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set " << f.GetName() << "::" << field_name
 		       << " to "   << f.GetValue().*field);
@@ -1179,7 +1189,7 @@ template <class T> void
 Camera::set_member(T& member, T value, const std::string& name)
 {
     member = value;
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set " << name << " to " << member);
 }
@@ -1196,7 +1206,7 @@ Camera::set_color_resolution(size_t idx)
     if (idx < modes.size())
     {
 	_device->CapturingMode = modes[idx];
-	RCLCPP_INFO_STREAM('('
+	RCLCPP_INFO_STREAM(get_logger(), '('
 			   << _device->HardwareIdentification.GetValue()
 			   << ") set color resolution to "
 			   << _device->ColorSettings->CapturingMode
@@ -1221,7 +1231,7 @@ Camera::set_white_balance_preset(const std::string& preset)
     white_balance.Preset		    = preset;
     white_balance.ComputeCustomWhiteBalance = false;
     _device->ColorSettings->WhiteBalance = white_balance;
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set white balande to "
 		       << _device->ColorSettings->WhiteBalance.Preset);
@@ -1229,135 +1239,132 @@ Camera::set_white_balance_preset(const std::string& preset)
 #endif
 
 bool
-Camera::trigger_frame(std_srvs::srv::Trigger::Request&  req,
-		      std_srvs::srv::Trigger::Response& res)
+Camera::trigger_frame(const trigger_req_p, trigger_res_p res)
 {
     using namespace	pho::api;
 
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") trigger_frame: service requested");
 
     const auto	frameId = _device->TriggerFrame(true, true);
 
-    RCLCPP_INFO_STREAM('('
+    RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") trigger_frame: triggered");
 
     switch (frameId)
     {
       case -1:
-	res.success = false;
-	res.message = "failed. [TriggerFrame not accepted]";
+	res->success = false;
+	res->message = "failed. [TriggerFrame not accepted]";
 	break;
       case -2:
-	res.success = false;
-	res.message = "failed. [device is not running]";
+	res->success = false;
+	res->message = "failed. [device is not running]";
 	break;
       case -3:
-	res.success = false;
-	res.message = "failed. [communication error]";
+	res->success = false;
+	res->message = "failed. [communication error]";
 	break;
       case -4:
-	res.success = false;
-	res.message = "failed. [WaitForGrabbingEnd is not supported]";
+	res->success = false;
+	res->message = "failed. [WaitForGrabbingEnd is not supported]";
 	break;
       default:
 	if (!(_frame = _device->GetSpecificFrame(frameId,
 						 PhoXiTimeout::Infinity)))
 	{
-	    res.success = false;
-	    res.message = "failed. [not found frame #"
-			+ std::to_string(frameId) + ']';
+	    res->success = false;
+	    res->message = "failed. [not found frame #"
+			 + std::to_string(frameId) + ']';
 	    break;
 	}
 
-	RCLCPP_INFO_STREAM('('
+	RCLCPP_INFO_STREAM(get_logger(), '('
 			   << _device->HardwareIdentification.GetValue()
 			   << ") trigger_frame: frame got");
 
 	if (_frame->Info.FrameIndex != uint64_t(frameId))
 	{
-	    res.success = false;
-	    res.message = "failed. [triggered frame(#"
-			+ std::to_string(frameId)
-			+ ") is not captured frame(#"
-			+ std::to_string(_frame->Info.FrameIndex)
-			+ ")]";
+	    res->success = false;
+	    res->message = "failed. [triggered frame(#"
+			 + std::to_string(frameId)
+			 + ") is not captured frame(#"
+			 + std::to_string(_frame->Info.FrameIndex)
+			 + ")]";
 	    break;
 	}
 
 	publish_frame();	// publish
-	res.success = true;
-	res.message = "succeeded. [frame #" + std::to_string(frameId) + ']';
+	res->success = true;
+	res->message = "succeeded. [frame #" + std::to_string(frameId) + ']';
 	break;
     }
 
-    if (res.success)
-	RCLCPP_INFO_STREAM('('
+    if (res->success)
+	RCLCPP_INFO_STREAM(get_logger(), '('
 			   << _device->HardwareIdentification.GetValue()
 			   << ") trigger_frame: "
-			   << res.message);
+			   << res->message);
     else
-	RCLCPP_ERROR_STREAM('('
+	RCLCPP_ERROR_STREAM(get_logger(), '('
 			    << _device->HardwareIdentification.GetValue()
 			    << ") trigger_frame: "
-			    << res.message);
+			    << res->message);
 
     return true;
 }
 
 bool
-Camera::save_settings(std_srvs::srv::Trigger::Request&  req,
-		      std_srvs::srv::Trigger::Response& res)
+Camera::save_settings(const trigger_req_p, trigger_res_p res)
 {
-    res.success = _device->SaveSettings();
+    res->success = _device->SaveSettings();
 
-    if (res.success)
+    if (res->success)
     {
-	res.message = "succesfully saved settings";
-	RCLCPP_INFO_STREAM('('
+	res->message = "succesfully saved settings";
+	RCLCPP_INFO_STREAM(get_logger(), '('
 			   << _device->HardwareIdentification.GetValue()
 			   << ") save_settings: "
-			   << res.message);
+			   << res->message);
     }
     else
     {
-	res.message = "failed to save settings";
-	RCLCPP_ERROR_STREAM('('
+	res->message = "failed to save settings";
+	RCLCPP_ERROR_STREAM(get_logger(), '('
 			    << _device->HardwareIdentification.GetValue()
 			    << ") save_settings: "
-			    << res.message);
+			    << res->message);
     }
 
     return true;
 }
 
 bool
-Camera::restore_settings(std_srvs::srv::Trigger::Request&  req,
-			 std_srvs::srv::Trigger::Response& res)
+Camera::restore_settings(const trigger_req_p, trigger_res_p res)
 {
     const auto acq = _device->isAcquiring();
     if (acq)
 	_device->StopAcquisition();
 
-    res.success = _device->ResetActivePreset();
+    res->success = _device->ResetActivePreset();
 
-    if (res.success)
+    if (res->success)
     {
-	res.message = "succesfully restored settings.";
-	RCLCPP_INFO_STREAM('('
+	res->message = "succesfully restored settings.";
+	RCLCPP_INFO_STREAM(get_logger(), '('
 			   << _device->HardwareIdentification.GetValue()
 			   << ") restore_settings: "
-			   << res.message);
+			   << res->message);
     }
     else
     {
-	res.message = "failed to restore settings.";
-	RCLCPP_ERROR_STREAM('('
+	res->message = "failed to restore settings.";
+	RCLCPP_ERROR_STREAM(get_logger(), '('
 			    << _device->HardwareIdentification.GetValue()
 			    << ") restore_settings: "
-			    << res.message);
+			    << res->message);
     }
 
     _device->ClearBuffer();
@@ -1369,7 +1376,7 @@ Camera::restore_settings(std_srvs::srv::Trigger::Request&  req,
 
 template <class T> void
 Camera::set_image(const image_p& image,
-		  const ros::Time& stamp, const std::string& frame_id,
+		  const rclcpp::Time& stamp, const std::string& frame_id,
 		  const std::string& encoding, float scale,
 		  const pho::api::Mat2D<T>& phoxi_image)
 {
@@ -1377,7 +1384,7 @@ Camera::set_image(const image_p& image,
     using		element_ptr = const typename T::ElementChannelType*;
 
     image->header.stamp    = stamp;
-    image->header.frame_id = _frame_id;
+    image->header.frame_id = frame_id;
     image->encoding	   = encoding;
     image->is_bigendian    = 0;
     image->height	   = phoxi_image.Size.Height;
@@ -1398,7 +1405,7 @@ Camera::set_image(const image_p& image,
 	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
     else
     {
-	RCLCPP_ERROR_STREAM("Unsupported image type!");
+	RCLCPP_ERROR_STREAM(get_logger(), "Unsupported image type!");
 	throw;
     }
 }
@@ -1434,8 +1441,8 @@ Camera::set_camera_matrix()
 }
 
 void
-Camera::set_camera_info(const cinfo_p& cinfo,
-			const ros::Time& stamp, const std::string& frame_id,
+Camera::set_camera_info(const camera_info_p& camera_info,
+			const rclcpp::Time& stamp, const std::string& frame_id,
 			size_t width, size_t height,
 			const pho::api::CameraMatrix64f& K,
 			const std::vector<double>& D,
@@ -1445,79 +1452,79 @@ Camera::set_camera_info(const cinfo_p& cinfo,
 			const pho::api::Point3_64f& rz)
 {
   // Set header.
-    cinfo->header.stamp	   = stamp;
-    cinfo->header.frame_id = frame_id;
+    camera_info->header.stamp	   = stamp;
+    camera_info->header.frame_id = frame_id;
 
   // Set size.
-    cinfo->width  = width;
-    cinfo->height = height;
+    camera_info->width  = width;
+    camera_info->height = height;
 
   // Set distortion parameters.
-    cinfo->distortion_model = "plumb_bob";
-    cinfo->D.resize(5);
-    std::fill(std::begin(cinfo->D), std::end(cinfo->D), 0.0);
-    std::copy_n(std::begin(D), std::min(std::size(cinfo->D), std::size(D)),
-    		std::begin(cinfo->D));
+    camera_info->distortion_model = "plumb_bob";
+    camera_info->d.resize(5);
+    std::fill(std::begin(camera_info->d), std::end(camera_info->d), 0.0);
+    std::copy_n(std::begin(D), std::min(std::size(camera_info->d), std::size(D)),
+    		std::begin(camera_info->d));
 
   // Set intrinsic parameters.
-    cinfo->K[0] = K[0][0];
-    cinfo->K[1] = K[0][1];
-    cinfo->K[2] = K[0][2];
-    cinfo->K[3] = K[1][0];
-    cinfo->K[4] = K[1][1];
-    cinfo->K[5] = K[1][2];
-    cinfo->K[6] = K[2][0];
-    cinfo->K[7] = K[2][1];
-    cinfo->K[8] = K[2][2];
+    camera_info->k[0] = K[0][0];
+    camera_info->k[1] = K[0][1];
+    camera_info->k[2] = K[0][2];
+    camera_info->k[3] = K[1][0];
+    camera_info->k[4] = K[1][1];
+    camera_info->k[5] = K[1][2];
+    camera_info->k[6] = K[2][0];
+    camera_info->k[7] = K[2][1];
+    camera_info->k[8] = K[2][2];
 
   // Set rotation matrix.
-    cinfo->R[0] = rx.x;
-    cinfo->R[1] = rx.y;
-    cinfo->R[2] = rx.z;
-    cinfo->R[3] = ry.x;
-    cinfo->R[4] = ry.y;
-    cinfo->R[5] = ry.z;
-    cinfo->R[6] = rz.x;
-    cinfo->R[7] = rz.y;
-    cinfo->R[8] = rz.z;
+    camera_info->r[0] = rx.x;
+    camera_info->r[1] = rx.y;
+    camera_info->r[2] = rx.z;
+    camera_info->r[3] = ry.x;
+    camera_info->r[4] = ry.y;
+    camera_info->r[5] = ry.z;
+    camera_info->r[6] = rz.x;
+    camera_info->r[7] = rz.y;
+    camera_info->r[8] = rz.z;
 
   // Set 3x4 camera matrix.
     constexpr double	scale = 0.001;		// milimeters ==> meters
     const double	T[] = {scale * t.x, scale * t.y, scale * t.z};
     for (int i = 0; i < 3; ++i)
     {
-	cinfo->P[4*i + 3] = 0;
+	camera_info->p[4*i + 3] = 0;
 
 	for (int j = 0; j < 3; ++j)
 	{
-	    cinfo->P[4*i + j] = 0;
+	    camera_info->p[4*i + j] = 0;
 
 	    for (int k = 0; k < 3; ++k)
-		cinfo->P[4*i + j] += cinfo->K[3*i + k] * cinfo->R[3*k + j];
+		camera_info->p[4*i + j] += camera_info->k[3*i + k] * camera_info->r[3*k + j];
 
-	    cinfo->P[4*i + 3] -= cinfo->P[4*i + j] * T[j];
+	    camera_info->p[4*i + 3] -= camera_info->p[4*i + j] * T[j];
 	}
     }
 
   // No binning
-    cinfo->binning_x = cinfo->binning_y = 0;
+    camera_info->binning_x = camera_info->binning_y = 0;
 
   // ROI is same as entire image.
-    cinfo->roi.width = cinfo->roi.height = 0;
+    camera_info->roi.width = camera_info->roi.height = 0;
 }
 
 void
 Camera::publish_frame()
 {
     using	namespace sensor_msgs;
+    using	duration_t = std::chrono::duration<double, std::milli>;
 
   // Common setting.
-    const auto	stamp = ros::Time::now();
-		      - ros::Duration((_frame->Info.FrameDuration +
-				       _frame->Info.FrameComputationDuration +
-				       _frame->Info.FrameTransferDuration)
-				      * 0.001);
-    
+    const auto	stamp = get_clock()->now()
+		      - duration_t(_frame->Info.FrameDuration +
+				   _frame->Info.FrameComputationDuration +
+				   _frame->Info.FrameTransferDuration);
+
   // Publish point cloud.
     profiler_start(0);
     constexpr float	distanceScale = 0.001;	// milimeters -> meters
@@ -1526,25 +1533,25 @@ Camera::publish_frame()
   // Publish normal_map, depth_map, confidence_map, event_map and texture.
     profiler_start(1);
     publish_image(_normal_map, stamp, image_encodings::TYPE_32FC3,
-		  1, _frame->NormalMap, _normal_map_publisher);
+		  1, _frame->NormalMap, _normal_map_pub);
     profiler_start(2);
     publish_image(_depth_map, stamp, image_encodings::TYPE_32FC1,
-		  distanceScale, _frame->DepthMap, _depth_map_publisher);
+		  distanceScale, _frame->DepthMap, _depth_map_pub);
     profiler_start(3);
     publish_image(_confidence_map, stamp, image_encodings::TYPE_32FC1,
-		  1, _frame->ConfidenceMap, _confidence_map_publisher);
+		  1, _frame->ConfidenceMap, _confidence_map_pub);
     profiler_start(4);
     publish_image(_event_map, stamp, image_encodings::TYPE_32FC1,
-		  1, _frame->EventMap, _event_map_publisher);
+		  1, _frame->EventMap, _event_map_pub);
     profiler_start(5);
 #if defined(HAVE_COLOR_CAMERA)
     if (_is_color_camera)
 	publish_image(_texture, stamp, image_encodings::RGB8,
-		      _intensityScale, _frame->TextureRGB, _texture_publisher);
+		      _intensityScale, _frame->TextureRGB, _texture_pub);
     else
 #endif
 	publish_image(_texture, stamp, image_encodings::MONO8,
-		      _intensityScale, _frame->Texture, _texture_publisher);
+		      _intensityScale, _frame->Texture, _texture_pub);
 
   // Publish camera_info.
     profiler_start(6);
@@ -1558,20 +1565,20 @@ Camera::publish_frame()
 #endif
 
     profiler_print(std::cerr);
-    RCLCPP_DEBUG_STREAM('('
+    RCLCPP_DEBUG_STREAM(get_logger(), '('
 			 << _device->HardwareIdentification.GetValue()
 			 << ") frame published [#"
 			 << _frame->Info.FrameIndex << ']');
 }
 
 void
-Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
+Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
 {
     using namespace	sensor_msgs;
+    using PointField =  sensor_msgs::msg::PointField;
 
     const auto&	phoxi_cloud = _frame->PointCloud;
-    if (_cloud_publisher.getNumSubscribers() == 0 ||
-    	!_device->OutputSettings->SendPointCloud || phoxi_cloud.Empty())
+    if (!_device->OutputSettings->SendPointCloud || phoxi_cloud.Empty())
 	return;
 
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
@@ -1705,7 +1712,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
     {
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
-	    RCLCPP_ERROR_STREAM('('
+	    RCLCPP_ERROR_STREAM(get_logger(), '('
 				<< _device->HardwareIdentification.GetValue()
 				<< ") normals_estimation_radius must be positive");
 	    return;
@@ -1731,11 +1738,11 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale)
 	}
     }
 
-    _cloud_publisher.publish(_cloud);
+    _cloud_pub->publish(*_cloud);
 }
 
 template <class T> void
-Camera::publish_image(const image_p& image, const ros::Time& stamp,
+Camera::publish_image(const image_p& image, const rclcpp::Time& stamp,
 		      const std::string& encoding, float scale,
 		      const pho::api::Mat2D<T>& phoxi_image,
 		      const image_transport::Publisher& publisher)
@@ -1748,21 +1755,18 @@ Camera::publish_image(const image_p& image, const ros::Time& stamp,
 }
 
 void
-Camera::publish_camera_info(const ros::Time& stamp)
+Camera::publish_camera_info(const rclcpp::Time& stamp)
 {
-    if (_camera_info_publisher.getNumSubscribers() == 0)
-	return;
-
   // We have to extract the camera matrix from
   // _device->CalibrationSettings->CameraMatrix instead of
   // _frame->Info.CameraMatrix because the latter becomes empty
   // for non-reqular pointclooud topology. As accessing the former
   // is time-consuming, the extracted matrix is cached.
-    if (_frame->DepthMap.Size.Width  != int(_cinfo->width) ||
-    	_frame->DepthMap.Size.Height != int(_cinfo->height))
+    if (_frame->DepthMap.Size.Width  != int(_camera_info->width) ||
+    	_frame->DepthMap.Size.Height != int(_camera_info->height))
     	set_camera_matrix();
 
-    set_camera_info(_cinfo, stamp, _frame_id,
+    set_camera_info(_camera_info, stamp, _frame_id,
 		    _frame->DepthMap.Size.Width,
 		    _frame->DepthMap.Size.Height,
 		    _camera_matrix,
@@ -1771,20 +1775,20 @@ Camera::publish_camera_info(const ros::Time& stamp)
 		    _frame->Info.SensorXAxis,
 		    _frame->Info.SensorYAxis,
 		    _frame->Info.SensorZAxis);
-    _camera_info_publisher.publish(_cinfo);
+    _camera_info_pub->publish(*_camera_info);
 }
 
 #if defined(HAVE_COLOR_CAMERA)
 void
-Camera::publish_color_camera(const ros::Time& stamp)
+Camera::publish_color_camera(const rclcpp::Time& stamp)
 {
-    if (_color_camera_publisher.getNumSubscribers() == 0)
+    if (_color_camera_pub.getNumSubscribers() == 0)
 	return;
 
     set_image(_color_camera_image, stamp, _color_camera_frame_id,
 	      sensor_msgs::image_encodings::RGB8, _intensityScale,
 	      _frame->ColorCameraImage);
-    set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
+    set_camera_info(_color_camera_camera_info, stamp, _color_camera_frame_id,
 		    _frame->ColorCameraImage.Size.Width,
 		    _frame->ColorCameraImage.Size.Height,
 		    _frame->Info.ColorCameraMatrix,
@@ -1793,24 +1797,28 @@ Camera::publish_color_camera(const ros::Time& stamp)
 		    _frame->Info.ColorCameraXAxis,
 		    _frame->Info.ColorCameraYAxis,
 		    _frame->Info.ColorCameraZAxis);
-    _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
+    _color_camera_pub.publish(_color_camera_image, _color_camera_camera_info);
 
     const double	scale = 0.001;		// milimeters ==> meters
-    const tf::Vector3	t(scale * _frame->Info.ColorCameraPosition.x,
-			  scale * _frame->Info.ColorCameraPosition.y,
-			  scale * _frame->Info.ColorCameraPosition.z);
-    const tf::Matrix3x3	R(_frame->Info.ColorCameraXAxis.x,
-			  _frame->Info.ColorCameraYAxis.x,
-			  _frame->Info.ColorCameraZAxis.x,
-			  _frame->Info.ColorCameraXAxis.y,
-			  _frame->Info.ColorCameraYAxis.y,
-			  _frame->Info.ColorCameraZAxis.y,
-			  _frame->Info.ColorCameraXAxis.z,
-			  _frame->Info.ColorCameraYAxis.z,
-			  _frame->Info.ColorCameraZAxis.z);
-    _broadcaster.sendTransform(tf::StampedTransform(tf::Transform(R, t),
-						    stamp, _frame_id,
-						    _color_camera_frame_id));
+    geometry_msgs::msg::TransformStamped	tfm;
+    tfm.transform	= tf2::toMsg(
+			    tf2::Transform(
+				{_frame->Info.ColorCameraXAxis.x,
+				 _frame->Info.ColorCameraYAxis.x,
+				 _frame->Info.ColorCameraZAxis.x,
+				 _frame->Info.ColorCameraXAxis.y,
+				 _frame->Info.ColorCameraYAxis.y,
+				 _frame->Info.ColorCameraZAxis.y,
+				 _frame->Info.ColorCameraXAxis.z,
+				 _frame->Info.ColorCameraYAxis.z,
+				 _frame->Info.ColorCameraZAxis.z},
+				{scale * _frame->Info.ColorCameraPosition.x,
+				 scale * _frame->Info.ColorCameraPosition.y,
+				 scale * _frame->Info.ColorCameraPosition.z}));
+    tfm.header.stamp	= stamp;
+    tfm.header.frame_id = _frame_id;
+    tfm.child_frame_id	= _color_camera_frame_id;
+    _broadcaster.sendTransform(tfm);
 }
 #endif
 

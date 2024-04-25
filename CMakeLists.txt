@@ -1,30 +1,21 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(aist_phoxi_camera)
 
-## Compile as C++17 code
-enable_language(CXX)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-set(CMAKE_CXX_STANDARD		17)
-set(CMAKE_CXX_STANDARD_REQUIRED	ON)
-set(CMAKE_CXX_EXTENSIONS	OFF)
-set(CMAKE_CXX_FLAGS		"-Wall -O3 -DNDEBUG -mavx2 -DAVX2 -Wunknown-pragmas")
-set(CMAKE_CXX_FLAGS_RELEASE	"")
-set(CMAKE_CXX_FLAGS_DEBUG	"-g -DPROFILE")
-set(CMAKE_CXX_BUILD_TYPE	Release)
-
-find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
+# find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
 find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(common_interfaces REQUIRED)
 find_package(image_transport REQUIRED)
-find_package(ddynamic_reconfigure REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-
-ament_include_directories(
-  ${PHOXI_INCLUDE_DIRS}
-)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
@@ -33,6 +24,16 @@ add_library(
   ${PROJECT_NAME} SHARED
     src/Camera.cpp
     src/nodelet.cpp
+)
+
+target_compile_features(
+  ${PROJECT_NAME} PUBLIC
+    c_std_99 cxx_std_17)  # Require C99 and C++17
+
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_compile_definitions(
@@ -44,6 +45,11 @@ ament_target_dependencies(
   ${PROJECT_NAME}
     rclcpp
     rclcpp_components
+    image_transport
+    sensor_msgs
+    std_srvs
+    tf2_ros
+    tf2_geometry_msgs
 )
 
 rclcpp_components_register_nodes(
@@ -56,24 +62,27 @@ target_link_libraries(
 )
 
 install(
-  TARGETS
-    ${PROJECT_NAME}
-  ARCHIVE
-    DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY
-    DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME
-    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-install(
-  FILES
-    ${PHOXI_LIB_RELEASE_PER_COMPILER}.${PHO_SOFTWARE_VERSION}
-  DESTINATION
-    ${CATKIN_PACKAGE_LIB_DESTINATION}
-)
+install(TARGETS aist_phoxi_camera
+  DESTINATION lib/${PROJECT_NAME})
 
-catkin_install_python(
-  PROGRAMS scripts/check_depth_consistency.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()
