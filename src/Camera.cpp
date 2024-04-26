@@ -373,7 +373,7 @@ Camera::setup_ddr_phoxi()
   // 2.3 CameraOnlyMode
     _ddr.registerVariable<bool>(
 	    "camera_only_mode",
-	    _device->CapturingSettings->AmbientLightSuppression,
+	    _device->CapturingSettings->CameraOnlyMode,
 	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
 			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::CameraOnlyMode, _1,
@@ -504,8 +504,40 @@ Camera::setup_ddr_phoxi()
 			"LEDPower"),
 	    "LED power", 0, 4095, "capturing_settings");
 
+#if defined(HAVE_HARDWARE_TRIGGER)
+  // 2.12 hardware trigger
+    _ddr.registerVariable<bool>(
+	    "hardware_trigger",
+	    _device->CapturingSettings->HardwareTrigger,
+	    boost::bind(&Camera::set_field<PhoXiCapturingSettings, bool>, this,
+			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::HardwareTrigger, _1, false,
+			"HardwareTrigger"),
+	    "Hardware trigger", false, true, "capturing_settings");
+
+#  if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
+  // 2.13 hardware trigger signal
+    const std::map<std::string, int>
+	enum_hardware_trigger_signal =
+	{{"Falling", PhoXiHardwareTriggerSignal::Falling},
+	 {"Rising",  PhoXiHardwareTriggerSignal::Rising},
+	 {"Both",    PhoXiHardwareTriggerSignal::Both}};
+	_ddr.registerEnumVariable<int>(
+    	    "hardware_trigger_signal",
+    	    _device->CapturingSettings->HardwareTriggerSignal,
+    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
+					   PhoXiHardwareTriggerSignal>,
+			this,
+    			&PhoXi::CapturingSettings,
+			&PhoXiCapturingSettings::HardwareTriggerSignal,
+			_1, false,
+			"HardwareTriggerSignal"),
+    	    "Hardware trigger siganl",
+	    enum_hardware_trigger_signal, "", "capturing_settings");
+#  endif
+#endif
 #if defined(HAVE_LED_SHUTTER_MULTIPLIER)
-  // 2.12 LEDShutterMultiplier
+  // 2.14 LEDShutterMultiplier
     _ddr.registerVariable<int>(
 	    "led_shutter_multiplier",
 	    _device->CapturingSettings->LEDShutterMultiplier,
@@ -561,7 +593,6 @@ Camera::setup_ddr_motioncam()
 			false, "LEDPower"),
 	    "LED power",
 	    0, 4095, "motioncam");
-
 #endif
 
   // 1.4 maximum fps
@@ -1015,13 +1046,19 @@ Camera::setup_ddr_common()
 	if (white_balance_presets.size() > 1)
 	{
 	    std::map<std::string, std::string>	enum_presets;
-	    std::string				current_preset = "Custom";
+	    std::string				current_preset = "";
 	    for (const auto& preset : white_balance_presets)
 	    {
 		enum_presets.emplace(preset, preset);
 		if (preset == color_settings.WhiteBalance.Preset)
 		    current_preset = preset;
 	    }
+	    if (current_preset == "")
+	    {
+		current_preset = color_settings.WhiteBalance.Preset;
+		enum_presets.emplace(current_preset, current_preset);
+	    }
+
 	    _ddr.registerEnumVariable<std::string>(
 		"white_balance", current_preset,
 		boost::bind(&Camera::set_white_balance_preset, this, _1),
