@@ -22,7 +22,8 @@ find_package(catkin REQUIRED
     sensor_msgs
     ddynamic_reconfigure
     std_srvs
-    tf
+    tf2
+    tf2_geometry_msgs
     pluginlib
     nodelet
 )

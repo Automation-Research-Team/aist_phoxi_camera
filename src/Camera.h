@@ -44,7 +44,7 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <ddynamic_reconfigure/ddynamic_reconfigure.h>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 #include <PhoXi.h>
 
@@ -104,10 +104,9 @@ class Camera
     template <class T>
     void	set_member(T& member, T value, const std::string& name)	;
     template <class F>
-    void	set_texture_source(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
-				       feature,
-				   pho::api::PhoXiTextureSource
-				       texture_source)			;
+    void	set_texture_source(
+		    pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
+		    pho::api::PhoXiTextureSource texture_source)	;
     void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,
@@ -169,7 +168,6 @@ class Camera
     const double				_rate;
     double					_intensity_scale;
     bool					_dense_cloud;
-    bool					_has_color_camera;
     bool					_color_texture_source;
     pho::api::CameraMatrix64f			_camera_matrix;
 
@@ -198,7 +196,7 @@ class Camera
     const image_transport::Publisher		_texture_publisher;
     const ros::Publisher			_camera_info_publisher;
     const image_transport::CameraPublisher	_color_camera_publisher;
-    tf2_ros::TransformBroadcaster		_broadcaster;
+    tf2_ros::StaticTransformBroadcaster		_static_broadcaster;
 };
 
 }	// namespace aist_phoxi_camera

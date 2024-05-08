@@ -184,7 +184,6 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _rate(nh.param<double>("rate", 20.0)),
      _intensity_scale(0.5),
      _dense_cloud(false),
-     _has_color_camera(false),
      _color_texture_source(false),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _cloud(new cloud_t),
@@ -213,7 +212,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _texture_publisher(       _it.advertise("texture",			1)),
      _camera_info_publisher(    nh.advertise<cinfo_t>("camera_info",	1)),
      _color_camera_publisher(  _it.advertiseCamera("color/image",	1)),
-     _broadcaster()
+     _static_broadcaster()
 {
     using namespace	pho::api;
 
@@ -949,8 +948,6 @@ Camera::setup_ddr_common()
 #if defined(HAVE_COLOR_CAMERA)
     if (_device->SupportedColorCapturingModes->size() > 0)
     {
-	_has_color_camera = true;
-
       // 4. ColorSettings
 	const auto	color_settings = _device->ColorSettings.GetValue();
 
@@ -1104,7 +1101,7 @@ Camera::setup_ddr_common()
 			"SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
 #if defined(HAVE_COLOR_CAMERA)
-    if (_has_color_camera)
+    if (_device->SupportedColorCapturingModes->size() > 0)
 	_ddr.registerVariable<bool>(
 	    "send_color_camera_image",
 	    _device->OutputSettings->SendColorCameraImage,
@@ -1532,8 +1529,8 @@ Camera::set_camera_info(const cinfo_p& cinfo,
     cinfo->R[8] = rz.z;
 
   // Set 3x4 camera matrix.
-    constexpr double	scale = 0.001;		// milimeters ==> meters
-    const double	T[] = {scale * t.x, scale * t.y, scale * t.z};
+    constexpr static double	scale = 0.001;	// milimeters ==> meters
+    const double		T[] = {scale * t.x, scale * t.y, scale * t.z};
     for (int i = 0; i < 3; ++i)
     {
 	cinfo->P[4*i + 3] = 0;
@@ -1603,8 +1600,7 @@ Camera::publish_frame()
   // Publish color_camera.
     profiler_start(7);
 #if defined(HAVE_COLOR_CAMERA)
-    if (_has_color_camera)
-	publish_color_camera(stamp);
+    publish_color_camera(stamp);
 #endif
 
     profiler_print(std::cerr);
@@ -1832,42 +1828,53 @@ Camera::publish_camera_info(const ros::Time& stamp)
 void
 Camera::publish_color_camera(const ros::Time& stamp)
 {
-    if (_color_camera_publisher.getNumSubscribers() == 0)
+    if (_color_camera_publisher.getNumSubscribers() == 0 ||
+	!_device->OutputSettings->SendColorCameraImage)
 	return;
 
     set_image(_color_camera_image, stamp, _color_camera_frame_id,
 	      sensor_msgs::image_encodings::RGB8, _intensity_scale,
 	      _frame->ColorCameraImage);
-    set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
-		    _frame->ColorCameraImage.Size.Width,
-		    _frame->ColorCameraImage.Size.Height,
-		    _frame->Info.ColorCameraMatrix,
-		    _frame->Info.ColorCameraDistortionCoefficients,
-		    _frame->Info.ColorCameraPosition,
-		    _frame->Info.ColorCameraXAxis,
-		    _frame->Info.ColorCameraYAxis,
-		    _frame->Info.ColorCameraZAxis);
+
+    if (_frame->ColorCameraImage.Size.Width
+	    != int(_color_camera_cinfo->width) ||
+	_frame->ColorCameraImage.Size.Height
+	    != int(_color_camera_cinfo->height))
+    {
+	set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
+			_frame->ColorCameraImage.Size.Width,
+			_frame->ColorCameraImage.Size.Height,
+			_frame->Info.ColorCameraMatrix,
+			_frame->Info.ColorCameraDistortionCoefficients,
+			_frame->Info.ColorCameraPosition,
+			_frame->Info.ColorCameraXAxis,
+			_frame->Info.ColorCameraYAxis,
+			_frame->Info.ColorCameraZAxis);
+
+	constexpr static double		s = 0.001;  // milimeters ==> meters
+	geometry_msgs::TransformStamped	transform;
+	transform.header.stamp    = stamp;
+	transform.header.frame_id = _frame_id;
+	transform.child_frame_id  = _color_camera_frame_id;
+	transform.transform
+	    = tf2::toMsg(
+		tf2::Transform({_frame->Info.ColorCameraXAxis.x,
+				_frame->Info.ColorCameraYAxis.x,
+				_frame->Info.ColorCameraZAxis.x,
+				_frame->Info.ColorCameraXAxis.y,
+				_frame->Info.ColorCameraYAxis.y,
+				_frame->Info.ColorCameraZAxis.y,
+				_frame->Info.ColorCameraXAxis.z,
+				_frame->Info.ColorCameraYAxis.z,
+				_frame->Info.ColorCameraZAxis.z},
+			       {s * _frame->Info.ColorCameraPosition.x,
+				s * _frame->Info.ColorCameraPosition.y,
+				s * _frame->Info.ColorCameraPosition.z}));
+	_static_broadcaster.sendTransform(transform);
+    }
+
     _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
 
-    constexpr double			s = 0.001;	// milimeters ==> meters
-    geometry_msgs::TransformStamped	transform;
-    transform.header.stamp    = stamp;
-    transform.header.frame_id = _frame_id;
-    transform.child_frame_id  = _color_camera_frame_id;
-    transform.transform
-	= tf2::toMsg(tf2::Transform({_frame->Info.ColorCameraXAxis.x,
-				     _frame->Info.ColorCameraYAxis.x,
-				     _frame->Info.ColorCameraZAxis.x,
-				     _frame->Info.ColorCameraXAxis.y,
-				     _frame->Info.ColorCameraYAxis.y,
-				     _frame->Info.ColorCameraZAxis.y,
-				     _frame->Info.ColorCameraXAxis.z,
-				     _frame->Info.ColorCameraYAxis.z,
-				     _frame->Info.ColorCameraZAxis.z},
-				    {s * _frame->Info.ColorCameraPosition.x,
-				     s * _frame->Info.ColorCameraPosition.y,
-				     s * _frame->Info.ColorCameraPosition.z}));
-    _broadcaster.sendTransform(transform);
 }
 #endif
 }	// namespace aist_phoxi_camera
