@@ -262,11 +262,6 @@ Camera::Camera(const std::string& node_name,
 		       << _device->HardwareIdentification.GetValue()
 		       << ") Initializing configuration.");
 
-#if defined(HAVE_COLOR_CAMERA)
-  // Check if color is supported.
-    _is_color_camera = (_device->SupportedColorCapturingModes->size() > 0);
-#endif
-
   // Assure _camera_matrix to be set on the arrival of first frame.
     _camera_info->width = _camera_info->height = 0;
 
@@ -481,12 +476,8 @@ Camera::setup_ddr_phoxi()
 	_ddr.registerEnumVariable<int>(
     	    "texture_source",
     	    _device->CapturingSettings->TextureSource,
-    	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-					   PhoXiTextureSource>,
-    			this,
-    			&PhoXi::CapturingSettings,
-			&PhoXiCapturingSettings::TextureSource, _1, false,
-			"TextureSource"),
+    	    boost::bind(&Camera::set_texture_source<PhoXiCapturingSettings>,
+    			this, &PhoXi::CapturingSettings, _1),
     	    "Source used for texture image",
 	    enum_texture_source, "", "capturing_settings");
     }
@@ -740,12 +731,8 @@ Camera::setup_ddr_motioncam()
 	_ddr.registerEnumVariable<int>(
     	    "camera_texture_source",
     	    _device->MotionCamCameraMode->TextureSource,
-    	    boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
-					   PhoXiTextureSource>,
-    			this,
-    			&PhoXi::MotionCamCameraMode,
-			&PhoXiMotionCamCameraMode::TextureSource, _1, false,
-			"TextureSource"),
+    	    boost::bind(&Camera::set_texture_source<PhoXiMotionCamCameraMode>,
+    			this, &PhoXi::MotionCamCameraMode, _1),
     	    "Source used for texture image",
 	    enum_texture_source, "", "motioncam_camera_mode");
     }
@@ -827,12 +814,8 @@ Camera::setup_ddr_motioncam()
 	_ddr.registerEnumVariable<int>(
 	    "texture_source",
 	    _device->MotionCamScannerMode->TextureSource,
-	    boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode,
-					   PhoXiTextureSource>,
-			this,
-			&PhoXi::MotionCamScannerMode,
-			&PhoXiMotionCamScannerMode::TextureSource, _1, false,
-			"TextureSource"),
+	    boost::bind(&Camera::set_texture_source<PhoXiMotionCamScannerMode>,
+			this, &PhoXi::MotionCamScannerMode, _1),
 	    "Texture source", enum_texture_source, "",
 	    "motioncam_scanner_mode");
     }
@@ -969,7 +952,7 @@ Camera::setup_ddr_common()
 #endif
 
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
+    if (_device->SupportedColorCapturingModes->size() > 0)
     {
       // 4. ColorSettings
 	const auto	color_settings = _device->ColorSettings.GetValue();
@@ -1124,7 +1107,7 @@ Camera::setup_ddr_common()
 			"SendTexture"),
 	    "Publish texture if set.", false, true, "output_settings");
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
+    if (_device->SupportedColorCapturingModes->size() > 0)
 	_ddr.registerVariable<bool>(
 	    "send_color_camera_image",
 	    _device->OutputSettings->SendColorCameraImage,
@@ -1138,16 +1121,16 @@ Camera::setup_ddr_common()
 
   // 6. Density of the cloud
     _ddr.registerVariable<bool>(
-	    "dense_cloud", _denseCloud,
+	    "dense_cloud", _dense_cloud,
 	    boost::bind(&Camera::set_member<bool>, this,
-			boost::ref(_denseCloud), _1, "dense_cloud"),
+			boost::ref(_dense_cloud), _1, "dense_cloud"),
 	    "Dense cloud if set.", false, true);
 
   // 7. Intensity scale
     _ddr.registerVariable<double>(
-	    "intensity_scale", _intensityScale,
+	    "intensity_scale", _intensity_scale,
 	    boost::bind(&Camera::set_member<double>, this,
-			boost::ref(_intensityScale), _1, "intensity_scale"),
+			boost::ref(_intensity_scale), _1, "intensity_scale"),
 	    "Multiplier for intensity values of published texture",
 	    0.05, 5.0);
 }
@@ -1229,6 +1212,18 @@ Camera::set_member(T& member, T value, const std::string& name)
     RCLCPP_INFO_STREAM(get_logger(), '('
 		       << _device->HardwareIdentification.GetValue()
 		       << ") set " << name << " to " << member);
+}
+
+template <class F> void
+Camera::set_texture_source(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
+			   pho::api::PhoXiTextureSource texture_source)
+{
+    using namespace	pho::api;
+
+    set_field(feature, &F::TextureSource, texture_source, true,
+	      "TextureSource");
+
+    _color_texture_source = (texture_source == PhoXiTextureSource::Color);
 }
 
 #if defined(HAVE_COLOR_CAMERA)
@@ -1537,8 +1532,8 @@ Camera::set_camera_info(const camera_info_p& camera_info,
     camera_info->r[8] = rz.z;
 
   // Set 3x4 camera matrix.
-    constexpr double	scale = 0.001;		// milimeters ==> meters
-    const double	T[] = {scale * t.x, scale * t.y, scale * t.z};
+    constexpr static double	scale = 0.001;	// milimeters ==> meters
+    const double		T[] = {scale * t.x, scale * t.y, scale * t.z};
     for (int i = 0; i < 3; ++i)
     {
 	camera_info->p[4*i + 3] = 0;
@@ -1593,13 +1588,13 @@ Camera::publish_frame()
 		  1, _frame->EventMap, _event_map_pub);
     profiler_start(5);
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera && source_is_color())
+    if (_color_texture_source)
 	publish_image(_texture, stamp, image_encodings::RGB8,
-		      _intensityScale, _frame->TextureRGB, _texture_pub);
+		      _intensity_scale, _frame->TextureRGB, _texture_publisher);
     else
 #endif
 	publish_image(_texture, stamp, image_encodings::MONO8,
-		      _intensityScale, _frame->Texture, _texture_pub);
+		      _intensity_scale, _frame->Texture, _texture_publisher);
 
   // Publish camera_info.
     profiler_start(6);
@@ -1608,8 +1603,7 @@ Camera::publish_frame()
   // Publish color_camera.
     profiler_start(7);
 #if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
-	publish_color_camera(stamp);
+    publish_color_camera(stamp);
 #endif
 
     profiler_print(std::cerr);
@@ -1633,7 +1627,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
     _cloud->header.stamp    = stamp;
     _cloud->header.frame_id = _frame_id;
     _cloud->is_bigendian    = false;
-    _cloud->is_dense	    = _denseCloud;
+    _cloud->is_dense	    = _dense_cloud;
 
     PointCloud2Modifier	modifier(*_cloud);
     if (_device->OutputSettings->SendTexture)
@@ -1714,7 +1708,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
     {
 	PointCloud2Iterator<uint8_t> bgr(*_cloud, "rgb");
 #if defined(HAVE_COLOR_CAMERA)
-	if (_is_color_camera && !_frame->TextureRGB.Empty())
+	if (_color_texture_source)
 	{
 	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	    {
@@ -1726,9 +1720,12 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
 		{
 		    if (!_cloud->is_dense || float(p->z) != 0.0f)
 		    {
-			bgr[0] = uint8_t(std::min(_intensityScale*r->b, 255.0));
-			bgr[1] = uint8_t(std::min(_intensityScale*r->g, 255.0));
-			bgr[2] = uint8_t(std::min(_intensityScale*r->r, 255.0));
+			bgr[0] = uint8_t(std::min(_intensity_scale * r->b,
+						  255.0));
+			bgr[1] = uint8_t(std::min(_intensity_scale * r->g,
+						  255.0));
+			bgr[2] = uint8_t(std::min(_intensity_scale * r->r,
+						  255.0));
 			++bgr;
 		    }
 		}
@@ -1748,7 +1745,8 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
 		    if (!_cloud->is_dense || float(p->z) != 0.0f)
 		    {
 			bgr[0] = bgr[1] = bgr[2]
-			       = uint8_t(std::min(_intensityScale*(*r), 255.0));
+			       = uint8_t(std::min(_intensity_scale*(*r),
+						  255.0));
 			++bgr;
 		    }
 		}
@@ -1830,80 +1828,53 @@ Camera::publish_camera_info(const rclcpp::Time& stamp)
 void
 Camera::publish_color_camera(const rclcpp::Time& stamp)
 {
-    if (_color_camera_pub.getNumSubscribers() == 0)
+    if (_color_camera_publisher.getNumSubscribers() == 0 ||
+	!_device->OutputSettings->SendColorCameraImage)
 	return;
 
     set_image(_color_camera_image, stamp, _color_camera_frame_id,
-	      sensor_msgs::image_encodings::RGB8, _intensityScale,
+	      sensor_msgs::image_encodings::RGB8, _intensity_scale,
 	      _frame->ColorCameraImage);
-    set_camera_info(_color_camera_camera_info, stamp, _color_camera_frame_id,
-		    _frame->ColorCameraImage.Size.Width,
-		    _frame->ColorCameraImage.Size.Height,
-		    _frame->Info.ColorCameraMatrix,
-		    _frame->Info.ColorCameraDistortionCoefficients,
-		    _frame->Info.ColorCameraPosition,
-		    _frame->Info.ColorCameraXAxis,
-		    _frame->Info.ColorCameraYAxis,
-		    _frame->Info.ColorCameraZAxis);
-    _color_camera_pub.publish(_color_camera_image, _color_camera_camera_info);
 
-    const double	scale = 0.001;		// milimeters ==> meters
-    geometry_msgs::msg::TransformStamped	tfm;
-    tfm.transform	= tf2::toMsg(
-			    tf2::Transform(
-				{_frame->Info.ColorCameraXAxis.x,
-				 _frame->Info.ColorCameraYAxis.x,
-				 _frame->Info.ColorCameraZAxis.x,
-				 _frame->Info.ColorCameraXAxis.y,
-				 _frame->Info.ColorCameraYAxis.y,
-				 _frame->Info.ColorCameraZAxis.y,
-				 _frame->Info.ColorCameraXAxis.z,
-				 _frame->Info.ColorCameraYAxis.z,
-				 _frame->Info.ColorCameraZAxis.z},
-				{scale * _frame->Info.ColorCameraPosition.x,
-				 scale * _frame->Info.ColorCameraPosition.y,
-				 scale * _frame->Info.ColorCameraPosition.z}));
-    tfm.header.stamp	= stamp;
-    tfm.header.frame_id = _frame_id;
-    tfm.child_frame_id	= _color_camera_frame_id;
-    _broadcaster.sendTransform(tfm);
-}
-#endif
-
-bool
-Camera::source_is_color() const
-{
-#if defined(HAVE_COLOR_CAMERA)
-    if (_is_color_camera)
+    if (_frame->ColorCameraImage.Size.Width
+	    != int(_color_camera_cinfo->width) ||
+	_frame->ColorCameraImage.Size.Height
+	    != int(_color_camera_cinfo->height))
     {
-	using namespace	pho::api;
+	set_camera_info(_color_camera_cinfo, stamp, _color_camera_frame_id,
+			_frame->ColorCameraImage.Size.Width,
+			_frame->ColorCameraImage.Size.Height,
+			_frame->Info.ColorCameraMatrix,
+			_frame->Info.ColorCameraDistortionCoefficients,
+			_frame->Info.ColorCameraPosition,
+			_frame->Info.ColorCameraXAxis,
+			_frame->Info.ColorCameraYAxis,
+			_frame->Info.ColorCameraZAxis);
 
-	switch (PhoXiDeviceType::Value(_device->GetType()))
-	{
-	  case PhoXiDeviceType::PhoXiScanner:
-	    return (_device->CapturingSettings->TextureSource ==
-		    PhoXiTextureSource::Color);
-#  if defined(HAVE_MOTIONCAM)
-	  case PhoXiDeviceType::MotionCam3D:
-	    switch (_device->MotionCam->OperationMode)
-	    {
-	      case PhoXiOperationMode::Camera:
-		return (_device->MotionCamCameraMode->TextureSource ==
-			PhoXiTextureSource::Color);
-	      case PhoXiOperationMode::Scanner:
-		return (_device->MotionCamScannerMode->TextureSource ==
-			PhoXiTextureSource::Color);
-	      default:
-		break;
-	    }
-	    break;
-#  endif
-	  default:
-	    break;
-	}
+	constexpr static double		s = 0.001;  // milimeters ==> meters
+	geometry_msgs::TransformStamped	transform;
+	transform.header.stamp    = stamp;
+	transform.header.frame_id = _frame_id;
+	transform.child_frame_id  = _color_camera_frame_id;
+	transform.transform
+	    = tf2::toMsg(
+		tf2::Transform({_frame->Info.ColorCameraXAxis.x,
+				_frame->Info.ColorCameraYAxis.x,
+				_frame->Info.ColorCameraZAxis.x,
+				_frame->Info.ColorCameraXAxis.y,
+				_frame->Info.ColorCameraYAxis.y,
+				_frame->Info.ColorCameraZAxis.y,
+				_frame->Info.ColorCameraXAxis.z,
+				_frame->Info.ColorCameraYAxis.z,
+				_frame->Info.ColorCameraZAxis.z},
+			       {s * _frame->Info.ColorCameraPosition.x,
+				s * _frame->Info.ColorCameraPosition.y,
+				s * _frame->Info.ColorCameraPosition.z}));
+	_static_broadcaster.sendTransform(transform);
     }
-#endif
-    return false;
-}
 
+    _color_camera_publisher.publish(_color_camera_image, _color_camera_cinfo);
+
+}
+#endif
 }	// namespace aist_phoxi_camera
