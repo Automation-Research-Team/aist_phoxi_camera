@@ -16,6 +16,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(ddynamic_reconfigure2 REQUIRED)
 
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
@@ -23,7 +24,6 @@ add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 add_library(
   ${PROJECT_NAME} SHARED
     src/Camera.cpp
-    src/nodelet.cpp
 )
 
 target_compile_features(
@@ -50,6 +50,7 @@ ament_target_dependencies(
     std_srvs
     tf2_ros
     tf2_geometry_msgs
+    ddynamic_reconfigure2
 )
 
 rclcpp_components_register_nodes(
@@ -63,13 +64,7 @@ target_link_libraries(
 
 install(
   TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-install(TARGETS aist_phoxi_camera
-  DESTINATION lib/${PROJECT_NAME})
+  DESTINATION lib)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
