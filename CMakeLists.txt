@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.8)
 project(aist_phoxi_camera)
 
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -20,15 +26,14 @@ find_package(ddynamic_reconfigure2 REQUIRED)
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
 
+########################################
+#  component: libaist_phoxi_camera.so  #
+########################################
 add_library(
-  ${PROJECT_NAME} SHARED
+  ${PROJECT_NAME}
+  SHARED
     src/Camera.cpp
 )
-
-target_compile_features(
-  ${PROJECT_NAME}
-  PUBLIC
-    c_std_99 cxx_std_17)  # Require C99 and C++17
 
 target_include_directories(
   ${PROJECT_NAME}
@@ -39,12 +44,12 @@ target_include_directories(
 
 target_compile_definitions(
   ${PROJECT_NAME}
-  PRIVATE COMPOSITION_BUILDING_DLL
+  PRIVATE
+    COMPOSITION_BUILDING_DLL
 )
 
 ament_target_dependencies(
   ${PROJECT_NAME}
-    rclcpp
     rclcpp_components
     image_transport
     sensor_msgs
@@ -54,10 +59,6 @@ ament_target_dependencies(
     ddynamic_reconfigure2
 )
 
-rclcpp_components_register_nodes(
-  ${PROJECT_NAME} ${PROJECT_NAME}::Camera
-)
-
 target_link_libraries(
   ${PROJECT_NAME}
     ${PHOXI_LIBRARY}
@@ -65,8 +66,16 @@ target_link_libraries(
 
 install(
   TARGETS ${PROJECT_NAME}
-  DESTINATION lib)
+  DESTINATION lib
+)
 
+rclcpp_components_register_nodes(
+  ${PROJECT_NAME} ${PROJECT_NAME}::Camera
+)
+
+##########
+#  test  #
+##########
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
 
