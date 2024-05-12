@@ -9,7 +9,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
 find_package(rclcpp_components REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(common_interfaces REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -27,11 +26,13 @@ add_library(
 )
 
 target_compile_features(
-  ${PROJECT_NAME} PUBLIC
+  ${PROJECT_NAME}
+  PUBLIC
     c_std_99 cxx_std_17)  # Require C99 and C++17
 
 target_include_directories(
-  ${PROJECT_NAME} PUBLIC
+  ${PROJECT_NAME}
+  PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )

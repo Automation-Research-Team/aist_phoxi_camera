@@ -59,7 +59,6 @@
 #endif
 
 #include "Camera.h"
-#include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -1750,5 +1749,7 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 }
 #endif
 }	// namespace aist_phoxi_camera
+
+#include <rclcpp_components/register_node_macro.hpp>
 
 RCLCPP_COMPONENTS_REGISTER_NODE(aist_phoxi_camera::Camera)
