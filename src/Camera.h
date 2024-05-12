@@ -70,14 +70,14 @@ class Camera : public rclcpp::Node
     using camera_info_p		 = camera_info_t::SharedPtr;
     using trigger_t		 = std_srvs::srv::Trigger;
     using trigger_srv_p		 = rclcpp::Service<trigger_t>::SharedPtr;
-    using trigger_req_p		 = std::shared_ptr<trigger_t::Request>;
-    using trigger_res_p		 = std::shared_ptr<trigger_t::Response>;
+    using trigger_req_p		 = trigger_t::Request::SharedPtr;
+    using trigger_res_p		 = trigger_t::Response::SharedPtr;
     using ddynamic_reconfigure_t = ddynamic_reconfigure2::DDynamicReconfigure;
 #if defined(PROFILE)
     using profiler_t		 = TU::Profiler<>;
 #endif
     template <class MSG>
-    using publisher_p		 = std::shared_ptr<rclcpp::Publisher<MSG> >;
+    using publisher_p		 = typename rclcpp::Publisher<MSG>::SharedPtr;
     using broadcaster_t		 = tf2_ros::StaticTransformBroadcaster;
     using timer_p		 = rclcpp::TimerBase::SharedPtr;
 
