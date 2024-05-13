@@ -30,21 +30,18 @@ add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 #  component: libaist_phoxi_camera.so  #
 ########################################
 add_library(
-  ${PROJECT_NAME}
-  SHARED
+  ${PROJECT_NAME} SHARED
     src/Camera.cpp
 )
 
 target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC
+  ${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
 target_compile_definitions(
-  ${PROJECT_NAME}
-  PRIVATE
+  ${PROJECT_NAME} PRIVATE
     COMPOSITION_BUILDING_DLL
 )
 
@@ -66,11 +63,23 @@ target_link_libraries(
 
 install(
   TARGETS ${PROJECT_NAME}
-  DESTINATION lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-rclcpp_components_register_nodes(
-  ${PROJECT_NAME} ${PROJECT_NAME}::Camera
+rclcpp_components_register_node(
+  ${PROJECT_NAME}
+    PLUGIN "${PROJECT_NAME}::Camera"
+    EXECUTABLE ${PROJECT_NAME}_node
+)
+
+##################
+#  launch files  #
+##################
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 ##########
@@ -89,5 +98,8 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# Ament exports
+ament_export_libraries(${PROJECT_NAME})
 
 ament_package()
