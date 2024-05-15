@@ -799,16 +799,17 @@ Camera::setup_ddr_common()
   // 2. Timeout
     if (is_available(_device->Timeout))
     {
-	_ddr.registerEnumVariable<int>(
-	    "timeout",
-	    _device->Timeout.GetValue(),
-	    std::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
-		      &PhoXi::Timeout, _1, false),
-	    "Timeout settings",
-	    {{"ZeroTimeout",	PhoXiTimeout::ZeroTimeout},
-	     {"Infinity",	PhoXiTimeout::Infinity},
-	     {"LastStored",	PhoXiTimeout::LastStored},
-	     {"Default",	PhoXiTimeout::Default}});
+	if (_device->Timeout.GetValue() != PhoXiTimeout::NoValue)
+	    _ddr.registerEnumVariable<int>(
+		"timeout",
+		_device->Timeout.GetValue(),
+		std::bind(&Camera::set_feature<PhoXiTimeout, int>, this,
+			  &PhoXi::Timeout, _1, false),
+		"Timeout settings",
+		{{"ZeroTimeout",	PhoXiTimeout::ZeroTimeout},
+		 {"Infinity",		PhoXiTimeout::Infinity},
+		 {"LastStored",		PhoXiTimeout::LastStored},
+		 {"Default",		PhoXiTimeout::Default}});
     }
 
   // 3, ProcessingSettings
