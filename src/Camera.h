@@ -67,8 +67,8 @@ class Camera
     using cloud_p		 = sensor_msgs::PointCloud2Ptr;
     using image_t		 = sensor_msgs::Image;
     using image_p		 = sensor_msgs::ImagePtr;
-    using cinfo_t		 = sensor_msgs::CameraInfo;
-    using cinfo_p		 = sensor_msgs::CameraInfoPtr;
+    using camera_info_t		 = sensor_msgs::CameraInfo;
+    using camera_info_p		 = sensor_msgs::CameraInfoPtr;
     using ddynamic_reconfigure_t = ddynamic_reconfigure::DDynamicReconfigure;
 #if defined(PROFILE)
     using profiler_t		 = TU::Profiler<>;
@@ -91,6 +91,9 @@ class Camera
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
     void	setup_ddr_common()					;
+    template <class F>
+    bool	is_available(const pho::api::PhoXiFeature<F>& feature)
+								const	;
     void	set_resolution(size_t idx)				;
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
@@ -121,7 +124,7 @@ class Camera
 			  const std::string& encoding, float scale,
 			  const pho::api::Mat2D<T>& phoxi_image)	;
     void	set_camera_matrix()					;
-    void	set_camera_info(const cinfo_p& cinfo,
+    void	set_camera_info(const camera_info_p& camera_info,
 				const ros::Time& stamp,
 				const std::string& frame_id,
 				size_t width, size_t height,
@@ -177,9 +180,9 @@ class Camera
     const image_p				_confidence_map;
     const image_p				_event_map;
     const image_p				_texture;
-    const cinfo_p				_cinfo;
+    const camera_info_p				_camera_info;
     const image_p				_color_camera_image;
-    const cinfo_p				_color_camera_cinfo;
+    const camera_info_p				_color_camera_camera_info;
 
     ddynamic_reconfigure_t			_ddr;
 
@@ -188,14 +191,14 @@ class Camera
     const ros::ServiceServer			_restore_settings_server;
 
     image_transport::ImageTransport		_it;
-    const ros::Publisher			_cloud_publisher;
-    const image_transport::Publisher		_normal_map_publisher;
-    const image_transport::Publisher		_depth_map_publisher;
-    const image_transport::Publisher		_confidence_map_publisher;
-    const image_transport::Publisher		_event_map_publisher;
-    const image_transport::Publisher		_texture_publisher;
-    const ros::Publisher			_camera_info_publisher;
-    const image_transport::CameraPublisher	_color_camera_publisher;
+    const ros::Publisher			_cloud_pub;
+    const image_transport::Publisher		_normal_map_pub;
+    const image_transport::Publisher		_depth_map_pub;
+    const image_transport::Publisher		_confidence_map_pub;
+    const image_transport::Publisher		_event_map_pub;
+    const image_transport::Publisher		_texture_pub;
+    const ros::Publisher			_camera_info_pub;
+    const image_transport::CameraPublisher	_color_camera_pub;
     tf2_ros::StaticTransformBroadcaster		_static_broadcaster;
 };
 
