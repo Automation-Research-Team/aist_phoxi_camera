@@ -339,7 +339,7 @@ Camera::setup_ddr_phoxi()
     }
 
   // 2. CapturingSettings
-    if (is_available(_device->CapturingMode))
+    if (is_available(_device->CapturingSettings))
     {
       // 2.1 ShutterMultiplier
 	_ddr.registerVariable<int>(
@@ -1750,6 +1750,9 @@ Camera::publish_image(const image_p& image, const rclcpp::Time& stamp,
 void
 Camera::publish_camera_info(const rclcpp::Time& stamp)
 {
+    if (_camera_info_pub.getNumSubscribers() == 0)
+	return;
+
   // We have to extract the camera matrix from
   // _device->CalibrationSettings->CameraMatrix instead of
   // _frame->Info.CameraMatrix because the latter becomes empty
