@@ -96,6 +96,9 @@ class Camera : public rclcpp::Node
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
     void	setup_ddr_common()					;
+    template <class F>
+    bool	is_available(const pho::api::PhoXiFeature<F>& feature)
+								const	;
     void	set_resolution(size_t idx)				;
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
