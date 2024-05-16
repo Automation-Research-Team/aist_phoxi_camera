@@ -94,7 +94,6 @@ class Camera
     template <class F>
     bool	is_available(const pho::api::PhoXiFeature<F>& feature)
 								const	;
-    void	set_resolution(size_t idx)				;
     template <class F, class T>
     void	set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::*
 			      feature,
@@ -110,6 +109,7 @@ class Camera
     void	set_texture_source(
 		    pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		    pho::api::PhoXiTextureSource texture_source)	;
+    void	set_resolution(size_t idx)				;
     void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
     bool	trigger_frame(std_srvs::Trigger::Request&  req,

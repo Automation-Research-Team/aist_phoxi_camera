@@ -1121,28 +1121,6 @@ Camera::is_available(const pho::api::PhoXiFeature<F>& feature) const
     return false;
 }
 
-void
-Camera::set_resolution(size_t idx)
-{
-    const auto acq = _device->isAcquiring();
-    if (acq)
-	_device->StopAcquisition();
-
-    const auto modes = _device->SupportedCapturingModes.GetValue();
-    if (idx < modes.size())
-	_device->CapturingMode = modes[idx];
-    NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
-			<< ") set resolution to "
-			<< _device->CapturingMode.GetValue().Resolution.Width
-			<< 'x'
-			<< _device->CapturingMode.GetValue().Resolution.Height);
-
-    _device->ClearBuffer();
-    if (acq)
-	_device->StartAcquisition();
-}
-
 template <class F, class T> void
 Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		    T value, bool suspend)
@@ -1230,6 +1208,28 @@ Camera::set_texture_source(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     _color_texture_source = (texture_source == PhoXiTextureSource::Color);
 }
 
+void
+Camera::set_resolution(size_t idx)
+{
+    const auto acq = _device->isAcquiring();
+    if (acq)
+	_device->StopAcquisition();
+
+    const auto modes = _device->SupportedCapturingModes.GetValue();
+    if (idx < modes.size())
+	_device->CapturingMode = modes[idx];
+    NODELET_INFO_STREAM('('
+			<< _device->HardwareIdentification.GetValue()
+			<< ") set resolution to "
+			<< _device->CapturingMode.GetValue().Resolution.Width
+			<< 'x'
+			<< _device->CapturingMode.GetValue().Resolution.Height);
+
+    _device->ClearBuffer();
+    if (acq)
+	_device->StartAcquisition();
+}
+
 #if defined(HAVE_COLOR_CAMERA)
 void
 Camera::set_color_resolution(size_t idx)
@@ -1260,13 +1260,7 @@ Camera::set_color_resolution(size_t idx)
 void
 Camera::set_white_balance_preset(const std::string& preset)
 {
-    using namespace	pho::api;
-
-    PhoXiWhiteBalance	white_balance;
-    white_balance.Enabled		    = true;
-    white_balance.Preset		    = preset;
-    white_balance.ComputeCustomWhiteBalance = false;
-    _device->ColorSettings->WhiteBalance = white_balance;
+    _device->ColorSettings->WhiteBalance.Preset = preset;
     NODELET_INFO_STREAM('('
 			<< _device->HardwareIdentification.GetValue()
 			<< ") set white balande to "
