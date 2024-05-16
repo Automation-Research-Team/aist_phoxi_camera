@@ -1083,40 +1083,6 @@ Camera::is_available(const pho::api::PhoXiFeature<F>& feature) const
     return false;
 }
 
-void
-Camera::set_resolution(size_t idx)
-{
-    const auto acq = _device->isAcquiring();
-    if (acq)
-	_device->StopAcquisition();
-
-    const auto	modes = _device->SupportedCapturingModes.GetValue();
-    if (idx < modes.size())
-    {
-	_device->CapturingMode = modes[idx];
-
-	if (_device->CapturingMode.isLastOperationSuccessful())
-	    RCLCPP_INFO_STREAM(
-		get_logger(), "set resolution to "
-		<< _device->CapturingMode.GetValue().Resolution.Width
-		<< 'x'
-		<< _device->CapturingMode.GetValue().Resolution.Height);
-	else
-	    RCLCPP_ERROR_STREAM(
-		get_logger(), "failed to set resolution to "
-		<< modes[idx].Resolution.Width << 'x'
-		<< modes[idx].Resolution.Height << ": "
-		<< _device->CapturingMode.GetLastErrorMessage());
-    }
-    else
-	RCLCPP_ERROR_STREAM(get_logger(), "index["
-			    << idx << "] of CapturingMode is out of range");
-
-    _device->ClearBuffer();
-    if (acq)
-	_device->StartAcquisition();
-}
-
 template <class F, class T> void
 Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 		    T value, bool suspend)
@@ -1195,6 +1161,40 @@ Camera::set_texture_source(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
     _color_texture_source = (texture_source == PhoXiTextureSource::Color);
 }
 
+void
+Camera::set_resolution(size_t idx)
+{
+    const auto acq = _device->isAcquiring();
+    if (acq)
+	_device->StopAcquisition();
+
+    const auto	modes = _device->SupportedCapturingModes.GetValue();
+    if (idx < modes.size())
+    {
+	_device->CapturingMode = modes[idx];
+
+	if (_device->CapturingMode.isLastOperationSuccessful())
+	    RCLCPP_INFO_STREAM(
+		get_logger(), "set resolution to "
+		<< _device->CapturingMode.GetValue().Resolution.Width
+		<< 'x'
+		<< _device->CapturingMode.GetValue().Resolution.Height);
+	else
+	    RCLCPP_ERROR_STREAM(
+		get_logger(), "failed to set resolution to "
+		<< modes[idx].Resolution.Width << 'x'
+		<< modes[idx].Resolution.Height << ": "
+		<< _device->CapturingMode.GetLastErrorMessage());
+    }
+    else
+	RCLCPP_ERROR_STREAM(get_logger(), "index["
+			    << idx << "] of CapturingMode is out of range");
+
+    _device->ClearBuffer();
+    if (acq)
+	_device->StartAcquisition();
+}
+
 #if defined(HAVE_COLOR_CAMERA)
 void
 Camera::set_color_resolution(size_t idx)
@@ -1234,14 +1234,8 @@ Camera::set_color_resolution(size_t idx)
 void
 Camera::set_white_balance_preset(const std::string& preset)
 {
-    using namespace	pho::api;
-
-    PhoXiWhiteBalance	white_balance;
-    white_balance.Enabled		    = true;
-    white_balance.Preset		    = preset;
-    white_balance.ComputeCustomWhiteBalance = false;
-    _device->ColorSettings->WhiteBalance = white_balance;
-    RCLCPP_INFO_STREAM(get_logger(), "set white balande to "
+    _device->ColorSettings->WhiteBalance.Preset = preset;
+    RCLCPP_INFO_STREAM(get_logger(), "set white balance to "
 		       << _device->ColorSettings->WhiteBalance.Preset);
 }
 #endif
@@ -1750,9 +1744,6 @@ Camera::publish_image(const image_p& image, const rclcpp::Time& stamp,
 void
 Camera::publish_camera_info(const rclcpp::Time& stamp)
 {
-    if (_camera_info_pub.getNumSubscribers() == 0)
-	return;
-
   // We have to extract the camera matrix from
   // _device->CalibrationSettings->CameraMatrix instead of
   // _frame->Info.CameraMatrix because the latter becomes empty
