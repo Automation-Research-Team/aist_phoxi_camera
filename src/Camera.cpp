@@ -426,7 +426,7 @@ Camera::setup_ddr_phoxi()
 		"coding_strategy",
 		_device->CapturingSettings->CodingStrategy,
 		boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-			    PhoXiCodingStrategy>,
+					       PhoXiCodingStrategy>,
 			    this,
 			    &PhoXi::CapturingSettings,
 			    &PhoXiCapturingSettings::CodingStrategy, _1, false,
@@ -443,7 +443,7 @@ Camera::setup_ddr_phoxi()
 		"coding_quality",
 		_device->CapturingSettings->CodingQuality,
 		boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-			    PhoXiCodingQuality>,
+					       PhoXiCodingQuality>,
 			    this,
 			    &PhoXi::CapturingSettings,
 			    &PhoXiCapturingSettings::CodingQuality, _1, false,
@@ -507,7 +507,7 @@ Camera::setup_ddr_phoxi()
     	    "hardware_trigger_signal",
     	    _device->CapturingSettings->HardwareTriggerSignal,
     	    boost::bind(&Camera::set_field<PhoXiCapturingSettings,
-			PhoXiHardwareTriggerSignal>,
+					   PhoXiHardwareTriggerSignal>,
 			this,
     			&PhoXi::CapturingSettings,
 			&PhoXiCapturingSettings::HardwareTriggerSignal,
@@ -609,7 +609,7 @@ Camera::setup_ddr_motioncam()
     	    "hardware_trigger_signal",
     	    _device->MotionCam->HardwareTriggerSignal,
     	    boost::bind(&Camera::set_field<PhoXiMotionCam,
-			PhoXiHardwareTriggerSignal>,
+					   PhoXiHardwareTriggerSignal>,
 			this,
     			&PhoXi::MotionCam,
 			&PhoXiMotionCam::HardwareTriggerSignal, _1, false,
@@ -628,7 +628,8 @@ Camera::setup_ddr_motioncam()
     {
       // 2.1 exposure
 	std::map<std::string, double>	enum_exposures;
-	for (auto exposure : _device->SupportedSinglePatternExposures.GetValue())
+	for (auto exposure :
+		 _device->SupportedSinglePatternExposures.GetValue())
 	    enum_exposures.emplace(std::to_string(exposure), exposure);
 	_ddr.registerEnumVariable<double>(
 	    "camera_exposure",
@@ -648,7 +649,7 @@ Camera::setup_ddr_motioncam()
 		"sampling_topology",
 		_device->MotionCamCameraMode->SamplingTopology,
 		boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
-			    PhoXiSamplingTopology>,
+					       PhoXiSamplingTopology>,
 			    this,
 			    &PhoXi::MotionCamCameraMode,
 			    &PhoXiMotionCamCameraMode::SamplingTopology, _1,
@@ -664,7 +665,7 @@ Camera::setup_ddr_motioncam()
 		"output_topology",
 		_device->MotionCamCameraMode->OutputTopology,
 		boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
-			    PhoXiOutputTopology>,
+					       PhoXiOutputTopology>,
 			    this,
 			    &PhoXi::MotionCamCameraMode,
 			    &PhoXiMotionCamCameraMode::OutputTopology, _1,
@@ -682,7 +683,7 @@ Camera::setup_ddr_motioncam()
 		"camera_coding_strategy",
 		_device->MotionCamCameraMode->CodingStrategy,
 		boost::bind(&Camera::set_field<PhoXiMotionCamCameraMode,
-			    PhoXiCodingStrategy>,
+					       PhoXiCodingStrategy>,
 			    this,
 			    &PhoXi::MotionCamCameraMode,
 			    &PhoXiMotionCamCameraMode::CodingStrategy, _1,
@@ -741,7 +742,7 @@ Camera::setup_ddr_motioncam()
 		"scanner_coding_strategy",
 		_device->MotionCamScannerMode->CodingStrategy,
 		boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode,
-			    PhoXiCodingStrategy>,
+					       PhoXiCodingStrategy>,
 			    this,
 			    &PhoXi::MotionCamScannerMode,
 			    &PhoXiMotionCamScannerMode::CodingStrategy, _1,
@@ -758,7 +759,7 @@ Camera::setup_ddr_motioncam()
 		"coding_quality",
 		_device->MotionCamScannerMode->CodingQuality,
 		boost::bind(&Camera::set_field<PhoXiMotionCamScannerMode,
-			    PhoXiCodingQuality>,
+					       PhoXiCodingQuality>,
 			    this,
 			    &PhoXi::MotionCamScannerMode,
 			    &PhoXiMotionCamScannerMode::CodingQuality, _1,
@@ -861,7 +862,7 @@ Camera::setup_ddr_common()
 		"surface_smoothness",
 		_device->ProcessingSettings->SurfaceSmoothness,
 		boost::bind(&Camera::set_field<PhoXiProcessingSettings,
-			    PhoXiSurfaceSmoothness>,
+					       PhoXiSurfaceSmoothness>,
 			    this,
 			    &PhoXi::ProcessingSettings,
 			    &PhoXiProcessingSettings::SurfaceSmoothness, _1,
@@ -1079,7 +1080,7 @@ Camera::setup_ddr_common()
 			"SendTexture"),
 	    "Publish texture if set", false, true, "output_settings");
 #if defined(HAVE_COLOR_CAMERA)
-	if (_device->SupportedColorCapturingModes->size() > 0)
+	if (is_available(_device->ColorSettings))
 	    _ddr.registerVariable<bool>(
 		"send_color_camera_image",
 		_device->OutputSettings->SendColorCameraImage,
