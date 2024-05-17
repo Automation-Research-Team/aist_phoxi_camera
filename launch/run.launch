@@ -1,10 +1,9 @@
 <launch>
 
   <arg name="camera_name"		default="phoxi"/>
-  <!-- <arg name="id" default="InstalledExamples-basic-example"/> -->
-  <!-- <arg name="id"		  default='"1711015"'/> -->
-  <arg name="id"			default="2018-09-015-LC3"/>
-  <arg name="trigger_mode"		default="1"/>
+  <arg name="id"			default="InstalledExamples-basic-example"/>
+  <!-- <arg name="id"			default="2018-09-015-LC3"/> -->
+  <arg name="trigger_mode"		default="0"/>
   <arg name="intensity_scale"		default="0.5"/>
   <arg name="frame"			default="$(arg camera_name)_sensor"/>
   <arg name="rate"			default="20"/>
@@ -14,12 +13,11 @@
   <arg name="send_depth_map"		default="true"/>
   <arg name="send_confidence_map"	default="false"/>
   <arg name="send_texture"		default="true"/>
-  <arg name="laser_power"		default="4095"/>
   <arg name="external_manager"		default="false"/>
   <arg name="manager"			default=""/>
   <arg name="nthreads"			default="4"/>
   <arg name="vis"			default="false"/>
-  
+
   <arg if="$(eval manager == '')"	name="command"	value="standalone"/>
   <arg unless="$(eval manager == '')"	name="command"	value="load"/>
 
@@ -43,7 +41,6 @@
     <param name="send_depth_map"	value="$(arg send_depth_map)"/>
     <param name="send_confidence_map"	value="$(arg send_confidence_map)"/>
     <param name="send_texture"		value="$(arg send_texture)"/>
-    <param name="laser_power"		value="$(arg laser_power)"/>
   </node>
 
   <group if="$(arg vis)">
