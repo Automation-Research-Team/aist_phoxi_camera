@@ -176,9 +176,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(declare_parameter<std::string>("frame", "sensor")),
-     _color_camera_frame_id(declare_parameter<std::string>(
-				"color_camera_frame", "color_camera_frame")),
+     _frame_id(declare_read_only_parameter<std::string>("frame", "sensor")),
+     _color_camera_frame_id(declare_read_only_parameter<std::string>(
+				"color_camera_frame", " color_sensor")),
      _dense_cloud(false),
      _intensity_scale(0.5),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
@@ -219,7 +219,8 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_pub(_it.advertiseCamera(fullname() + "/color/image", 1)),
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
-				  declare_parameter<double>("period", 0.1)),
+				  declare_read_only_parameter<double>(
+				      "period", 0.1)),
 			      std::bind(&Camera::tick, this)))
 {
     using namespace	pho::api;

@@ -92,6 +92,9 @@ class Camera : public rclcpp::Node
 		~Camera()						;
 
   private:
+    template <class T>
+    T		declare_read_only_parameter(const std::string& name,
+					    const T& default_value)	;
     std::string	fullname()					const	;
     void	tick()							;
     void	setup_ddr_phoxi()					;
@@ -201,6 +204,21 @@ class Camera : public rclcpp::Node
 
     const timer_p				_timer;
 };
+
+template <class T> T
+Camera::declare_read_only_parameter(const std::string& name,
+				    const T& default_value)
+{
+    auto	desc = ddynamic_reconfigure2::param_range<T>().param_desc();
+    desc.name			= name;
+    desc.read_only		= true;
+    desc.integer_range		= {};
+    desc.floating_point_range	= {};
+    desc.dynamic_typing		= false;
+
+    return declare_parameter<T>(name, default_value, desc);
+
+}
 
 inline std::string
 Camera::fullname() const
