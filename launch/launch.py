@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 
 
 configurable_parameters = [{'name':        'camera_name',
-                            'default':     'a_phoxi_m_camera',
+                            'default':     'phoxi',
                             'description': 'camera unique name'},
                            {'name':        'camera_namespace',
                             'default':     '',

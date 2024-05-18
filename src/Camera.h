@@ -92,6 +92,7 @@ class Camera : public rclcpp::Node
 		~Camera()						;
 
   private:
+    std::string	fullname()					const	;
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
@@ -200,5 +201,11 @@ class Camera : public rclcpp::Node
 
     const timer_p				_timer;
 };
+
+inline std::string
+Camera::fullname() const
+{
+    return get_fully_qualified_name();
+}
 
 }	// namespace aist_phoxi_camera
