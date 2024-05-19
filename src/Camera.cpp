@@ -180,7 +180,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _frame(nullptr),
      _frame_id(nh.param<std::string>("frame", "sensor")),
      _color_camera_frame_id(nh.param<std::string>("color_camera_frame",
-						  "color_camera_frame")),
+						  "color_sensor")),
      _rate(nh.param<double>("rate", 20.0)),
      _intensity_scale(0.5),
      _dense_cloud(false),

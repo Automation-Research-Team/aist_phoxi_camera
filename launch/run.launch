@@ -3,16 +3,19 @@
   <arg name="camera_name"		default="phoxi"/>
   <arg name="id"			default="InstalledExamples-basic-example"/>
   <!-- <arg name="id"			default="2018-09-015-LC3"/> -->
+  <arg name="rate"			default="20"/>
+  <arg name="frame"			default="$(arg camera_name)_sensor"/>
+  <arg name="color_camera_frame"	default="$(arg
+						 camera_name)_color_sensor"/>
   <arg name="trigger_mode"		default="0"/>
   <arg name="intensity_scale"		default="0.5"/>
-  <arg name="frame"			default="$(arg camera_name)_sensor"/>
-  <arg name="rate"			default="20"/>
-  <arg name="point_format"		default="0"/>
   <arg name="send_point_cloud"		default="true"/>
   <arg name="send_normal_map"		default="true"/>
   <arg name="send_depth_map"		default="true"/>
   <arg name="send_confidence_map"	default="false"/>
+  <arg name="send_event_map"		default="false"/>
   <arg name="send_texture"		default="true"/>
+  <arg name="send_color_camera_image"	default="true"/>
   <arg name="external_manager"		default="false"/>
   <arg name="manager"			default=""/>
   <arg name="nthreads"			default="4"/>
@@ -31,16 +34,20 @@
   	args="$(arg command) aist_phoxi_camera/aist_phoxi_camera
 	      $(arg manager)">
     <param name="id"			value="$(arg id)"/>
+    <param name="rate"			value="$(arg rate)"/>
+    <param name="frame"			value="$(arg frame)"/>
+    <param name="color_camera_frame"	value="$(arg color_camera_frame)"/>
     <param name="trigger_mode"		value="$(arg trigger_mode)"/>
     <param name="intensity_scale"	value="$(arg intensity_scale)"/>
-    <param name="frame"			value="$(arg frame)"/>
-    <param name="rate"			value="$(arg rate)"/>
-    <param name="point_format"		value="$(arg point_format)"/>
     <param name="send_point_cloud"	value="$(arg send_point_cloud)"/>
     <param name="send_normal_map"	value="$(arg send_normal_map)"/>
     <param name="send_depth_map"	value="$(arg send_depth_map)"/>
     <param name="send_confidence_map"	value="$(arg send_confidence_map)"/>
+    <param name="send_event_map"	value="$(arg send_event_map)"/>
     <param name="send_texture"		value="$(arg send_texture)"/>
+    <param name="send_color_camera_image"
+					value="$(arg
+					       send_color_camera_image)"/>
   </node>
 
   <group if="$(arg vis)">
