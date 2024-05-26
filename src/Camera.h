@@ -87,7 +87,6 @@ class Camera : public rclcpp::Node
     };
 
   public:
-    __attribute__((visibility("default")))
 		Camera(const rclcpp::NodeOptions& options)		;
 		~Camera()						;
 
@@ -95,7 +94,7 @@ class Camera : public rclcpp::Node
     template <class T>
     T		declare_read_only_parameter(const std::string& name,
 					    const T& default_value)	;
-    std::string	fullname()					const	;
+    std::string	node_name()					const	;
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
@@ -169,7 +168,7 @@ class Camera : public rclcpp::Node
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
     const std::string				_frame_id;
-    const std::string				_color_camera_frame_id;
+    const std::string				_color_frame_id;
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
@@ -183,7 +182,7 @@ class Camera : public rclcpp::Node
     const image_p				_texture;
     const camera_info_p				_camera_info;
     const image_p				_color_camera_image;
-    const camera_info_p				_color_camera_camera_info;
+    const camera_info_p				_color_camera_info;
 
     ddynamic_reconfigure_t			_ddr;
 
@@ -221,9 +220,9 @@ Camera::declare_read_only_parameter(const std::string& name,
 }
 
 inline std::string
-Camera::fullname() const
+Camera::node_name() const
 {
-    return get_fully_qualified_name();
+    return get_name();
 }
 
 }	// namespace aist_phoxi_camera

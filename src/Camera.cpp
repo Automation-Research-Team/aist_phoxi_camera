@@ -176,9 +176,8 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _factory(),
      _device(nullptr),
      _frame(nullptr),
-     _frame_id(declare_read_only_parameter<std::string>("frame", "sensor")),
-     _color_camera_frame_id(declare_read_only_parameter<std::string>(
-				"color_camera_frame", " color_sensor")),
+     _frame_id(node_name() + "_sensor"),
+     _color_frame_id(node_name() + "_color_sensor"),
      _dense_cloud(false),
      _intensity_scale(0.5),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
@@ -190,33 +189,33 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _texture(new image_t),
      _camera_info(new camera_info_t),
      _color_camera_image(new image_t),
-     _color_camera_camera_info(new camera_info_t),
+     _color_camera_info(new camera_info_t),
      _ddr(rclcpp::Node::SharedPtr(this)),
      _trigger_frame_srv(create_service<trigger_t>(
-			    fullname() + "/trigger_frame",
+			    node_name() + "/trigger_frame",
 			    std::bind(&Camera::trigger_frame, this,
 				      std::placeholders::_1,
 				      std::placeholders::_2))),
      _save_settings_srv(create_service<trigger_t>(
-			    fullname() + "/save_settings",
+			    node_name() + "/save_settings",
 			    std::bind(&Camera::save_settings, this,
 				      std::placeholders::_1,
 				      std::placeholders::_2))),
      _restore_settings_srv(create_service<trigger_t>(
-			       fullname() + "/restore_settings",
+			       node_name() + "/restore_settings",
 			       std::bind(&Camera::restore_settings, this,
 					 std::placeholders::_1,
 					 std::placeholders::_2))),
      _it(rclcpp::Node::SharedPtr(this)),
-     _cloud_pub(create_publisher<cloud_t>(fullname() + "/pointcloud",	 1)),
-     _normal_map_pub(	    _it.advertise(fullname() + "/normal_map",	 1)),
-     _depth_map_pub(	    _it.advertise(fullname() + "/depth_map",	 1)),
-     _confidence_map_pub(   _it.advertise(fullname() + "/confidence_map",1)),
-     _event_map_pub(	    _it.advertise(fullname() + "/event_map",	 1)),
-     _texture_pub(	    _it.advertise(fullname() + "/texture",	 1)),
+     _cloud_pub(create_publisher<cloud_t>(node_name() + "/pointcloud",	 1)),
+     _normal_map_pub(	    _it.advertise(node_name() + "/normal_map",	 1)),
+     _depth_map_pub(	    _it.advertise(node_name() + "/depth_map",	 1)),
+     _confidence_map_pub(   _it.advertise(node_name() + "/confidence_map",1)),
+     _event_map_pub(	    _it.advertise(node_name() + "/event_map",	 1)),
+     _texture_pub(	    _it.advertise(node_name() + "/texture",	 1)),
      _camera_info_pub(create_publisher<camera_info_t>(
-			  fullname() + "/camera_info", 1)),
-     _color_camera_pub(_it.advertiseCamera(fullname() + "/color/image", 1)),
+			  node_name() + "/camera_info", 1)),
+     _color_camera_pub(_it.advertiseCamera(node_name() + "/color/image", 1)),
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
 				  declare_read_only_parameter<double>(
@@ -226,7 +225,7 @@ Camera::Camera(const rclcpp::NodeOptions& options)
     using namespace	pho::api;
 
   // Search for a device with specified ID.
-    auto	id = declare_parameter<std::string>(
+    auto	id = declare_read_only_parameter<std::string>(
 			"id", "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
@@ -261,10 +260,11 @@ Camera::Camera(const rclcpp::NodeOptions& options)
   // Stop acquisition.
     _device->StopAcquisition();
 
-    RCLCPP_INFO_STREAM(get_logger(),"initializing configuration");
+    RCLCPP_INFO_STREAM(get_logger(),"initializing...");
 
   // Assure _camera_matrix to be set on the arrival of first frame.
     _camera_info->width = _camera_info->height = 0;
+    _color_camera_info->width = _color_camera_info->height = 0;
 
   // Setup ddynamic_reconfigure services.
     switch (PhoXiDeviceType::Value(_device->GetType()))
@@ -1431,7 +1431,8 @@ Camera::set_camera_matrix()
 
 void
 Camera::set_camera_info(const camera_info_p& camera_info,
-			const rclcpp::Time& stamp, const std::string& frame_id,
+			const rclcpp::Time& stamp,
+			const std::string& frame_id,
 			size_t width, size_t height,
 			const pho::api::CameraMatrix64f& K,
 			const std::vector<double>& D,
@@ -1441,7 +1442,7 @@ Camera::set_camera_info(const camera_info_p& camera_info,
 			const pho::api::Point3_64f& rz)
 {
   // Set header.
-    camera_info->header.stamp	   = stamp;
+    camera_info->header.stamp	 = stamp;
     camera_info->header.frame_id = frame_id;
 
   // Set size.
@@ -1753,17 +1754,21 @@ Camera::publish_camera_info(const rclcpp::Time& stamp)
   // is time-consuming, the extracted matrix is cached.
     if (_frame->DepthMap.Size.Width  != int(_camera_info->width) ||
     	_frame->DepthMap.Size.Height != int(_camera_info->height))
+    {
     	set_camera_matrix();
+	set_camera_info(_camera_info, stamp, _frame_id,
+			_frame->DepthMap.Size.Width,
+			_frame->DepthMap.Size.Height,
+			_camera_matrix,
+			_frame->Info.DistortionCoefficients,
+			_frame->Info.SensorPosition,
+			_frame->Info.SensorXAxis,
+			_frame->Info.SensorYAxis,
+			_frame->Info.SensorZAxis);
 
-    set_camera_info(_camera_info, stamp, _frame_id,
-		    _frame->DepthMap.Size.Width,
-		    _frame->DepthMap.Size.Height,
-		    _camera_matrix,
-		    _frame->Info.DistortionCoefficients,
-		    _frame->Info.SensorPosition,
-		    _frame->Info.SensorXAxis,
-		    _frame->Info.SensorYAxis,
-		    _frame->Info.SensorZAxis);
+	RCLCPP_INFO_STREAM(get_logger(), "camera_info updated");
+    }
+
     _camera_info_pub->publish(*_camera_info);
 }
 
@@ -1771,21 +1776,12 @@ Camera::publish_camera_info(const rclcpp::Time& stamp)
 void
 Camera::publish_color_camera(const rclcpp::Time& stamp)
 {
-    if (_color_camera_pub.getNumSubscribers() == 0 ||
-	!_device->OutputSettings->SendColorCameraImage)
-	return;
-
-    set_image(_color_camera_image, stamp, _color_camera_frame_id,
-	      sensor_msgs::image_encodings::RGB8, _intensity_scale,
-	      _frame->ColorCameraImage);
-
     if (_frame->ColorCameraImage.Size.Width
-	    != int(_color_camera_camera_info->width) ||
+	    != int(_color_camera_info->width) ||
 	_frame->ColorCameraImage.Size.Height
-	    != int(_color_camera_camera_info->height))
+	    != int(_color_camera_info->height))
     {
-	set_camera_info(_color_camera_camera_info, stamp,
-			_color_camera_frame_id,
+	set_camera_info(_color_camera_info, stamp, _color_frame_id,
 			_frame->ColorCameraImage.Size.Width,
 			_frame->ColorCameraImage.Size.Height,
 			_frame->Info.ColorCameraMatrix,
@@ -1799,7 +1795,7 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 	geometry_msgs::msg::TransformStamped	transform;
 	transform.header.stamp    = stamp;
 	transform.header.frame_id = _frame_id;
-	transform.child_frame_id  = _color_camera_frame_id;
+	transform.child_frame_id  = _color_frame_id;
 	transform.transform
 	    = tf2::toMsg(
 		tf2::Transform({_frame->Info.ColorCameraXAxis.x,
@@ -1815,10 +1811,18 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 				s * _frame->Info.ColorCameraPosition.y,
 				s * _frame->Info.ColorCameraPosition.z}));
 	_static_broadcaster.sendTransform(transform);
+
+	RCLCPP_INFO_STREAM(get_logger(), "color_camera_info updated");
     }
 
-    _color_camera_pub.publish(_color_camera_image, _color_camera_camera_info);
+    if (_color_camera_pub.getNumSubscribers() == 0 ||
+	!_device->OutputSettings->SendColorCameraImage)
+	return;
 
+    set_image(_color_camera_image, stamp, _color_frame_id,
+	      sensor_msgs::image_encodings::RGB8, _intensity_scale,
+	      _frame->ColorCameraImage);
+    _color_camera_pub.publish(_color_camera_image, _color_camera_info);
 }
 #endif
 }	// namespace aist_phoxi_camera
