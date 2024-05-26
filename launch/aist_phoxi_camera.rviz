@@ -8,6 +8,7 @@ Panels:
         - /Status1
         - /PointCloud21
         - /Image1
+        - /TF1
       Splitter Ratio: 0.5
     Tree Height: 328
   - Class: rviz_common/Selection
@@ -97,6 +98,26 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /phoxi/texture
       Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        phoxi_color_sensor:
+          Value: true
+        phoxi_sensor:
+          Value: true
+      Marker Scale: 0.5
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        phoxi_sensor:
+          phoxi_color_sensor:
+            {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -143,7 +164,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 0.16855402290821075
+      Distance: 0.8283171653747559
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -158,10 +179,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.5697963237762451
+      Pitch: -1.449796438217163
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.508575439453125
+      Yaw: 4.518576622009277
     Saved: ~
 Window Geometry:
   Displays:

@@ -63,11 +63,10 @@ class Camera : public rclcpp::Node
 {
   private:
     using cloud_t		 = sensor_msgs::msg::PointCloud2;
-    using cloud_p		 = cloud_t::SharedPtr;
     using image_t		 = sensor_msgs::msg::Image;
-    using image_p		 = image_t::SharedPtr;
+    using image_p		 = image_t::UniquePtr;
     using camera_info_t		 = sensor_msgs::msg::CameraInfo;
-    using camera_info_p		 = camera_info_t::SharedPtr;
+    using camera_info_p		 = camera_info_t::UniquePtr;
     using trigger_t		 = std_srvs::srv::Trigger;
     using trigger_srv_p		 = rclcpp::Service<trigger_t>::SharedPtr;
     using trigger_req_p		 = trigger_t::Request::SharedPtr;
@@ -123,27 +122,27 @@ class Camera : public rclcpp::Node
     bool	trigger_frame(const trigger_req_p, trigger_res_p res)	;
     bool	save_settings(const trigger_req_p, trigger_res_p res)	;
     bool	restore_settings(const trigger_req_p, trigger_res_p res);
+    void	cache_camera_matrix()					;
     template <class T>
-    void	set_image(const image_p& image, const rclcpp::Time& stamp,
-			  const std::string& frame_id,
-			  const std::string& encoding, float scale,
-			  const pho::api::Mat2D<T>& phoxi_image)	;
-    void	set_camera_matrix()					;
-    void	set_camera_info(const camera_info_p& camera_info,
-				const rclcpp::Time& stamp,
-				const std::string& frame_id,
-				size_t width, size_t height,
-				const pho::api::CameraMatrix64f& K,
-				const std::vector<double>& D,
-				const pho::api::Point3_64f& t,
-				const pho::api::Point3_64f& rx,
-				const pho::api::Point3_64f& ry,
-				const pho::api::Point3_64f& rz)		;
+    image_p	create_image(const rclcpp::Time& stamp,
+			     const std::string& frame_id,
+			     const std::string& encoding, float scale,
+			     const pho::api::Mat2D<T>& phoxi_image) const;
+    camera_info_p
+		create_camera_info(const rclcpp::Time& stamp,
+				   const std::string& frame_id,
+				   size_t width, size_t height,
+				   const pho::api::CameraMatrix64f& K,
+				   const std::vector<double>& D,
+				   const pho::api::Point3_64f& t,
+				   const pho::api::Point3_64f& rx,
+				   const pho::api::Point3_64f& ry,
+				   const pho::api::Point3_64f& rz) const;
     void	publish_frame()						;
     void	publish_cloud(const rclcpp::Time& stamp,
 			      float distanceScale)			;
     template <class T>
-    void	publish_image(const image_p& image, const rclcpp::Time& stamp,
+    void	publish_image(const rclcpp::Time& stamp,
 			      const std::string& encoding, float scale,
 			      const pho::api::Mat2D<T>& phoxi_image,
 			      const image_transport::Publisher& publisher);
@@ -172,17 +171,9 @@ class Camera : public rclcpp::Node
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
+    pho::api::PhoXiSize				_depth_map_size;
+    pho::api::PhoXiSize				_color_camera_image_size;
     pho::api::CameraMatrix64f			_camera_matrix;
-
-    const cloud_p				_cloud;
-    const image_p				_normal_map;
-    const image_p				_depth_map;
-    const image_p				_confidence_map;
-    const image_p				_event_map;
-    const image_p				_texture;
-    const camera_info_p				_camera_info;
-    const image_p				_color_camera_image;
-    const camera_info_p				_color_camera_info;
 
     ddynamic_reconfigure_t			_ddr;
 
