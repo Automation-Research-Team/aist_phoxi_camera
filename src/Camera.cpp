@@ -1806,12 +1806,12 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 	return;
 
     _color_camera_pub.publish(
-	image_t::SharedPtr(
+	image_t::ConstSharedPtr(
 	    create_image(stamp, _color_frame_id,
 			 sensor_msgs::image_encodings::RGB8,
 			 _intensity_scale,
 			 _frame->ColorCameraImage).release()),
-	camera_info_t::SharedPtr(
+	camera_info_t::ConstSharedPtr(
 	    create_camera_info(stamp, _color_frame_id,
 			       _frame->ColorCameraImage.Size.Width,
 			       _frame->ColorCameraImage.Size.Height,
