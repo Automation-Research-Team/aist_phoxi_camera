@@ -63,6 +63,7 @@ class Camera : public rclcpp::Node
 {
   private:
     using cloud_t		 = sensor_msgs::msg::PointCloud2;
+    using cloud_p		 = cloud_t::UniquePtr;
     using image_t		 = sensor_msgs::msg::Image;
     using image_p		 = image_t::UniquePtr;
     using camera_info_t		 = sensor_msgs::msg::CameraInfo;

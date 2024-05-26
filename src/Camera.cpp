@@ -181,8 +181,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _frame_id(node_name() + "_sensor"),
      _color_frame_id(node_name() + "_color_sensor"),
-     _dense_cloud(false),
      _intensity_scale(0.5),
+     _dense_cloud(false),
+     _color_texture_source(false),
      _ddr(rclcpp::Node::SharedPtr(this)),
      _trigger_frame_srv(create_service<trigger_t>(
 			    node_name() + "/trigger_frame",
@@ -1462,7 +1463,7 @@ Camera::create_image(const rclcpp::Time& stamp, const std::string& frame_id,
     using namespace	sensor_msgs;
     using		element_ptr = const typename T::ElementChannelType*;
 
-    auto	image = std::make_unique<image_t>();
+    image_p	image(new image_t);
     image->header.stamp    = stamp;
     image->header.frame_id = frame_id;
     image->encoding	   = encoding;
@@ -1503,7 +1504,7 @@ Camera::create_camera_info(const rclcpp::Time& stamp,
 			   const pho::api::Point3_64f& ry,
 			   const pho::api::Point3_64f& rz) const
 {
-    auto	camera_info = std::make_unique<camera_info_t>();
+    camera_info_p	camera_info(new camera_info_t);
 
   // Set header.
     camera_info->header.stamp	 = stamp;
@@ -1635,7 +1636,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 	return;
 
   // Convert pho::api::PointCloud32f to sensor_msgs::PointCloud2
-    auto	cloud = std::make_unique<cloud_t>();
+    cloud_p	cloud(new cloud_t);
     cloud->header.stamp    = stamp;
     cloud->header.frame_id = _frame_id;
     cloud->is_bigendian    = false;
