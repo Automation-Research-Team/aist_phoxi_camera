@@ -176,13 +176,13 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _factory(),
      _device(nullptr),
      _frame(nullptr),
+     _depth_map_size(0, 0),
+     _color_camera_image_size(0, 0),
+     _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _frame_id(node_name() + "_sensor"),
      _color_frame_id(node_name() + "_color_sensor"),
      _dense_cloud(false),
      _intensity_scale(0.5),
-     _depth_map_size(0, 0),
-     _color_camera_image_size(0, 0),
-     _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _ddr(rclcpp::Node::SharedPtr(this)),
      _trigger_frame_srv(create_service<trigger_t>(
 			    node_name() + "/trigger_frame",
@@ -301,6 +301,21 @@ Camera::tick()
 	    _frame->Successful)
 	    publish_frame();
     }
+}
+
+template <class T> T
+Camera::declare_read_only_parameter(const std::string& name,
+				    const T& default_value)
+{
+    auto	desc = ddynamic_reconfigure2::param_range<T>().param_desc();
+    desc.name			= name;
+    desc.read_only		= true;
+    desc.integer_range		= {};
+    desc.floating_point_range	= {};
+    desc.dynamic_typing		= false;
+
+    return declare_parameter<T>(name, default_value, desc);
+
 }
 
 void
@@ -468,8 +483,28 @@ Camera::setup_ddr_phoxi()
 		      false, "LEDPower"),
 	    "LED power", {0, 4095});
 
+      // 2.12 ProjectionOffsetLeft
+	_ddr.registerVariable<int>(
+	    "capturing_settings.projection_offset_left",
+	    _device->CapturingSettings->LEDPower,
+	    std::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+		      &PhoXi::CapturingSettings,
+		      &PhoXiCapturingSettings::ProjectionOffsetLeft, _1,
+		      false, "ProjectionOffsetLeft"),
+	    "Projection offset left", {0, 1023});
+
+      // 2.13 ProjectionOffsetRight
+	_ddr.registerVariable<int>(
+	    "capturing_settings.projection_offset_right",
+	    _device->CapturingSettings->LEDPower,
+	    std::bind(&Camera::set_field<PhoXiCapturingSettings, int>, this,
+		      &PhoXi::CapturingSettings,
+		      &PhoXiCapturingSettings::ProjectionOffsetRight, _1,
+		      false, "ProjectionOffsetRight"),
+	    "Projection offset right", {0, 1023});
+
 #if defined(HAVE_HARDWARE_TRIGGER)
-      // 2.12 hardware trigger
+      // 2.14 hardware trigger
 	_ddr.registerVariable<bool>(
 	    "capturing_settings.hardware_trigger",
 	    _device->CapturingSettings->HardwareTrigger,
@@ -480,7 +515,7 @@ Camera::setup_ddr_phoxi()
 	    "Hardware trigger");
 
 #  if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
-      // 2.13 hardware trigger signal
+      // 2.15 hardware trigger signal
 	_ddr.registerEnumVariable<int>(
 	    "capturing_settings.hardware_trigger_signal",
 	    _device->CapturingSettings->HardwareTriggerSignal,
@@ -497,7 +532,7 @@ Camera::setup_ddr_phoxi()
 #  endif
 #endif
 #if defined(HAVE_LED_SHUTTER_MULTIPLIER)
-      // 2.14 LEDShutterMultiplier
+      // 2.16 LEDShutterMultiplier
 	_ddr.registerVariable<int>(
 	    "capturing_settings.led_shutter_multiplier",
 	    _device->CapturingSettings->LEDShutterMultiplier,
@@ -642,7 +677,8 @@ Camera::setup_ddr_motioncam()
 		"Output topology",
 		{{"IrregularGrid",	PhoXiOutputTopology::IrregularGrid},
 		 {"Raw",		PhoXiOutputTopology::Raw},
-		 {"RegularGrid",	PhoXiOutputTopology::RegularGrid}});
+		 {"RegularGrid",	PhoXiOutputTopology::RegularGrid},
+		 {"FullGrid",		PhoXiOutputTopology::FullGrid}});
 
       // 2.4 coding strategy
 	if (_device->MotionCamCameraMode->CodingStrategy !=
@@ -880,6 +916,32 @@ Camera::setup_ddr_common()
 	    "Interreflection filter strength", {0, 4});
 #  endif
 #endif
+      // 3.7 PatternDecompositionReach
+	_ddr.registerEnumVariable<int>(
+	    "processing_settings.pattern_decomposition_reach",
+	    _device->ProcessingSettings->PatternDecompositionReach,
+	    std::bind(&Camera::set_field<PhoXiProcessingSettings,
+		      PhoXiPatternDecompositionReach>,
+		      this,
+		      &PhoXi::ProcessingSettings,
+		      &PhoXiProcessingSettings::PatternDecompositionReach, _1,
+		      false, "PatternDecompositionReach"),
+		"Pattern decomposition reach",
+		{{"Local",	PhoXiPatternDecompositionReach::Local},
+		 {"Small",	PhoXiPatternDecompositionReach::Small},
+		 {"Medium",	PhoXiPatternDecompositionReach::Medium},
+		 {"Large",	PhoXiPatternDecompositionReach::Large}});
+
+      // 3.8 SignalConstrastThreshold
+	_ddr.registerVariable<double>(
+	    "processing_settings.signal_contrast_threshold",
+	    _device->ProcessingSettings->SignalContrastThreshold,
+	    std::bind(&Camera::set_field<PhoXiProcessingSettings, double>,
+		      this,
+		      &PhoXi::ProcessingSettings,
+		      &PhoXiProcessingSettings::SignalContrastThreshold,
+		      _1, false, "SignalContrastThreshold"),
+	    "Sigranl contrast threshold", {0.0, 1.0});
     }
 
 #if defined(HAVE_COLOR_CAMERA)
@@ -982,6 +1044,16 @@ Camera::setup_ddr_common()
 		std::bind(&Camera::set_white_balance_preset, this, _1),
 		"White balance", enum_presets);
 	}
+
+      // 4.6 RemoveFalseColors
+	_ddr.registerVariable<bool>(
+	    "color_settings.remove_false_colors",
+	    _device->ColorSettings->RemoveFalseColors,
+	    std::bind(&Camera::set_field<PhoXiColorSettings, bool>, this,
+		      &PhoXi::ColorSettings,
+		      &PhoXiColorSettings::RemoveFalseColors, _1,
+		      false, "RemoveFalseColors"),
+	    "Remove false colors if set");
     }
 #endif
 
@@ -1553,7 +1625,7 @@ Camera::publish_frame()
 }
 
 void
-Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
+Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 {
     using namespace	sensor_msgs;
     using PointField =  sensor_msgs::msg::PointField;
@@ -1643,7 +1715,6 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale)
 	}
     }
 
-
     if (_device->OutputSettings->SendTexture)
     {
 	PointCloud2Iterator<uint8_t> bgr(*cloud, "rgb");
@@ -1730,7 +1801,7 @@ template <class T> void
 Camera::publish_image(const rclcpp::Time& stamp,
 		      const std::string& encoding, float scale,
 		      const pho::api::Mat2D<T>& phoxi_image,
-		      const image_transport::Publisher& publisher)
+		      const image_transport::Publisher& publisher) const
 {
     if (publisher.getNumSubscribers() == 0 || phoxi_image.Empty())
 	return;

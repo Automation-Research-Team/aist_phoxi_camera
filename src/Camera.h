@@ -93,7 +93,10 @@ class Camera : public rclcpp::Node
     template <class T>
     T		declare_read_only_parameter(const std::string& name,
 					    const T& default_value)	;
-    std::string	node_name()					const	;
+    std::string	node_name() const
+		{
+		    return get_name();
+		}
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
@@ -140,12 +143,13 @@ class Camera : public rclcpp::Node
 				   const pho::api::Point3_64f& rz) const;
     void	publish_frame()						;
     void	publish_cloud(const rclcpp::Time& stamp,
-			      float distanceScale)			;
+			      float distanceScale)		const	;
     template <class T>
     void	publish_image(const rclcpp::Time& stamp,
 			      const std::string& encoding, float scale,
 			      const pho::api::Mat2D<T>& phoxi_image,
-			      const image_transport::Publisher& publisher);
+			      const image_transport::Publisher& publisher)
+								const	;
     void	publish_camera_info(const rclcpp::Time& stamp)		;
     void	publish_color_camera(const rclcpp::Time& stamp)		;
     void	profiler_start(int n)
@@ -166,14 +170,15 @@ class Camera : public rclcpp::Node
     pho::api::PhoXiFactory			_factory;
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
+    pho::api::PhoXiSize				_depth_map_size;
+    pho::api::PhoXiSize				_color_camera_image_size;
+    pho::api::CameraMatrix64f			_camera_matrix;
+
     const std::string				_frame_id;
     const std::string				_color_frame_id;
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
-    pho::api::PhoXiSize				_depth_map_size;
-    pho::api::PhoXiSize				_color_camera_image_size;
-    pho::api::CameraMatrix64f			_camera_matrix;
 
     ddynamic_reconfigure_t			_ddr;
 
@@ -194,26 +199,4 @@ class Camera : public rclcpp::Node
 
     const timer_p				_timer;
 };
-
-template <class T> T
-Camera::declare_read_only_parameter(const std::string& name,
-				    const T& default_value)
-{
-    auto	desc = ddynamic_reconfigure2::param_range<T>().param_desc();
-    desc.name			= name;
-    desc.read_only		= true;
-    desc.integer_range		= {};
-    desc.floating_point_range	= {};
-    desc.dynamic_typing		= false;
-
-    return declare_parameter<T>(name, default_value, desc);
-
-}
-
-inline std::string
-Camera::node_name() const
-{
-    return get_name();
-}
-
 }	// namespace aist_phoxi_camera
