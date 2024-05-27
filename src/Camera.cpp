@@ -214,8 +214,8 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_pub(_it.advertiseCamera(node_name() + "/color/image", 1)),
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
-				  declare_read_only_parameter<double>(
-				      "period", 0.1)),
+				  1.0 / declare_read_only_parameter<double>(
+					    "rate", 10.0)),
 			      std::bind(&Camera::tick, this)))
 {
     using namespace	pho::api;

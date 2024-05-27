@@ -35,9 +35,9 @@ launch_arguments    = [{'name':        'namespace',
 parameter_arguments = [{'name':        'id',
                         'default':     'InstalledExamples-basic-example',
                         'description': 'choose device by serial number'},
-                       {'name':        'period',
-                        'default':     '0.1',
-                        'description': 'period of publishing topics'}]
+                       {'name':        'rate',
+                        'default':     '10.0',
+                        'description': 'rate of publishing topics'}]
 
 def declare_launch_arguments(args, defaults={}):
     return [DeclareLaunchArgument(

@@ -1,7 +1,6 @@
-id:                  color-example
+id:                  InstalledExamples-color-example
 trigger_mode:        0
 intensity_scale:     0.5
-frame:               phoxi_sensor
 rate:                20
 dense_cloud:         true
 send_point_cloud:    true

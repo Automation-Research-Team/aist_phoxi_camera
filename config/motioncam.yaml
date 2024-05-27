@@ -1,8 +1,7 @@
 id:                        JKE-001
 trigger_mode:              0
 intensity_scale:           0.05
-frame:                     phoxi_sensor
-rate:                      20
+rate:                      20.0
 normals_estimation_radius: 2
 send_point_cloud:          true
 send_normal_map:           false

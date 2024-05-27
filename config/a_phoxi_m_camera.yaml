@@ -1,8 +1,7 @@
 id:                  "2018-09-015-LC3"
 trigger_mode:        1
 intensity_scale:     0.5
-frame:               a_phoxi_m_camera_sensor
-rate:                20
+rate:                10.0
 send_point_cloud:    true
 send_normal_map:     true
 send_depth_map:      true

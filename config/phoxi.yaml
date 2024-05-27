@@ -1,7 +1,7 @@
 id:                  InstalledExamples-color-example
 trigger_mode:        0
 intensity_scale:     0.5
-#period:              2.0
+rate:                10.0
 send_point_cloud:    true
 send_normal_map:     true
 send_depth_map:      true
