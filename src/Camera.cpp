@@ -179,8 +179,10 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _depth_map_size(0, 0),
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
-     _frame_id(node_name() + "_sensor"),
-     _color_frame_id(node_name() + "_color_sensor"),
+     _frame_id(declare_read_only_parameter<std::string>(
+		   "frame", node_name() + "_sensor")),
+     _color_camera_frame_id(declare_read_only_parameter<std::string>(
+				"color_frame", node_name() + "_color_sensor")),
      _intensity_scale(0.5),
      _dense_cloud(false),
      _color_texture_source(false),
@@ -1852,7 +1854,7 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 	geometry_msgs::msg::TransformStamped	transform;
 	transform.header.stamp    = stamp;
 	transform.header.frame_id = _frame_id;
-	transform.child_frame_id  = _color_frame_id;
+	transform.child_frame_id  = _color_camera_frame_id;
 	transform.transform
 	    = tf2::toMsg(
 		tf2::Transform({_frame->Info.ColorCameraXAxis.x,
@@ -1879,12 +1881,12 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 
     _color_camera_pub.publish(
 	image_t::ConstSharedPtr(
-	    create_image(stamp, _color_frame_id,
+	    create_image(stamp, _color_camera_frame_id,
 			 sensor_msgs::image_encodings::RGB8,
 			 _intensity_scale,
 			 _frame->ColorCameraImage).release()),
 	camera_info_t::ConstSharedPtr(
-	    create_camera_info(stamp, _color_frame_id,
+	    create_camera_info(stamp, _color_camera_frame_id,
 			       _frame->ColorCameraImage.Size.Width,
 			       _frame->ColorCameraImage.Size.Height,
 			       _frame->Info.ColorCameraMatrix,
