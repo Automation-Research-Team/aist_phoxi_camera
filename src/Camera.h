@@ -118,30 +118,31 @@ class Camera
 			      std_srvs::Trigger::Response& res)		;
     bool	restore_settings(std_srvs::Trigger::Request&  req,
 				 std_srvs::Trigger::Response& res)	;
+    void	cache_camera_matrix()					;
     template <class T>
-    void	set_image(const image_p& image, const ros::Time& stamp,
-			  const std::string& frame_id,
-			  const std::string& encoding, float scale,
-			  const pho::api::Mat2D<T>& phoxi_image)	;
-    void	set_camera_matrix()					;
-    void	set_camera_info(const camera_info_p& camera_info,
-				const ros::Time& stamp,
-				const std::string& frame_id,
-				size_t width, size_t height,
-				const pho::api::CameraMatrix64f& K,
-				const std::vector<double>& D,
-				const pho::api::Point3_64f& t,
-				const pho::api::Point3_64f& rx,
-				const pho::api::Point3_64f& ry,
-				const pho::api::Point3_64f& rz)		;
+    image_p	create_image(const ros::Time& stamp,
+			     const std::string& frame_id,
+			     const std::string& encoding, float scale,
+			     const pho::api::Mat2D<T>& phoxi_image) const;
+    camera_info_p
+		create_camera_info(const ros::Time& stamp,
+				   const std::string& frame_id,
+				   size_t width, size_t height,
+				   const pho::api::CameraMatrix64f& K,
+				   const std::vector<double>& D,
+				   const pho::api::Point3_64f& t,
+				   const pho::api::Point3_64f& rx,
+				   const pho::api::Point3_64f& ry,
+				   const pho::api::Point3_64f& rz) const;
     void	publish_frame()						;
     void	publish_cloud(const ros::Time& stamp,
-			      float distanceScale)			;
+			      float distanceScale)		const	;
     template <class T>
-    void	publish_image(const image_p& image, const ros::Time& stamp,
+    void	publish_image(const ros::Time& stamp,
 			      const std::string& encoding, float scale,
 			      const pho::api::Mat2D<T>& phoxi_image,
-			      const image_transport::Publisher& publisher);
+			      const image_transport::Publisher& publisher)
+								const	;
     void	publish_camera_info(const ros::Time& stamp)		;
     void	publish_color_camera(const ros::Time& stamp)		;
     const std::string&
@@ -166,23 +167,16 @@ class Camera
     pho::api::PhoXiFactory			_factory;
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
+    pho::api::PhoXiSize				_depth_map_size;
+    pho::api::PhoXiSize				_color_camera_image_size;
+    pho::api::CameraMatrix64f			_camera_matrix;
+
     const std::string				_frame_id;
-    const std::string				_color_camera_frame_id;
+    const std::string				_color_frame_id;
     const double				_rate;
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
-    pho::api::CameraMatrix64f			_camera_matrix;
-
-    const cloud_p				_cloud;
-    const image_p				_normal_map;
-    const image_p				_depth_map;
-    const image_p				_confidence_map;
-    const image_p				_event_map;
-    const image_p				_texture;
-    const camera_info_p				_camera_info;
-    const image_p				_color_camera_image;
-    const camera_info_p				_color_camera_camera_info;
 
     ddynamic_reconfigure_t			_ddr;
 
