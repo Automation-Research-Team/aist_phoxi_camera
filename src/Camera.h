@@ -172,7 +172,7 @@ class Camera
     pho::api::CameraMatrix64f			_camera_matrix;
 
     const std::string				_frame_id;
-    const std::string				_color_frame_id;
+    const std::string				_color_camera_frame_id;
     const double				_rate;
     double					_intensity_scale;
     bool					_dense_cloud;
