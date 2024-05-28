@@ -181,10 +181,10 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _depth_map_size(0, 0),
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
-     _frame_id(nh.param<std::string>("frame", _nodelet_name + "_sensor")),
+     _frame_id(nh.param<std::string>("frame", getBaseName() + "_sensor")),
      _color_camera_frame_id(nh.param<std::string>(
 				"color_camera_frame",
-				_nodelet_name + "_color_sensor")),
+				getBaseName() + "_color_sensor")),
      _rate(nh.param<double>("rate", 20.0)),
      _intensity_scale(0.5),
      _dense_cloud(false),
@@ -1450,7 +1450,7 @@ Camera::create_image(const ros::Time& stamp, const std::string& frame_id,
 
     image_p	image(new image_t);
     image->header.stamp    = stamp;
-    image->header.frame_id = _frame_id;
+    image->header.frame_id = frame_id;
     image->encoding	   = encoding;
     image->is_bigendian    = 0;
     image->height	   = phoxi_image.Size.Height;

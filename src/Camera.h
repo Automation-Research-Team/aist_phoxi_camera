@@ -146,7 +146,16 @@ class Camera
     void	publish_camera_info(const ros::Time& stamp)		;
     void	publish_color_camera(const ros::Time& stamp)		;
     const std::string&
-		getName()		const	{ return _nodelet_name; }
+		getName() const
+		{
+		    return _nodelet_name;
+		}
+    std::string	getBaseName() const
+		{
+		    const auto	pos = _nodelet_name.rfind('/');
+		    return _nodelet_name.substr(pos == std::string::npos ?
+						0 : pos + 1);
+		}
     void	profiler_start(int n)
 		{
 #if defined(PROFILE)
