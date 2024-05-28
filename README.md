@@ -15,7 +15,7 @@ is completely reorganized.
 The driver is tested under the following conditions.
 - ROS noetic on Ubuntu-20.04
 - PhoXiControl-1.12.3
-- PhoXi 3D Scanner Gen1 with firmware-1.2.38, MotionCam-3D and MotionCam-3D Color with firmware-1.13.0
+- PhoXi 3D Scanner Gen1 with firmware-1.2.38, MotionCam-3D and MotionCam-3D Color both with firmware-1.13.0
 
 ## Installation
 
@@ -44,7 +44,7 @@ $ cd (your-catkin-workspace)/src
 $ git clone https://github.com/Automation-Research-Team/aist_phoxi_camera
 $ git clone https://github.com/Automation-Research-Team/ddynamic_reconfigure
 ```
-`aist_phoxi_control` requires the latter which is a modified version of the [original](https://github.com/pal-robotics/ddynamic_reconfigure) to fix some bugs and add new features.
+`aist_phoxi_camera` requires the latter which is a modified version of the [original](https://github.com/pal-robotics/ddynamic_reconfigure) to fix some bugs and add new features.
 
 Finally, you can compile the ROS driver by typing
 ```bash
@@ -67,10 +67,9 @@ $ PhoXiControl
 
 `PhoXiControl` provides a virtual scanner device named
 "InstalledExamples-basic-example". Therefore, you can
-test our ROS driver `aist_phoxi_camera` even if no real scanners are
+test the driver even if no real scanners are
 connected to your host. You can launch the driver and establish
-a connection to the virtual scanner by typing as follows;
-
+a connection to the virtual scanner by typing
 ```bash
 $ roslaunch aist_phoxi_camera run.launch vis:=true
 ```
@@ -96,8 +95,8 @@ You can launch the driver as a `nodelet` by
 $ roslaunch aist_phoxi_camera run.launch manager:=<manager_name> [external_manager:=[true|false]]
 ```
 where
-- **manager** (type: str) -- Node name of the nodelet manager
-- **external_manager** (type: bool) If true, the driver will be loaded into the existing nodelet manager with a name specified by `manager` which has been started in advance. If false, a manager with a name specified by `manager` will be newly created.
+- **manager** (type: str) -- Node name of the nodelet manager. If not specified, the driver is started as a separate node.
+- **external_manager** (type: bool) If true, the driver will be loaded into the existing nodelet manager with a name specified by `manager` which has been started in advance. If false, a manager with the name specified by `manager` will be newly created.
 
 Then zero-copy transfer will be realized if you load subscriber nodelets into the same manager.
 
@@ -117,7 +116,7 @@ The following topics are published by the driver.
 - **~/depth_map**  (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
 - **~/event_map** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map
 - **~/normal_map** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of surface normals.
-- **~/texture** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8bit unsigned integer format.
+- **~/texture** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8/24bit unsigned integer format.
 - **~/pointcloud** (type: [sensor_msgs/PointCloud2](http://docs.ros.org/en/api/sensor_msgs/html/msg/PointCloud2.html)) -- A 2D map of 3D point coordinates in meters. Each 2D pixel has an associated intensity/color value in RGBA format if the parameter `send_texture` is true. In addition, each pixel will be associated with a 3D normal vector if the parameter `send_normal_map` is true.
 - **~/camera_info** (type: [sensor_msgs/CameraInfo](http://docs.ros.org/en/api/sensor_msgs/html/msg/CameraInfo.html)) -- Intrinsic parameters of the depth sensor including a 3x3 calibration matrix and lens distortion coefficients.
 - **~/color/image** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of color values captured by the color sensor of the device. Available only for `MotionCam-3D Color`.
@@ -140,7 +139,7 @@ The following parameters can be optionally specified
 - **~/send_event_map** (type: bool) -- Publish `event_map` if true.
 - **~/send_texture** (type: bool) -- Publish `texture` if true.
 - **~/send_color_image** (type: bool) -- Publish `color/image` and `color/camera_info` if true. Available only for `MotionCam-3D Color`.
-- **~/send_point_cloud** (type: bool) -- Publish `pointcloud` if true. Each pixel has its 3D coordinates with respect to the depth sensor. It will also be associated with an intensity/color value if `send_texture`, and with a 3D normal vector if `send_normal_map` is true.
+- **~/send_point_cloud** (type: bool) -- Publish `pointcloud` if true. Each pixel has its 3D coordinates with respect to the depth sensor. It will also be associated with an intensity/color value if `send_texture` is true, and with a 3D normal vector if `send_normal_map` is true.
 
 when starting the driver by
 ```
