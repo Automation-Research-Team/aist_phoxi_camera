@@ -1,9 +1,12 @@
 import os
 import yaml
 from launch                   import LaunchDescription
-from launch.actions           import DeclareLaunchArgument, OpaqueFunction
+from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
+                                      GroupAction)
 from launch.substitutions     import LaunchConfiguration, PathJoinSubstitution
-from launch.conditions        import IfCondition, UnlessCondition
+from launch.conditions        import (IfCondition, UnlessCondition,
+                                      LaunchConfigurationEquals,
+                                      LaunchConfigurationNotEquals)
 from launch_ros.actions       import Node, LoadComposableNodes
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.descriptions  import ComposableNode
@@ -66,39 +69,46 @@ def launch_setup(context, param_args):
     params   |= set_configurable_parameters(param_args)
     output    = LaunchConfiguration('output')
     container = LaunchConfiguration('container').perform(context)
-    if container == '':
-        actions.append(Node(namespace=namespace, name=name,
-                            package='aist_phoxi_camera',
-                            executable='aist_phoxi_camera_node',
-                            parameters=[params],
-                            output=output,
-                            arguments=['--ros-args', '--log-level',
-                                       LaunchConfiguration('log_level')],
-                            emulate_tty=True))
-    else:
-        actions += [Node(name=container,
-                         package='rclcpp_components',
-                         executable='component_container',
-                         output=output,
-                         condition=UnlessCondition(
-                             LaunchConfiguration('external_container'))),
-                    LoadComposableNodes(
-                        target_container=container,
-                        composable_node_descriptions=[
-                            ComposableNode(namespace=namespace, name=name,
-                                           package='aist_phoxi_camera',
-                                           plugin='aist_phoxi_camera::Camera',
-                                           parameters=[params],
-                                           extra_arguments=[
-                                             {'use_intra_process_comms': True}]
-                                           )])]
-    actions.append(Node(name='rviz',
-                        package='rviz2', executable='rviz2', output='screen',
-                        arguments=['-d',
-                                   PathJoinSubstitution([
-                                       FindPackageShare('aist_phoxi_camera'),
-                                       'launch', 'aist_phoxi_camera.rviz'])],
-                        condition=IfCondition(LaunchConfiguration('vis'))))
+    actions += [Node(namespace=namespace, name=name,
+                     package='aist_phoxi_camera',
+                     executable='aist_phoxi_camera_node',
+                     parameters=[params],
+                     output=output,
+                     arguments=['--ros-args', '--log-level',
+                                LaunchConfiguration('log_level')],
+                     emulate_tty=True,
+                     condition=LaunchConfigurationEquals('container', '')),
+                GroupAction(
+                    condition=LaunchConfigurationNotEquals('container', ''),
+                    actions=[
+                        Node(name=container,
+                             package='rclcpp_components',
+                             executable='component_container',
+                             output=output,
+                             condition=UnlessCondition(
+                                 LaunchConfiguration('external_container'))),
+                        LoadComposableNodes(
+                            target_container=container,
+                            composable_node_descriptions=[
+                                ComposableNode(
+                                    namespace=namespace, name=name,
+                                    package='aist_phoxi_camera',
+                                    plugin='aist_phoxi_camera::Camera',
+                                    parameters=[params],
+                                    extra_arguments=[
+                                        {'use_intra_process_comms': True}])])]),
+                GroupAction(
+                    condition=IfCondition(LaunchConfiguration('vis')),
+                    actions=[
+                        Node(name='rviz', package='rviz2', executable='rviz2',
+                             output='screen',
+                             arguments=['-d',
+                                 PathJoinSubstitution([
+                                     FindPackageShare('aist_phoxi_camera'),
+                                     'launch', 'aist_phoxi_camera.rviz'])]),
+                        Node(name='rqt_reconfigure', package='rqt_reconfigure',
+                             executable='rqt_reconfigure', output='screen')])]
+
     return actions
 
 def generate_launch_description():
