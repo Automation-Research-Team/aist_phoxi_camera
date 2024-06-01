@@ -165,6 +165,18 @@ scale_copy(const uint16_t* in, const uint16_t* ie, float* out, float scale)
 		   { return scale * x; });
 }
 
+template <class T> static void
+scale_copy3(const T* in, const T* ie, uint8_t* out, float scale)
+{
+    for (; in < ie; ++in)
+    {
+	uint8_t	y = std::min(scale * *in, 255.0f);
+	*out++ = y;
+	*out++ = y;
+	*out++ = y;
+    }
+}
+
 /************************************************************************
 *  class Camera								*
 ************************************************************************/
@@ -1483,7 +1495,10 @@ Camera::create_image(const rclcpp::Time& stamp, const std::string& frame_id,
     if (image->encoding == image_encodings::MONO8)
 	scale_copy(p, q, image->data.data(), scale);
     else if (image->encoding == image_encodings::RGB8)
-	scale_copy(p, q, image->data.data(), scale);
+	if (T::ElementChannelCount == 3)
+	    scale_copy(p, q, image->data.data(), scale);
+	else
+	    scale_copy3(p, q, image->data.data(), scale);
     else if (image->encoding.substr(0, 4) == "32FC")
 	scale_copy(p, q, reinterpret_cast<float*>(image->data.data()), scale);
     else
@@ -1492,6 +1507,8 @@ Camera::create_image(const rclcpp::Time& stamp, const std::string& frame_id,
 	throw;
     }
 
+    RCLCPP_DEBUG_STREAM(get_logger(), "created image[" << encoding
+			<< "]: ptr=" << image.get());
     return image;
 }
 
@@ -1797,6 +1814,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 	}
     }
 
+    RCLCPP_DEBUG_STREAM(get_logger(), "publish cloud: ptr=" << cloud.get());
     _cloud_pub->publish(std::move(cloud));
 }
 
