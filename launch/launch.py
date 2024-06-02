@@ -60,20 +60,17 @@ def load_parameters(config_dir, camera_name):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 def launch_setup(context, param_args):
-    namespace = LaunchConfiguration('namespace')
-    name      = LaunchConfiguration('camera_name')
-    params    = load_parameters(
-                    LaunchConfiguration('config_dir').perform(context),
-                    name.perform(context))
-    actions   = declare_launch_arguments(param_args, params)
-    params   |= set_configurable_parameters(param_args)
-    output    = LaunchConfiguration('output')
-    container = LaunchConfiguration('container').perform(context)
-    actions += [Node(namespace=namespace, name=name,
+    params   = load_parameters(
+                   LaunchConfiguration('config_dir').perform(context),
+                   LaunchConfiguration('camera_name').perform(context))
+    actions  = declare_launch_arguments(param_args, params)
+    params  |= set_configurable_parameters(param_args)
+    actions += [Node(namespace=LaunchConfiguration('namespace'),
+                     name=LaunchConfiguration('camera_name'),
                      package='aist_phoxi_camera',
                      executable='aist_phoxi_camera_node',
                      parameters=[params],
-                     output=output,
+                     output=LaunchConfiguration('output'),
                      arguments=['--ros-args', '--log-level',
                                 LaunchConfiguration('log_level')],
                      emulate_tty=True,
@@ -81,19 +78,20 @@ def launch_setup(context, param_args):
                 GroupAction(
                     condition=LaunchConfigurationNotEquals('container', ''),
                     actions=[
-                        Node(name=container,
+                        Node(name=LaunchConfiguration('container'),
                              package='rclcpp_components',
                              executable='component_container',
-                             output=output,
+                             output=LaunchConfiguration('output'),
                              arguments=['--ros-args', '--log-level',
                                         LaunchConfiguration('log_level')],
                              condition=UnlessCondition(
                                  LaunchConfiguration('external_container'))),
                         LoadComposableNodes(
-                            target_container=container,
+                            target_container=LaunchConfiguration('container'),
                             composable_node_descriptions=[
                                 ComposableNode(
-                                    namespace=namespace, name=name,
+                                    namespace=LaunchConfiguration('namespace'),
+                                    name=LaunchConfiguration('camera_name'),
                                     package='aist_phoxi_camera',
                                     plugin='aist_phoxi_camera::Camera',
                                     parameters=[params],
@@ -110,7 +108,6 @@ def launch_setup(context, param_args):
                                      'launch', 'aist_phoxi_camera.rviz'])]),
                         Node(name='rqt_reconfigure', package='rqt_reconfigure',
                              executable='rqt_reconfigure', output='screen')])]
-
     return actions
 
 def generate_launch_description():
