@@ -44,7 +44,7 @@
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <ddynamic_reconfigure2/ddynamic_reconfigure2.h>
+#include <ddynamic_reconfigure2/ddynamic_reconfigure2.hpp>
 #include <PhoXi.h>
 
 #if defined(PROFILE)
