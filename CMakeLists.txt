@@ -74,11 +74,16 @@ rclcpp_components_register_node(
     EXECUTABLE ${PROJECT_NAME}_node
 )
 
-##################
-#  launch files  #
-##################
+#############################
+#  launch and config files  #
+#############################
 install(
   DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+install(
+  DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 

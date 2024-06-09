@@ -1,4 +1,3 @@
-import os
 import yaml
 from launch                   import LaunchDescription
 from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
@@ -17,9 +16,9 @@ launch_arguments    = [{'name':        'namespace',
                        {'name':        'camera_name',
                         'default':     'phoxi',
                         'description': 'camera unique name'},
-                       {'name':        'config_dir',
+                       {'name':        'config_file',
                         'default':     '',
-                        'description': 'directory path containing yaml config file for camera'},
+                        'description': 'path to YAML file for configuring camera'},
                        {'name':        'external_container',
                         'default':     'false',
                         'description': 'use existing external container'},
@@ -53,16 +52,15 @@ def set_configurable_parameters(args):
     return dict([(arg['name'], LaunchConfiguration(arg['name'])) \
                  for arg in args])
 
-def load_parameters(config_dir, camera_name):
-    if config_dir == '':
+def load_parameters(config_file):
+    if config_file == '':
         return {}
-    with open(os.path.join(config_dir, camera_name + '.yaml'), 'r') as f:
+    with open(config_file, 'r') as f:
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 def launch_setup(context, param_args):
     params   = load_parameters(
-                   LaunchConfiguration('config_dir').perform(context),
-                   LaunchConfiguration('camera_name').perform(context))
+                   LaunchConfiguration('config_file').perform(context))
     actions  = declare_launch_arguments(param_args, params)
     params  |= set_configurable_parameters(param_args)
     actions += [Node(namespace=LaunchConfiguration('namespace'),

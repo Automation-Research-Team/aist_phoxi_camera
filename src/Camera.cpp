@@ -185,20 +185,20 @@ Camera::Camera(const rclcpp::NodeOptions& options)
 #if defined(PROFILE)
      profiler_t(8),
 #endif
+     _ddr(rclcpp::Node::SharedPtr(this)),
      _factory(),
      _device(nullptr),
      _frame(nullptr),
      _depth_map_size(0, 0),
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
-     _frame_id(declare_read_only_parameter<std::string>(
+     _frame_id(_ddr.declare_read_only_parameter<std::string>(
 		   "frame", node_name() + "_sensor")),
-     _color_camera_frame_id(declare_read_only_parameter<std::string>(
+     _color_camera_frame_id(_ddr.declare_read_only_parameter<std::string>(
 				"color_frame", node_name() + "_color_sensor")),
      _intensity_scale(0.5),
      _dense_cloud(false),
      _color_texture_source(false),
-     _ddr(rclcpp::Node::SharedPtr(this)),
      _trigger_frame_srv(create_service<trigger_t>(
 			    node_name() + "/trigger_frame",
 			    std::bind(&Camera::trigger_frame, this,
@@ -226,43 +226,58 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_pub(_it.advertiseCamera(node_name() + "/color/image", 1)),
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
-				  1.0 / declare_read_only_parameter<double>(
-					    "rate", 10.0)),
+				  1.0/_ddr.declare_read_only_parameter<double>(
+					   "rate", 10.0)),
 			      std::bind(&Camera::tick, this)))
 {
     using namespace	pho::api;
 
-  // Search for a device with specified ID.
-    auto	id = declare_read_only_parameter<std::string>(
-			"id", "InstalledExamples-basic-example");
-    for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
-	id.erase(pos, 1);
-
+  // Check existence of PhoXiControl.
     if (!_factory.isPhoXiControlRunning())
     {
 	RCLCPP_ERROR_STREAM(get_logger(), "PhoXiControll is not running");
 	throw;
     }
 
-    for (const auto& devinfo : _factory.GetDeviceList())
-	if (devinfo.HWIdentification == id)
-	{
-	    _device = _factory.Create(devinfo.GetTypeHWIdentification());
-	    break;
-	}
-    if (!_device)
-    {
-	RCLCPP_ERROR_STREAM(get_logger(),
-			    "failed to find camera[" << id << ']');
-	throw;
-    }
+  // Load camera ID from the parameter.
+    auto	id = _ddr.declare_read_only_parameter<std::string>(
+			 "id", "InstalledExamples-basic-example");
+    for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
+	id.erase(pos, 1);
 
-  // Connect to the device.
-    if (!_device->Connect())
+    if (id == "")
     {
-	RCLCPP_ERROR_STREAM(get_logger(),
-			    "failed to open camera[" << id << ']');
-	throw;
+	_device = _factory.CreateAndConnectFirstAttached();
+	if (!_device)
+	{
+	    RCLCPP_ERROR_STREAM(get_logger(),
+				"failed to connect with camera first attached to PhoXiControl");
+	    throw;
+	}
+    }
+    else
+    {
+      // Search for a device with specified ID.
+	for (const auto& devinfo : _factory.GetDeviceList())
+	    if (devinfo.HWIdentification == id)
+	    {
+		_device = _factory.Create(devinfo.GetTypeHWIdentification());
+		break;
+	    }
+	if (!_device)
+	{
+	    RCLCPP_ERROR_STREAM(get_logger(),
+				"failed to find camera[" << id << ']');
+	    throw;
+	}
+
+      // Connect to the device.
+	if (!_device->Connect())
+	{
+	    RCLCPP_ERROR_STREAM(get_logger(),
+				"failed to connect with camera[" << id << ']');
+	    throw;
+	}
     }
 
   // Stop acquisition.
@@ -316,21 +331,6 @@ Camera::tick()
 	    _frame->Successful)
 	    publish_frame();
     }
-}
-
-template <class T> T
-Camera::declare_read_only_parameter(const std::string& name,
-				    const T& default_value)
-{
-    auto	desc = ddynamic_reconfigure2::param_range<T>().param_desc();
-    desc.name			= name;
-    desc.read_only		= true;
-    desc.integer_range		= {};
-    desc.floating_point_range	= {};
-    desc.dynamic_typing		= false;
-
-    return declare_parameter<T>(name, default_value, desc);
-
 }
 
 void

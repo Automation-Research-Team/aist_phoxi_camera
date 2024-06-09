@@ -91,9 +91,6 @@ class Camera : public rclcpp::Node
 		~Camera()						;
 
   private:
-    template <class T>
-    T		declare_read_only_parameter(const std::string& name,
-					    const T& default_value)	;
     std::string	node_name() const
 		{
 		    return get_name();
@@ -168,6 +165,8 @@ class Camera : public rclcpp::Node
 		}
 
   private:
+    ddynamic_reconfigure_t			_ddr;
+
     pho::api::PhoXiFactory			_factory;
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
@@ -180,8 +179,6 @@ class Camera : public rclcpp::Node
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
-
-    ddynamic_reconfigure_t			_ddr;
 
     const trigger_srv_p				_trigger_frame_srv;
     const trigger_srv_p				_save_settings_srv;
