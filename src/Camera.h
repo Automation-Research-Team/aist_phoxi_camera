@@ -180,14 +180,14 @@ class Camera
     pho::api::PhoXiSize				_color_camera_image_size;
     pho::api::CameraMatrix64f			_camera_matrix;
 
+    ddynamic_reconfigure_t			_ddr;
+
     const std::string				_frame_id;
     const std::string				_color_camera_frame_id;
     const double				_rate;
     double					_intensity_scale;
     bool					_dense_cloud;
     bool					_color_texture_source;
-
-    ddynamic_reconfigure_t			_ddr;
 
     const ros::ServiceServer			_trigger_frame_server;
     const ros::ServiceServer			_save_settings_server;

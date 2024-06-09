@@ -181,6 +181,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _depth_map_size(0, 0),
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
+     _ddr(nh),
      _frame_id(nh.param<std::string>("frame", getBaseName() + "_sensor")),
      _color_camera_frame_id(nh.param<std::string>(
 				"color_camera_frame",
@@ -189,7 +190,6 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
      _intensity_scale(0.5),
      _dense_cloud(false),
      _color_texture_source(false),
-     _ddr(nh),
      _trigger_frame_server(nh.advertiseService("trigger_frame",
 					       &Camera::trigger_frame,	this)),
      _save_settings_server(nh.advertiseService("save_settings",
@@ -210,42 +210,65 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
 {
     using namespace	pho::api;
 
-  // Search for a device with specified ID.
+  // Check existence of PhoXiControl.
+    if (!_factory.isPhoXiControlRunning())
+    {
+	NODELET_ERROR_STREAM('('
+			     << getBaseName()
+			     << ") PhoXiControll is not running");
+	throw;
+    }
+
+  // Load camera ID from the parameter.
     auto	id = nh.param<std::string>("id",
 					   "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
-    if (!_factory.isPhoXiControlRunning())
+    if (id == "")
     {
-	NODELET_ERROR_STREAM("PhoXiControll is not running");
-	throw;
-    }
-
-    for (const auto& devinfo : _factory.GetDeviceList())
-	if (devinfo.HWIdentification == id)
+	_device = _factory.CreateAndConnectFirstAttached();
+	if (!_device)
 	{
-	    _device = _factory.Create(devinfo.GetTypeHWIdentification());
-	    break;
+	    NODELET_ERROR_STREAM('('
+				 << getBaseName()
+				 << ") Failed to connect with camera first attached to PhoXiControl");
+	    throw;
 	}
-    if (!_device)
-    {
-	NODELET_ERROR_STREAM("Failed to find camera[" << id << "]");
-	throw;
     }
-
-  // Connect to the device.
-    if (!_device->Connect())
+    else
     {
-	NODELET_ERROR_STREAM("Failed to open camera[" << id << "]");
-	throw;
+      // Search for a device with specified ID.
+	for (const auto& devinfo : _factory.GetDeviceList())
+	    if (devinfo.HWIdentification == id)
+	    {
+		_device = _factory.Create(devinfo.GetTypeHWIdentification());
+		break;
+	    }
+	if (!_device)
+	{
+	    NODELET_ERROR_STREAM('('
+				 << getBaseName()
+				 << ") Failed to find camera[" << id << ']');
+	    throw;
+	}
+
+      // Connect to the device.
+	if (!_device->Connect())
+	{
+	    NODELET_ERROR_STREAM('('
+				 << getBaseName()
+				 << ") Failed to connect with camera[" << id
+				 << ']');
+	    throw;
+	}
     }
 
   // Stop acquisition.
     _device->StopAcquisition();
 
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") Initializing configuration");
 
   // Setup ddynamic_reconfigure services.
@@ -261,7 +284,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
 #endif
       default:
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") Unknown device type["
 			     << std::string(_device->GetType()) << ']');
 	throw;
@@ -276,7 +299,7 @@ Camera::Camera(ros::NodeHandle& nh, const std::string& nodelet_name)
     _device->StartAcquisition();
 
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") aist_phoxi_camera is active");
 }
 
@@ -1107,7 +1130,7 @@ Camera::is_available(const pho::api::PhoXiFeature<F>& feature) const
     if (feature.isEnabled() && feature.CanGet() && feature.CanSet())
 	return true;
     NODELET_WARN_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") feature " << feature.GetName()
 			<< " is not available");
     return false;
@@ -1126,12 +1149,12 @@ Camera::set_feature(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     if (f.isLastOperationSuccessful())
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") set " << f.GetName()
 			    << " to " << f.GetValue());
     else
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") failed to set " << f.GetName()
 			     << " to " << value << ": "
 			     << f.GetLastErrorMessage());
@@ -1160,12 +1183,12 @@ Camera::set_field(pho::api::PhoXiFeature<F> pho::api::PhoXi::* feature,
 
     if (f.isLastOperationSuccessful())
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") set " << f.GetName() << "::" << field_name
 			    << " to "   << f.GetValue().*field);
     else
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") failed to set "
 			     << f.GetName() << "::"
 			     << field_name << " to " << value << ": "
@@ -1184,7 +1207,7 @@ Camera::set_member(T& member, T value, const std::string& name)
 {
     member = value;
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") set " << name << " to " << member);
 }
 
@@ -1211,7 +1234,7 @@ Camera::set_resolution(size_t idx)
     if (idx < modes.size())
 	_device->CapturingMode = modes[idx];
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") set resolution to "
 			<< _device->CapturingMode.GetValue().Resolution.Width
 			<< 'x'
@@ -1235,7 +1258,7 @@ Camera::set_color_resolution(size_t idx)
     {
 	_device->CapturingMode = modes[idx];
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") set color resolution to "
 			    << _device->ColorSettings->CapturingMode
 				   .Resolution.Width
@@ -1254,7 +1277,7 @@ Camera::set_white_balance_preset(const std::string& preset)
 {
     _device->ColorSettings->WhiteBalance.Preset = preset;
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") set white balande to "
 			<< _device->ColorSettings->WhiteBalance.Preset);
 }
@@ -1267,7 +1290,7 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
     using namespace	pho::api;
 
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") trigger_frame: service requested");
 
     if (_device->TriggerMode.GetValue() != PhoXiTriggerMode::Software)
@@ -1276,7 +1299,7 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 	res.message = "succeded, but device is not in software trigger mode";
 
 	NODELET_WARN_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") " << res.message);
 	return true;
     }
@@ -1284,7 +1307,7 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
     const auto	frameId = _device->TriggerFrame(true, true);
 
     NODELET_INFO_STREAM('('
-			<< _device->HardwareIdentification.GetValue()
+			<< getBaseName()
 			<< ") trigger_frame: triggered");
 
     switch (frameId)
@@ -1316,7 +1339,7 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 	}
 
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") trigger_frame: frame got");
 
 	if (_frame->Info.FrameIndex != uint64_t(frameId))
@@ -1338,12 +1361,12 @@ Camera::trigger_frame(std_srvs::Trigger::Request&  req,
 
     if (res.success)
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") trigger_frame: "
 			    << res.message);
     else
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") trigger_frame: "
 			     << res.message);
 
@@ -1360,7 +1383,7 @@ Camera::save_settings(std_srvs::Trigger::Request&  req,
     {
 	res.message = "succesfully saved settings";
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") save_settings: "
 			    << res.message);
     }
@@ -1368,7 +1391,7 @@ Camera::save_settings(std_srvs::Trigger::Request&  req,
     {
 	res.message = "failed to save settings";
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") save_settings: "
 			     << res.message);
     }
@@ -1390,7 +1413,7 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     {
 	res.message = "succesfully restored settings";
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") restore_settings: "
 			    << res.message);
     }
@@ -1398,7 +1421,7 @@ Camera::restore_settings(std_srvs::Trigger::Request&  req,
     {
 	res.message = "failed to restore settings";
 	NODELET_ERROR_STREAM('('
-			     << _device->HardwareIdentification.GetValue()
+			     << getBaseName()
 			     << ") restore_settings: "
 			     << res.message);
     }
@@ -1608,7 +1631,7 @@ Camera::publish_frame()
 
     profiler_print(std::cerr);
     NODELET_DEBUG_STREAM('('
-			 << _device->HardwareIdentification.GetValue()
+			 << getBaseName()
 			 << ") frame published [#"
 			 << _frame->Info.FrameIndex << ']');
 }
@@ -1759,7 +1782,7 @@ Camera::publish_cloud(const ros::Time& stamp, float distanceScale) const
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
 	    NODELET_ERROR_STREAM('('
-				 << _device->HardwareIdentification.GetValue()
+				 << getBaseName()
 				 << ") normals_estimation_radius must be positive");
 	    return;
 	}
@@ -1818,7 +1841,7 @@ Camera::publish_camera_info(const ros::Time& stamp)
 	cache_camera_matrix();
 
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") camera_matrix updated");
     }
 
@@ -1864,7 +1887,7 @@ Camera::publish_color_camera(const ros::Time& stamp)
 	_static_broadcaster.sendTransform(transform);
 
 	NODELET_INFO_STREAM('('
-			    << _device->HardwareIdentification.GetValue()
+			    << getBaseName()
 			    << ") transform from color camera updated");
     }
 
