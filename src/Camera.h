@@ -165,14 +165,14 @@ class Camera : public rclcpp::Node
 		}
 
   private:
-    ddynamic_reconfigure_t			_ddr;
-
     pho::api::PhoXiFactory			_factory;
     pho::api::PPhoXi				_device;
     pho::api::PFrame				_frame;
     pho::api::PhoXiSize				_depth_map_size;
     pho::api::PhoXiSize				_color_camera_image_size;
     pho::api::CameraMatrix64f			_camera_matrix;
+
+    ddynamic_reconfigure_t			_ddr;
 
     const std::string				_frame_id;
     const std::string				_color_camera_frame_id;

@@ -185,13 +185,13 @@ Camera::Camera(const rclcpp::NodeOptions& options)
 #if defined(PROFILE)
      profiler_t(8),
 #endif
-     _ddr(rclcpp::Node::SharedPtr(this)),
      _factory(),
      _device(nullptr),
      _frame(nullptr),
      _depth_map_size(0, 0),
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
+     _ddr(rclcpp::Node::SharedPtr(this)),
      _frame_id(_ddr.declare_read_only_parameter<std::string>(
 		   "frame", node_name() + "_sensor")),
      _color_camera_frame_id(_ddr.declare_read_only_parameter<std::string>(
