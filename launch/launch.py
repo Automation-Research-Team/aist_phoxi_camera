@@ -42,9 +42,11 @@ parameter_arguments = [{'name':        'id',
                         'description': 'rate of publishing topics'}]
 
 def declare_launch_arguments(args, defaults={}):
+    num_to_str = lambda x : str(x) if isinstance(x, (bool, int, float)) else x
     return [DeclareLaunchArgument(
                 arg['name'],
-                default_value=str(defaults.get(arg['name'], arg['default'])),
+                default_value=num_to_str(defaults.get(arg['name'],
+                                                      arg['default'])),
                 description=arg['description']) \
             for arg in args]
 
