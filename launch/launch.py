@@ -32,8 +32,8 @@ launch_arguments    = [{'name':        'namespace',
                         'default':     'info',
                         'description': 'debug log level [DEBUG|INFO|WARN|ERROR|FATAL]'},
                        {'name':        'output',
-                        'default':     'both',
-                        'description': 'pipe node output [screen|log]'}]
+                        'default':     'screen',
+                        'description': 'pipe node output [screen|log|both]'}]
 parameter_arguments = [{'name':        'id',
                         'default':     'InstalledExamples-basic-example',
                         'description': 'choose device by serial number'},

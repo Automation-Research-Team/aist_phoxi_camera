@@ -62,24 +62,24 @@ class Camera : public rclcpp::Node
 #endif
 {
   private:
-    using cloud_t		 = sensor_msgs::msg::PointCloud2;
-    using cloud_p		 = cloud_t::UniquePtr;
-    using image_t		 = sensor_msgs::msg::Image;
-    using image_p		 = image_t::UniquePtr;
-    using camera_info_t		 = sensor_msgs::msg::CameraInfo;
-    using camera_info_p		 = camera_info_t::UniquePtr;
-    using trigger_t		 = std_srvs::srv::Trigger;
-    using trigger_srv_p		 = rclcpp::Service<trigger_t>::SharedPtr;
-    using trigger_req_p		 = trigger_t::Request::SharedPtr;
-    using trigger_res_p		 = trigger_t::Response::SharedPtr;
-    using ddynamic_reconfigure_t = ddynamic_reconfigure2::DDynamicReconfigure;
+    using cloud_t	= sensor_msgs::msg::PointCloud2;
+    using cloud_p	= cloud_t::UniquePtr;
+    using image_t	= sensor_msgs::msg::Image;
+    using image_p	= image_t::UniquePtr;
+    using camera_info_t	= sensor_msgs::msg::CameraInfo;
+    using camera_info_p	= camera_info_t::UniquePtr;
+    using trigger_t	= std_srvs::srv::Trigger;
+    using trigger_srv_p	= rclcpp::Service<trigger_t>::SharedPtr;
+    using trigger_req_p	= trigger_t::Request::SharedPtr;
+    using trigger_res_p	= trigger_t::Response::SharedPtr;
+    using ddr_t		= ddynamic_reconfigure2::DDynamicReconfigure;
 #if defined(PROFILE)
-    using profiler_t		 = TU::Profiler<>;
+    using profiler_t	= TU::Profiler<>;
 #endif
     template <class MSG>
-    using publisher_p		 = typename rclcpp::Publisher<MSG>::SharedPtr;
-    using broadcaster_t		 = tf2_ros::StaticTransformBroadcaster;
-    using timer_p		 = rclcpp::TimerBase::SharedPtr;
+    using publisher_p	= typename rclcpp::Publisher<MSG>::SharedPtr;
+    using broadcaster_t	= tf2_ros::StaticTransformBroadcaster;
+    using timer_p	= rclcpp::TimerBase::SharedPtr;
 
     enum
     {
@@ -95,6 +95,9 @@ class Camera : public rclcpp::Node
 		{
 		    return get_name();
 		}
+    template <class T>
+    T		declare_read_only_parameter(const std::string& name,
+					    const T& default_value)	;
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
@@ -172,7 +175,7 @@ class Camera : public rclcpp::Node
     pho::api::PhoXiSize				_color_camera_image_size;
     pho::api::CameraMatrix64f			_camera_matrix;
 
-    ddynamic_reconfigure_t			_ddr;
+    ddr_t					_ddr;
 
     const std::string				_frame_id;
     const std::string				_color_camera_frame_id;
