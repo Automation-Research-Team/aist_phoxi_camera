@@ -10,36 +10,39 @@ from launch_ros.actions       import Node, LoadComposableNodes
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.descriptions  import ComposableNode
 
-launch_arguments    = [{'name':        'namespace',
-                        'default':     '',
-                        'description': 'namespace for camera'},
-                       {'name':        'camera_name',
-                        'default':     'phoxi',
-                        'description': 'camera unique name'},
-                       {'name':        'config_file',
-                        'default':     '',
-                        'description': 'path to YAML file for configuring camera'},
-                       {'name':        'external_container',
-                        'default':     'false',
-                        'description': 'use existing external container'},
-                       {'name':        'container',
-                        'default':     '',
-                        'description': 'name of internal or external component container'},
-                       {'name':        'vis',
-                        'default':     'false',
-                        'description': 'visualize camera outputs'},
-                       {'name':        'log_level',
-                        'default':     'info',
-                        'description': 'debug log level [DEBUG|INFO|WARN|ERROR|FATAL]'},
-                       {'name':        'output',
-                        'default':     'screen',
-                        'description': 'pipe node output [screen|log|both]'}]
-parameter_arguments = [{'name':        'id',
-                        'default':     'InstalledExamples-basic-example',
-                        'description': 'choose device by serial number'},
-                       {'name':        'rate',
-                        'default':     '10.0',
-                        'description': 'rate of publishing topics'}]
+launch_arguments = [
+    {'name':        'namespace',
+     'default':     '',
+     'description': 'namespace for camera'},
+    {'name':        'camera_name',
+     'default':     'phoxi',
+     'description': 'camera unique name'},
+    {'name':        'config_file',
+     'default':     '',
+     'description': 'path to YAML file for configuring camera'},
+    {'name':        'external_container',
+     'default':     'false',
+     'description': 'use existing external container'},
+    {'name':        'container',
+     'default':     '',
+     'description': 'name of internal or external component container'},
+    {'name':        'vis',
+     'default':     'false',
+     'description': 'visualize camera outputs'},
+    {'name':        'log_level',
+     'default':     'info',
+     'description': 'debug log level [DEBUG|INFO|WARN|ERROR|FATAL]'},
+    {'name':        'output',
+     'default':     'screen',
+     'description': 'pipe node output [screen|log|both]'}]
+
+parameter_arguments = [
+    {'name':        'id',
+     'default':     'InstalledExamples-basic-example',
+     'description': 'choose device by serial number'},
+    {'name':        'rate',
+     'default':     '10.0',
+     'description': 'rate of publishing topics'}]
 
 def declare_launch_arguments(args, defaults={}):
     num_to_str = lambda x : str(x) if isinstance(x, (bool, int, float)) else x
