@@ -61,6 +61,15 @@ target_link_libraries(
     ${PHOXI_LIBRARY}
 )
 
+rclcpp_components_register_node(
+  ${PROJECT_NAME}
+    PLUGIN "${PROJECT_NAME}::Camera"
+    EXECUTABLE ${PROJECT_NAME}_node
+)
+
+#############
+#  install  #
+#############
 install(
   TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -68,15 +77,6 @@ install(
   RUNTIME DESTINATION bin
 )
 
-rclcpp_components_register_node(
-  ${PROJECT_NAME}
-    PLUGIN "${PROJECT_NAME}::Camera"
-    EXECUTABLE ${PROJECT_NAME}_node
-)
-
-#############################
-#  launch and config files  #
-#############################
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
@@ -114,7 +114,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# Ament exports
+#############
+#  exports  #
+#############
 ament_export_libraries(${PROJECT_NAME})
 
 ament_package()

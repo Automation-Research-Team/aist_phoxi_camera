@@ -2,10 +2,9 @@ import yaml
 from launch                   import LaunchDescription
 from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
                                       GroupAction)
-from launch.substitutions     import LaunchConfiguration, PathJoinSubstitution
-from launch.conditions        import (IfCondition, UnlessCondition,
-                                      LaunchConfigurationEquals,
-                                      LaunchConfigurationNotEquals)
+from launch.substitutions     import (LaunchConfiguration,
+                                      PathJoinSubstitution, EqualsSubstitution)
+from launch.conditions        import IfCondition, UnlessCondition
 from launch_ros.actions       import Node, LoadComposableNodes
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.descriptions  import ComposableNode
@@ -77,9 +76,13 @@ def launch_setup(context, param_args):
                      arguments=['--ros-args', '--log-level',
                                 LaunchConfiguration('log_level')],
                      emulate_tty=True,
-                     condition=LaunchConfigurationEquals('container', '')),
+                     condition=IfCondition(
+                                   EqualsSubstitution(
+                                       LaunchConfiguration('container'), ''))),
                 GroupAction(
-                    condition=LaunchConfigurationNotEquals('container', ''),
+                    condition=UnlessCondition(
+                                  EqualsSubstitution(
+                                      LaunchConfiguration('container'), '')),
                     actions=[
                         Node(name=LaunchConfiguration('container'),
                              package='rclcpp_components',
