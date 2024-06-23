@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
+
   <name>aist_phoxi_camera</name>
   <version>1.0.0</version>
   <description>The aist_phoxi_camera is a package that enables interfacing Photoneo Phoxi Scanner/Camera from ROS</description>
@@ -13,7 +14,6 @@
   <build_depend>rclcpp_components</build_depend>
   <exec_depend>rclcpp_components</exec_depend>
 
-  <depend>common_interfaces</depend>
   <depend>image_transport</depend>
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
@@ -27,4 +27,5 @@
   <export>
     <build_type>ament_cmake</build_type>
   </export>
+
 </package>

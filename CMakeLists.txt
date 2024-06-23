@@ -15,7 +15,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
 find_package(rclcpp_components REQUIRED)
-find_package(common_interfaces REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -63,7 +62,7 @@ target_link_libraries(
 
 rclcpp_components_register_node(
   ${PROJECT_NAME}
-    PLUGIN "${PROJECT_NAME}::Camera"
+    PLUGIN     ${PROJECT_NAME}::Camera
     EXECUTABLE ${PROJECT_NAME}_node
 )
 
