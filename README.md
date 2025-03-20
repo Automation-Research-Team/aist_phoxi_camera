@@ -14,8 +14,8 @@ is completely reorganized.
 
 The driver is tested under the following conditions.
 - ROS noetic on Ubuntu-20.04
-- PhoXiControl-1.12.3
-- PhoXi 3D Scanner Gen1 with firmware-1.2.38, MotionCam-3D and MotionCam-3D Color both with firmware-1.13.0
+- PhoXiControl-1.14.0
+- PhoXi 3D Scanner Gen1 with firmware-1.2.38, MotionCam-3D and MotionCam-3D Color both with firmware-1.13.3
 
 ## Installation
 
@@ -52,7 +52,7 @@ $ source (your-catkin-workspace)/devel/setup.bash
 $ catkin build aist_phoxi_camera
 ```
 
-## Testing
+## Testing the driver
 
 You have to invoke `PhoXiControl` in advance of running
 `aist_phoxi_camera`. It directly communicates
@@ -87,6 +87,24 @@ $ roslaunch aist_phoxi_camera run.launch vis:=true id:="2018-09-016-LC3"
 ```
 Here, the ID, "2018-09-016-LC3", varies for each device which can be
 known from `Network Discovery` window of `PhoXiControl`.
+
+## Trouble shooting
+Some people reported that the driver fails to start with the following error message;
+```bash
+type is aist_phoxi_camera/aist_phoxi_camera
+[ INFO] [1715922872.621560597]: Initializing nodelet with 32 worker threads.
+[ INFO] [1715922872.622773835]: aist_phoxi_camera::CameraNodelet::onInit()
+free(): invalid pointer
+```
+I also noticed that this happens when the driver is started in a docker container with `PhoXiControl-1.13.4` installed. 
+
+It seems that the problem is due to some incompatibility between PhoXi API library and ROS header files. This is confirmed by running a [small test program](./src/test_compatibility.cpp) by
+```bash
+$ roslauch aist_phoxi_camera test_compatibility.launch
+```
+This program includes `ros/ros.h` but calls no ROS API. If the program fails with a message "free(): invalid_pointer", you have a compatibility problem.
+
+I have found that the issue is resolved by updating `PhoXiXontrol` to `1.14.0`. Please make sure that you are using the latest version if you encounter the problem.
 
 ## Starting the driver as a nodelet
 

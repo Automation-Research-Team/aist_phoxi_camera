@@ -61,9 +61,26 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 
+add_executable(
+  test_compatibility
+  src/test_compatibility.cpp
+)
+
+add_dependencies(
+  test_compatibility
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(
+  test_compatibility
+  ${PHOXI_LIBRARY}
+  ${catkin_LIBRARIES}
+)
+
 install(
   TARGETS
-    ${PROJECT_NAME}
+    ${PROJECT_NAME} test_compatibility
   ARCHIVE
     DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY

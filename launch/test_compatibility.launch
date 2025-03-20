@@ -1,0 +1,8 @@
+<launch>
+
+  <arg name="camera_name"	default="phoxi"/>
+
+  <node name="$(arg camera_name)"
+	pkg ="aist_phoxi_camera" type="test_compatibility" output="screen"/>
+
+</launch>
