@@ -192,9 +192,11 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _ddr(rclcpp::Node::SharedPtr(this)),
-     _frame_id(declare_read_only_parameter<std::string>(
-		   "frame", node_name() + "_sensor")),
-     _color_camera_frame_id(declare_read_only_parameter<std::string>(
+     _frame_id(ddynamic_reconfigure2::declare_read_only_parameter<std::string>(
+		   this, "frame", node_name() + "_sensor")),
+     _color_camera_frame_id(ddynamic_reconfigure2::
+			    declare_read_only_parameter<std::string>(
+				this,
 				"color_frame", node_name() + "_color_sensor")),
      _intensity_scale(0.5),
      _dense_cloud(false),
@@ -226,8 +228,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_pub(_it.advertiseCamera(node_name() + "/color/image", 1)),
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
-				  1.0/declare_read_only_parameter<double>(
-				          "rate", 10.0)),
+				  1.0/ddynamic_reconfigure2::
+				      declare_read_only_parameter<double>(
+				          this, "rate", 10.0)),
 			      std::bind(&Camera::tick, this)))
 {
     using namespace	pho::api;
@@ -240,8 +243,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
     }
 
   // Load camera ID from the parameter.
-    auto	id = declare_read_only_parameter<std::string>(
-			"id", "InstalledExamples-basic-example");
+    auto	id = ddynamic_reconfigure2::declare_read_only_parameter<
+			 std::string>(this,
+				      "id", "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
@@ -317,15 +321,6 @@ Camera::~Camera()
 	_device->StopAcquisition();
 	_device->Disconnect();
     }
-}
-
-template <class T> T
-Camera::declare_read_only_parameter(const std::string& name,
-				    const T& default_value)
-{
-    return declare_parameter(
-		name, default_value,
-		ddynamic_reconfigure2::read_only_param_desc<T>(name));
 }
 
 void
@@ -1163,7 +1158,8 @@ Camera::setup_ddr_common()
 template <class F> bool
 Camera::is_available(const pho::api::PhoXiFeature<F>& feature) const
 {
-    if (feature.isEnabled() && feature.CanGet() && feature.CanSet())
+    if (feature.isImplemented() && feature.isEnabled() &&
+	feature.CanGet() && feature.CanSet())
 	return true;
     RCLCPP_WARN_STREAM(get_logger(),
 		       "feature " << feature.GetName() << " is not available");

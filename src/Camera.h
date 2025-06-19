@@ -95,9 +95,6 @@ class Camera : public rclcpp::Node
 		{
 		    return get_name();
 		}
-    template <class T>
-    T		declare_read_only_parameter(const std::string& name,
-					    const T& default_value)	;
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
