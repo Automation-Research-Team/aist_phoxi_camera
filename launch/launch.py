@@ -43,10 +43,13 @@ parameter_arguments = [
      'default':     '10.0',
      'description': 'rate of publishing topics'}]
 
-def declare_launch_arguments(args):
-    return [DeclareLaunchArgument(arg['name'],
-                                  default_value=arg['default'],
-                                  description=arg['description']) \
+def declare_launch_arguments(args, defaults={}):
+    num_to_str = lambda x : str(x) if isinstance(x, (bool, int, float)) else x
+    return [DeclareLaunchArgument(
+                arg['name'],
+                default_value=num_to_str(defaults.get(arg['name'],
+                                                      arg['default'])),
+                description=arg['description']) \
             for arg in args]
 
 def set_configurable_parameters(args):
