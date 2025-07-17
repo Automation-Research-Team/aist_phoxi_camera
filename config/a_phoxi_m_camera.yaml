@@ -1,9 +1,0 @@
-id:                  "2018-09-015-LC3"
-trigger_mode:        1
-intensity_scale:     0.5
-rate:                10.0
-send_point_cloud:    true
-send_normal_map:     true
-send_depth_map:      true
-send_confidence_map: false
-send_texture:        true

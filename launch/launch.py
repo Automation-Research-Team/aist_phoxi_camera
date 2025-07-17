@@ -1,21 +1,19 @@
-import yaml
-from launch                   import LaunchDescription
-from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
-                                      GroupAction)
-from launch.substitutions     import (LaunchConfiguration,
-                                      PathJoinSubstitution, EqualsSubstitution)
-from launch.conditions        import IfCondition, UnlessCondition
-from launch_ros.actions       import Node, LoadComposableNodes
-from launch_ros.substitutions import FindPackageShare
-from launch_ros.descriptions  import ComposableNode
+from launch                  import LaunchDescription
+from launch.actions          import (DeclareLaunchArgument, OpaqueFunction,
+                                     GroupAction)
+from launch.substitutions    import (LaunchConfiguration, ThisLaunchFileDir,
+                                     PathJoinSubstitution, EqualsSubstitution)
+from launch.conditions       import IfCondition, UnlessCondition
+from launch_ros.actions      import Node, LoadComposableNodes
+from launch_ros.descriptions import ComposableNode
 
 launch_arguments = [
     {'name':        'namespace',
      'default':     '',
-     'description': 'namespace for camera'},
+     'description': 'namespace of the camera node'},
     {'name':        'camera_name',
      'default':     'phoxi',
-     'description': 'camera unique name'},
+     'description': 'node name of the camera'},
     {'name':        'config_file',
      'default':     '',
      'description': 'path to YAML file for configuring camera'},
@@ -38,85 +36,78 @@ launch_arguments = [
 parameter_arguments = [
     {'name':        'id',
      'default':     'InstalledExamples-basic-example',
-     'description': 'choose device by serial number'},
+     'description': 'unique ID of the camera'},
+    {'name':        'trigger_mode',
+     'default':     '0',
+     'description': '0: Free run, 1: Software trigger, 2: hardware trigger'},
     {'name':        'rate',
      'default':     '10.0',
      'description': 'rate of publishing topics'}]
 
-def declare_launch_arguments(args, defaults={}):
-    num_to_str = lambda x : str(x) if isinstance(x, (bool, int, float)) else x
-    return [DeclareLaunchArgument(
-                arg['name'],
-                default_value=num_to_str(defaults.get(arg['name'],
-                                                      arg['default'])),
-                description=arg['description']) \
+
+def declare_launch_arguments(args):
+    return [DeclareLaunchArgument(arg['name'], default_value=arg['default'],
+                                  description=arg['description']) \
             for arg in args]
 
 def set_configurable_parameters(args):
     return dict([(arg['name'], LaunchConfiguration(arg['name'])) \
                  for arg in args])
 
-def load_parameters(config_file):
-    if config_file == '':
-        return {}
-    with open(config_file, 'r') as f:
-        return yaml.load(f, Loader=yaml.SafeLoader)
-
 def launch_setup(context, param_args):
-    params   = load_parameters(
-                   LaunchConfiguration('config_file').perform(context))
-    actions  = declare_launch_arguments(param_args, params)
-    params  |= set_configurable_parameters(param_args)
-    actions += [Node(namespace=LaunchConfiguration('namespace'),
-                     name=LaunchConfiguration('camera_name'),
-                     package='aist_phoxi_camera',
-                     executable='aist_phoxi_camera_node',
-                     parameters=[params],
-                     output=LaunchConfiguration('output'),
-                     arguments=['--ros-args', '--log-level',
-                                LaunchConfiguration('log_level')],
-                     emulate_tty=True,
-                     condition=IfCondition(
-                                   EqualsSubstitution(
-                                       LaunchConfiguration('container'), ''))),
-                GroupAction(
-                    condition=UnlessCondition(
-                                  EqualsSubstitution(
-                                      LaunchConfiguration('container'), '')),
-                    actions=[
-                        Node(name=LaunchConfiguration('container'),
-                             package='rclcpp_components',
-                             executable='component_container',
-                             output=LaunchConfiguration('output'),
-                             arguments=['--ros-args', '--log-level',
-                                        LaunchConfiguration('log_level')],
-                             condition=UnlessCondition(
-                                 LaunchConfiguration('external_container'))),
-                        LoadComposableNodes(
-                            target_container=LaunchConfiguration('container'),
-                            composable_node_descriptions=[
-                                ComposableNode(
-                                    namespace=LaunchConfiguration('namespace'),
-                                    name=LaunchConfiguration('camera_name'),
-                                    package='aist_phoxi_camera',
-                                    plugin='aist_phoxi_camera::Camera',
-                                    parameters=[params],
-                                    extra_arguments=[
-                                        {'use_intra_process_comms': True}])])]),
-                GroupAction(
-                    condition=IfCondition(LaunchConfiguration('vis')),
-                    actions=[
-                        Node(name='rviz', package='rviz2', executable='rviz2',
-                             output='screen',
-                             arguments=['-d',
-                                 PathJoinSubstitution([
-                                     FindPackageShare('aist_phoxi_camera'),
-                                     'launch', 'aist_phoxi_camera.rviz'])]),
-                        Node(name='rqt_reconfigure', package='rqt_reconfigure',
-                             executable='rqt_reconfigure', output='screen')])]
-    return actions
+    config_file = LaunchConfiguration('config_file')
+    params = config_file if config_file.perform(context) != '' else \
+             set_configurable_parameters(param_args)
+    return [Node(namespace=LaunchConfiguration('namespace'),
+                 name=LaunchConfiguration('camera_name'),
+                 package='aist_phoxi_camera',
+                 executable='aist_phoxi_camera_node',
+                 parameters=[params],
+                 output=LaunchConfiguration('output'),
+                 arguments=['--ros-args', '--log-level',
+                            LaunchConfiguration('log_level')],
+                 emulate_tty=True,
+                 condition=IfCondition(
+                     EqualsSubstitution(
+                         LaunchConfiguration('container'), ''))),
+            GroupAction(
+                condition=UnlessCondition(
+                              EqualsSubstitution(
+                                  LaunchConfiguration('container'), '')),
+                actions=[
+                    Node(name=LaunchConfiguration('container'),
+                         package='rclcpp_components',
+                         executable='component_container',
+                         output=LaunchConfiguration('output'),
+                         arguments=['--ros-args', '--log-level',
+                                    LaunchConfiguration('log_level')],
+                         condition=UnlessCondition(
+                             LaunchConfiguration('external_container'))),
+                    LoadComposableNodes(
+                        target_container=LaunchConfiguration('container'),
+                        composable_node_descriptions=[
+                            ComposableNode(
+                                namespace=LaunchConfiguration('namespace'),
+                                name=LaunchConfiguration('camera_name'),
+                                package='aist_phoxi_camera',
+                                plugin='aist_phoxi_camera::Camera',
+                                parameters=[params],
+                                extra_arguments=[
+                                    {'use_intra_process_comms': True}])])]),
+            GroupAction(
+                condition=IfCondition(LaunchConfiguration('vis')),
+                actions=[
+                    Node(name='rviz', package='rviz2', executable='rviz2',
+                         output='screen',
+                         arguments=['-d',
+                                    PathJoinSubstitution([
+                                        ThisLaunchFileDir(),
+                                        'aist_phoxi_camera.rviz'])]),
+                    Node(name='rqt_reconfigure', package='rqt_reconfigure',
+                         executable='rqt_reconfigure', output='screen')])]
 
 def generate_launch_description():
-    return LaunchDescription(declare_launch_arguments(launch_arguments) + \
+    return LaunchDescription(declare_launch_arguments(launch_arguments +
+                                                      parameter_arguments) + \
                              [OpaqueFunction(function=launch_setup,
                                              args=[parameter_arguments])])
