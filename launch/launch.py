@@ -2,7 +2,8 @@ from launch                  import LaunchDescription
 from launch.actions          import (DeclareLaunchArgument, OpaqueFunction,
                                      GroupAction)
 from launch.substitutions    import (LaunchConfiguration, ThisLaunchFileDir,
-                                     PathJoinSubstitution, EqualsSubstitution)
+                                     PathJoinSubstitution, EqualsSubstitution,
+                                     IfElseSubstitution)
 from launch.conditions       import IfCondition, UnlessCondition
 from launch_ros.actions      import Node, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
@@ -36,13 +37,7 @@ launch_arguments = [
 parameter_arguments = [
     {'name':        'id',
      'default':     'InstalledExamples-basic-example',
-     'description': 'unique ID of the camera'},
-    {'name':        'trigger_mode',
-     'default':     '0',
-     'description': '0: Free run, 1: Software trigger, 2: hardware trigger'},
-    {'name':        'rate',
-     'default':     '10.0',
-     'description': 'rate of publishing topics'}]
+     'description': 'unique ID of the camera'}]
 
 
 def declare_launch_arguments(args):
@@ -55,21 +50,25 @@ def set_configurable_parameters(args):
                  for arg in args])
 
 def launch_setup(context, param_args):
-    config_file = LaunchConfiguration('config_file')
-    params = config_file if config_file.perform(context) != '' else \
-             set_configurable_parameters(param_args)
+    config_file   = IfElseSubstitution(
+                        EqualsSubstitution(
+                            LaunchConfiguration('config_file'), ''),
+                        PathJoinSubstitution([ThisLaunchFileDir(), '..',
+                                              'config', 'default.yaml']),
+                        LaunchConfiguration('config_file'))
+    config_params = set_configurable_parameters(param_args)
     return [Node(namespace=LaunchConfiguration('namespace'),
                  name=LaunchConfiguration('camera_name'),
                  package='aist_phoxi_camera',
                  executable='aist_phoxi_camera_node',
-                 parameters=[params],
+                 parameters=[config_file, config_params],
                  output=LaunchConfiguration('output'),
                  arguments=['--ros-args', '--log-level',
                             LaunchConfiguration('log_level')],
                  emulate_tty=True,
                  condition=IfCondition(
-                     EqualsSubstitution(
-                         LaunchConfiguration('container'), ''))),
+                              EqualsSubstitution(
+                                  LaunchConfiguration('container'), ''))),
             GroupAction(
                 condition=UnlessCondition(
                               EqualsSubstitution(
@@ -91,7 +90,7 @@ def launch_setup(context, param_args):
                                 name=LaunchConfiguration('camera_name'),
                                 package='aist_phoxi_camera',
                                 plugin='aist_phoxi_camera::Camera',
-                                parameters=[params],
+                                parameters=[config_file, config_params],
                                 extra_arguments=[
                                     {'use_intra_process_comms': True}])])]),
             GroupAction(

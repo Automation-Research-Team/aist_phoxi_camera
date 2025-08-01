@@ -1,6 +1,5 @@
 phoxi:
   ros__parameters:
-    id:                        InstalledExamples-basic-example
     trigger_mode:              0
     intensity_scale:           0.5
     rate:                      20.0
