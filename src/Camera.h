@@ -72,7 +72,7 @@ class Camera : public rclcpp::Node
     using trigger_srv_p	= rclcpp::Service<trigger_t>::SharedPtr;
     using trigger_req_p	= trigger_t::Request::SharedPtr;
     using trigger_res_p	= trigger_t::Response::SharedPtr;
-    using ddr_t		= ddynamic_reconfigure2::DDynamicReconfigure;
+    using ddr_t		= ddynamic_reconfigure2::DDynamicReconfigure<>;
 #if defined(PROFILE)
     using profiler_t	= TU::Profiler<>;
 #endif

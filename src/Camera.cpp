@@ -192,10 +192,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _color_camera_image_size(0, 0),
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _ddr(rclcpp::Node::SharedPtr(this)),
-     _frame_id(ddynamic_reconfigure2::declare_read_only_parameter<std::string>(
+     _frame_id(ddynamic_reconfigure2::declare_read_only_parameter(
 		   this, "frame", node_name() + "_sensor")),
-     _color_camera_frame_id(ddynamic_reconfigure2::
-			    declare_read_only_parameter<std::string>(
+     _color_camera_frame_id(ddynamic_reconfigure2::declare_read_only_parameter(
 				this,
 				"color_frame", node_name() + "_color_sensor")),
      _intensity_scale(0.5),
@@ -228,7 +227,7 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _static_broadcaster(*this),
      _timer(create_wall_timer(std::chrono::duration<double>(
 				  1.0/ddynamic_reconfigure2::
-				      declare_read_only_parameter<double>(
+				      declare_read_only_parameter(
 				          this, "rate", 10.0)),
 			      std::bind(&Camera::tick, this)))
 {
@@ -242,9 +241,8 @@ Camera::Camera(const rclcpp::NodeOptions& options)
     }
 
   // Load camera ID from the parameter.
-    auto	id = ddynamic_reconfigure2::declare_read_only_parameter<
-			 std::string>(this,
-				      "id", "InstalledExamples-basic-example");
+    auto	id = ddynamic_reconfigure2::declare_read_only_parameter(
+			 this, "id", "InstalledExamples-basic-example");
     for (size_t pos; (pos = id.find('\"')) != std::string::npos; )
 	id.erase(pos, 1);
 
