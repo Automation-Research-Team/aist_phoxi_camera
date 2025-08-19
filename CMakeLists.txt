@@ -11,13 +11,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
+##################
+#  dependencies  #
+##################
 find_package(PhoXi REQUIRED CONFIG PATHS "$ENV{PHOXI_CONTROL_PATH}")
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
-
 add_definitions(-DPHO_SOFTWARE_VERSION_MAJOR=${PHO_SOFTWARE_VERSION_MAJOR}
 	        -DPHO_SOFTWARE_VERSION_MINOR=${PHO_SOFTWARE_VERSION_MINOR})
+
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 ########################################
 #  component: libaist_phoxi_camera.so  #
@@ -36,21 +38,6 @@ rclcpp_components_register_node(
   ${PROJECT_NAME}
     PLUGIN     ${PROJECT_NAME}::Camera
     EXECUTABLE ${PROJECT_NAME}_node
-)
-
-#############
-#  install  #
-#############
-install(
-  TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-install(
-  DIRECTORY launch config urdf meshes
-  DESTINATION share/${PROJECT_NAME}/
 )
 
 ##########
@@ -80,4 +67,4 @@ ament_environment_hooks(
   "${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.sh.in"
 )
 
-ament_auto_package()
+ament_auto_package(INSTALL_TO_SHARE launch config urdf meshes)
