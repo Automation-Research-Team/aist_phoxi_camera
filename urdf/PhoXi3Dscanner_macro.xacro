@@ -23,8 +23,8 @@
         <geometry>
           <xacro:insert_block name="visual" />
         </geometry>
-        <material name="Gazebo/Black">
-          <color rgba="0.1 0.1 0.1 1"/>
+        <material name="">
+          <color rgba="0 0 0 1"/>
         </material>
       </visual>
 
@@ -48,48 +48,40 @@
       <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
     </joint>
 
-    <gazebo reference="${name}_reference">
-      <sensor name="${name}" type="depth">
-	<always_on>true</always_on>
-	<visualize>true</visualize>
+    <gazebo reference="${name}_sensor">
+      <sensor type="rgbd_camera" name="${name}">
 	<camera>
+	  <!-- Color sensor's FOV(VGA): 68 deg. -->
+          <horizontal_fov>${horizontal_fov}</horizontal_fov>
           <image>
+	    <!-- VGA -->
             <width>${image_width}</width>
             <height>${image_height}</height>
             <format>L8</format>
           </image>
-          <horizontal_fov>${horizontal_fov}</horizontal_fov>
-          <depth_camera>
-          </depth_camera>
           <clip>
             <near>0.1</near>
             <far>100</far>
           </clip>
+	  <gz_frame_id>${name}_sensor</gz_frame_id>
+	  <optical_frame_id>${name}_sensor</optical_frame_id>
+	  <noise>
+	    <type>gaussian</type>
+	    <mean>0.0</mean>
+	    <stddev>0.001</stddev>
+	  </noise>
+          <distortion>
+	    <k1>0.0</k1>
+	    <k2>0.0</k2>
+	    <k3>0.0</k3>
+	    <p1>0.0</p1>
+	    <p2>0.0</p2>
+	  </distortion>
 	</camera>
-	<plugin name="${name}_controller"
-		filename="libgazebo_ros_openni_kinect.so">
-          <baseline>${base_line}</baseline>
-          <alwaysOn>true</alwaysOn>
-          <updateRate>${update_rate}</updateRate>
-          <cameraName>${name}</cameraName>
-          <frameName>${name}_sensor</frameName>
-          <imageTopicName>texture</imageTopicName>
-          <depthImageTopicName>depth_map</depthImageTopicName>
-          <pointCloudTopicName>pointcloud</pointCloudTopicName>
-          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-          <depthImageCameraInfoTopicName>camera_info</depthImageCameraInfoTopicName>
-          <pointCloudCutoff>0.4</pointCloudCutoff>
-          <!-- <hackBaseline>0.35</hackBaseline> -->
-          <distortionK1>0.0</distortionK1>
-          <distortionK2>0.0</distortionK2>
-          <distortionK3>0.0</distortionK3>
-          <distortionT1>0.0</distortionT1>
-          <distortionT2>0.0</distortionT2>
-          <CxPrime>0.0</CxPrime>
-          <Cx>0.0</Cx>
-          <Cy>0.0</Cy>
-          <focalLength>0.0</focalLength>
-	</plugin>
+	<always_on>true</always_on>
+        <updateRate>${update_rate}</updateRate>
+	<visualize>true</visualize>
+	<topic>${name}</topic>
       </sensor>
     </gazebo>
 
