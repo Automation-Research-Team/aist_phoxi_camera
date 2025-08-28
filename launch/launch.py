@@ -20,19 +20,23 @@ launch_arguments = [
      'description': 'path to YAML file for configuring camera'},
     {'name':        'external_container',
      'default':     'false',
-     'description': 'use existing external container'},
+     'description': 'use existing external container',
+     'choices':     ['true', 'false']},
     {'name':        'container',
      'default':     '',
      'description': 'name of internal or external component container'},
     {'name':        'vis',
      'default':     'false',
-     'description': 'visualize camera outputs'},
+     'description': 'visualize camera outputs',
+     'choices':     ['true', 'false']},
     {'name':        'log_level',
      'default':     'info',
-     'description': 'debug log level [DEBUG|INFO|WARN|ERROR|FATAL]'},
+     'description': 'debug log level',
+     'choices':     ['debug', 'info', 'warn', 'error', 'fatal']},
     {'name':        'output',
      'default':     'screen',
-     'description': 'pipe node output [screen|log|both]'}]
+     'description': 'pipe node output',
+     'choices':     ['screen', 'log', 'both']}]
 
 parameter_arguments = [
     {'name':        'id',
@@ -41,8 +45,10 @@ parameter_arguments = [
 
 
 def declare_launch_arguments(args):
-    return [DeclareLaunchArgument(arg['name'], default_value=arg['default'],
-                                  description=arg['description']) \
+    return [DeclareLaunchArgument(arg['name'],
+                                  default_value=arg.get('default'),
+                                  description=arg.get('description'),
+                                  choices=arg.get('choices')) \
             for arg in args]
 
 def set_configurable_parameters(args):
