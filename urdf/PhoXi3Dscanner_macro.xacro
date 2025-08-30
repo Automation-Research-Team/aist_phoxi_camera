@@ -48,7 +48,7 @@
       <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
     </joint>
 
-    <gazebo reference="${name}_sensor">
+    <gazebo reference="${name}_reference">
       <sensor type="rgbd_camera" name="${name}">
 	<camera>
 	  <!-- Color sensor's FOV(VGA): 68 deg. -->
@@ -63,7 +63,7 @@
             <near>0.1</near>
             <far>100</far>
           </clip>
-	  <gz_frame_id>${name}_sensor</gz_frame_id>
+	  <frame_id>${name}_reference</frame_id>
 	  <optical_frame_id>${name}_sensor</optical_frame_id>
 	  <noise>
 	    <type>gaussian</type>
