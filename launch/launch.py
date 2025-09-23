@@ -9,39 +9,59 @@ from launch_ros.actions      import Node, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
 launch_arguments = [
-    {'name':        'namespace',
-     'default':     '',
-     'description': 'namespace of the camera node'},
-    {'name':        'camera_name',
-     'default':     'phoxi',
-     'description': 'node name of the camera'},
-    {'name':        'config_file',
-     'default':     '',
-     'description': 'path to YAML file for configuring camera'},
-    {'name':        'external_container',
-     'default':     'false',
-     'description': 'use existing external container',
-     'choices':     ['true', 'false']},
-    {'name':        'container',
-     'default':     '',
-     'description': 'name of internal or external component container'},
-    {'name':        'vis',
-     'default':     'false',
-     'description': 'visualize camera outputs',
-     'choices':     ['true', 'false']},
-    {'name':        'log_level',
-     'default':     'info',
-     'description': 'debug log level',
-     'choices':     ['debug', 'info', 'warn', 'error', 'fatal']},
-    {'name':        'output',
-     'default':     'screen',
-     'description': 'pipe node output',
-     'choices':     ['screen', 'log', 'both']}]
+    {
+        'name':        'namespace',
+        'default':     '',
+        'description': 'namespace of the camera node'
+    },
+    {
+        'name':        'camera_name',
+        'default':     'phoxi',
+        'description': 'node name of the camera'
+    },
+    {
+        'name':        'config_file',
+        'default':     '',
+        'description': 'path to YAML file for configuring camera'
+    },
+    {
+        'name':        'external_container',
+        'default':     'false',
+        'description': 'use existing external container',
+        'choices':     ['true', 'false', 'True', 'False']
+    },
+    {
+        'name':        'container',
+        'default':     '',
+        'description': 'name of internal or external component container'
+    },
+    {
+        'name':        'vis',
+        'default':     'false',
+        'description': 'visualize camera outputs',
+        'choices':     ['true', 'false', 'True', 'False']
+    },
+    {
+        'name':        'log_level',
+        'default':     'info',
+        'description': 'debug log level',
+        'choices':     ['debug', 'info', 'warn', 'error', 'fatal']
+    },
+    {
+        'name':        'output',
+        'default':     'screen',
+        'description': 'pipe node output',
+        'choices':     ['screen', 'log', 'both']
+    }
+]
 
 parameter_arguments = [
-    {'name':        'id',
-     'default':     'InstalledExamples-basic-example',
-     'description': 'unique ID of the camera'}]
+    {
+        'name':        'id',
+        'default':     'InstalledExamples-basic-example',
+        'description': 'unique ID of the camera'
+    }
+]
 
 
 def declare_launch_arguments(args):
