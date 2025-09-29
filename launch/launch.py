@@ -1,12 +1,12 @@
-from launch                  import LaunchDescription
-from launch.actions          import (DeclareLaunchArgument, OpaqueFunction,
-                                     GroupAction)
-from launch.substitutions    import (LaunchConfiguration, ThisLaunchFileDir,
-                                     PathJoinSubstitution, EqualsSubstitution,
-                                     IfElseSubstitution)
-from launch.conditions       import IfCondition, UnlessCondition
-from launch_ros.actions      import Node, LoadComposableNodes
-from launch_ros.descriptions import ComposableNode
+from launch                   import LaunchDescription
+from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
+                                      GroupAction)
+from launch.substitutions     import (LaunchConfiguration,
+                                      PathJoinSubstitution, EqualsSubstitution)
+from launch.conditions        import IfCondition, UnlessCondition
+from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions       import Node, LoadComposableNodes
+from launch_ros.descriptions  import ComposableNode
 
 launch_arguments = [
     {
@@ -21,7 +21,9 @@ launch_arguments = [
     },
     {
         'name':        'config_file',
-        'default':     '',
+        'default':     PathJoinSubstitution([
+                           FindPackageShare('aist_phoxi_camera'), 'config',
+                           'default.yaml']),
         'description': 'path to YAML file for configuring camera'
     },
     {
@@ -55,14 +57,6 @@ launch_arguments = [
     }
 ]
 
-parameter_arguments = [
-    {
-        'name':        'id',
-        'default':     'InstalledExamples-basic-example',
-        'description': 'unique ID of the camera'
-    }
-]
-
 
 def declare_launch_arguments(args):
     return [DeclareLaunchArgument(arg['name'],
@@ -71,67 +65,60 @@ def declare_launch_arguments(args):
                                   choices=arg.get('choices')) \
             for arg in args]
 
-def set_configurable_parameters(args):
-    return {arg['name']: LaunchConfiguration(arg['name']) for arg in args}
-
-def launch_setup(context, param_args):
-    config_file   = IfElseSubstitution(
-                        EqualsSubstitution(
-                            LaunchConfiguration('config_file'), ''),
-                        PathJoinSubstitution([ThisLaunchFileDir(), '..',
-                                              'config', 'default.yaml']),
-                        LaunchConfiguration('config_file'))
-    config_params = set_configurable_parameters(param_args)
-    return [Node(namespace=LaunchConfiguration('namespace'),
-                 name=LaunchConfiguration('camera_name'),
-                 package='aist_phoxi_camera',
-                 executable='aist_phoxi_camera_node',
-                 parameters=[config_file, config_params],
-                 output=LaunchConfiguration('output'),
-                 arguments=['--ros-args', '--log-level',
-                            LaunchConfiguration('log_level')],
-                 emulate_tty=True,
-                 condition=IfCondition(
-                               EqualsSubstitution(
-                                   LaunchConfiguration('container'), ''))),
-            GroupAction(
-                condition=UnlessCondition(
-                              EqualsSubstitution(
-                                  LaunchConfiguration('container'), '')),
-                actions=[
-                    Node(name=LaunchConfiguration('container'),
-                         package='rclcpp_components',
-                         executable='component_container_mt',
-                         output=LaunchConfiguration('output'),
-                         arguments=['--ros-args', '--log-level',
-                                    LaunchConfiguration('log_level')],
-                         condition=UnlessCondition(
-                             LaunchConfiguration('external_container'))),
-                    LoadComposableNodes(
-                        target_container=LaunchConfiguration('container'),
-                        composable_node_descriptions=[
-                            ComposableNode(
-                                namespace=LaunchConfiguration('namespace'),
-                                name=LaunchConfiguration('camera_name'),
-                                package='aist_phoxi_camera',
-                                plugin='aist_phoxi_camera::Camera',
-                                parameters=[config_file, config_params],
-                                extra_arguments=[
-                                    {'use_intra_process_comms': True}])])]),
-            GroupAction(
-                condition=IfCondition(LaunchConfiguration('vis')),
-                actions=[
-                    Node(name='rviz', package='rviz2', executable='rviz2',
-                         output='screen',
-                         arguments=['-d',
-                                    PathJoinSubstitution([
-                                        ThisLaunchFileDir(),
-                                        'aist_phoxi_camera.rviz'])]),
-                    Node(name='rqt_reconfigure', package='rqt_reconfigure',
-                         executable='rqt_reconfigure', output='screen')])]
+def launch_setup(context):
+    return [
+        Node(namespace=LaunchConfiguration('namespace'),
+             name=LaunchConfiguration('camera_name'),
+             package='aist_phoxi_camera',
+             executable='aist_phoxi_camera_node',
+             parameters=[LaunchConfiguration('config_file')],
+             output=LaunchConfiguration('output'),
+             arguments=['--ros-args', '--log-level',
+                        LaunchConfiguration('log_level')],
+             emulate_tty=True,
+             condition=IfCondition(
+                           EqualsSubstitution(
+                               LaunchConfiguration('container'), ''))),
+        GroupAction(
+            condition=UnlessCondition(
+                          EqualsSubstitution(
+                              LaunchConfiguration('container'), '')),
+            actions=[
+                Node(name=LaunchConfiguration('container'),
+                     package='rclcpp_components',
+                     executable='component_container_mt',
+                     output=LaunchConfiguration('output'),
+                     arguments=['--ros-args', '--log-level',
+                                LaunchConfiguration('log_level')],
+                     condition=UnlessCondition(
+                         LaunchConfiguration('external_container'))),
+                LoadComposableNodes(
+                    target_container=LaunchConfiguration('container'),
+                    composable_node_descriptions=[
+                        ComposableNode(
+                            namespace=LaunchConfiguration('namespace'),
+                            name=LaunchConfiguration('camera_name'),
+                            package='aist_phoxi_camera',
+                            plugin='aist_phoxi_camera::Camera',
+                            parameters=[LaunchConfiguration('config_file')],
+                            extra_arguments=[{'use_intra_process_comms': True}]
+                        )
+                    ])
+            ]),
+        GroupAction(
+            condition=IfCondition(LaunchConfiguration('vis')),
+            actions=[
+                Node(name='rviz', package='rviz2', executable='rviz2',
+                     output='screen',
+                     arguments=['-d',
+                                PathJoinSubstitution([
+                                    FindPackageShare('aist_phoxi_camera'),
+                                    'launch', 'aist_phoxi_camera.rviz'])]),
+                Node(name='rqt_reconfigure', package='rqt_reconfigure',
+                     executable='rqt_reconfigure', output='screen')
+            ])
+    ]
 
 def generate_launch_description():
-    return LaunchDescription(declare_launch_arguments(launch_arguments +
-                                                      parameter_arguments) + \
-                             [OpaqueFunction(function=launch_setup,
-                                             args=[parameter_arguments])])
+    return LaunchDescription(declare_launch_arguments(launch_arguments) + \
+                             [OpaqueFunction(function=launch_setup)])
