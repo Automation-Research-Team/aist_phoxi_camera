@@ -10,11 +10,6 @@ from launch_ros.descriptions  import ComposableNode
 
 launch_arguments = [
     {
-        'name':        'namespace',
-        'default':     '',
-        'description': 'namespace of the camera node'
-    },
-    {
         'name':        'camera_name',
         'default':     'phoxi',
         'description': 'node name of the camera'
@@ -67,8 +62,7 @@ def declare_launch_arguments(args):
 
 def launch_setup(context):
     return [
-        Node(namespace=LaunchConfiguration('namespace'),
-             name=LaunchConfiguration('camera_name'),
+        Node(name=LaunchConfiguration('camera_name'),
              package='aist_phoxi_camera',
              executable='aist_phoxi_camera_node',
              parameters=[LaunchConfiguration('config_file')],
@@ -96,7 +90,6 @@ def launch_setup(context):
                     target_container=LaunchConfiguration('container'),
                     composable_node_descriptions=[
                         ComposableNode(
-                            namespace=LaunchConfiguration('namespace'),
                             name=LaunchConfiguration('camera_name'),
                             package='aist_phoxi_camera',
                             plugin='aist_phoxi_camera::Camera',
@@ -110,10 +103,14 @@ def launch_setup(context):
             actions=[
                 Node(name='rviz', package='rviz2', executable='rviz2',
                      output='screen',
-                     arguments=['-d',
-                                PathJoinSubstitution([
-                                    FindPackageShare('aist_phoxi_camera'),
-                                    'launch', 'aist_phoxi_camera.rviz'])]),
+                     arguments=[
+                         '-d',
+                         PathJoinSubstitution([
+                             FindPackageShare('aist_phoxi_camera'),
+                             'launch',
+                             [LaunchConfiguration('camera_name'), '.rviz']
+                         ])
+                     ]),
                 Node(name='rqt_reconfigure', package='rqt_reconfigure',
                      executable='rqt_reconfigure', output='screen')
             ])

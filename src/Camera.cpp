@@ -193,10 +193,10 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _camera_matrix(pho::api::PhoXiSize(3, 3)),
      _ddr(rclcpp::Node::SharedPtr(this)),
      _frame_id(ddynamic_reconfigure2::declare_read_only_parameter(
-		   this, "frame", node_name() + "_sensor")),
+		   this, "frame", std::string(get_name()) + "_sensor")),
      _color_camera_frame_id(ddynamic_reconfigure2::declare_read_only_parameter(
-				this,
-				"color_frame", node_name() + "_color_sensor")),
+				this, "color_frame",
+				std::string(get_name()) + "_color_sensor")),
      _intensity_scale(0.5),
      _dense_cloud(false),
      _color_texture_source(false),
@@ -225,11 +225,13 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _camera_info_pub(create_publisher<camera_info_t>("~/camera_info",	1)),
      _color_camera_pub(_it.advertiseCamera("~/color/image",		1)),
      _static_broadcaster(*this),
-     _timer(create_wall_timer(std::chrono::duration<double>(
-				  1.0/ddynamic_reconfigure2::
-				      declare_read_only_parameter(
-				          this, "rate", 10.0)),
-			      std::bind(&Camera::tick, this)))
+     _timer_cbg(create_callback_group(
+		    rclcpp::CallbackGroupType::MutuallyExclusive)),
+     _timer(create_wall_timer(
+		std::chrono::duration<double>(
+		    1.0 / ddynamic_reconfigure2::declare_read_only_parameter(
+				this, "rate", 10.0)),
+		std::bind(&Camera::tick, this), _timer_cbg))
 {
     using namespace	pho::api;
 
@@ -315,7 +317,11 @@ Camera::~Camera()
 {
     if (_device && _device->isConnected())
     {
+	using namespace	pho::api;
+
+	RCLCPP_INFO_STREAM(get_logger(), "camera is disconnected");
 	_device->StopAcquisition();
+	_device->TriggerMode = PhoXiTriggerMode::Software;
 	_device->Disconnect();
     }
 }
@@ -1321,7 +1327,7 @@ Camera::set_white_balance_preset(const std::string& preset)
 #endif
 
 bool
-Camera::trigger_frame(const trigger_req_p, trigger_res_p res)
+Camera::trigger_frame(const trigger_req_p, const trigger_res_p res)
 {
     using namespace	pho::api;
 
@@ -1396,7 +1402,7 @@ Camera::trigger_frame(const trigger_req_p, trigger_res_p res)
 }
 
 bool
-Camera::save_settings(const trigger_req_p, trigger_res_p res)
+Camera::save_settings(const trigger_req_p, const trigger_res_p res)
 {
     res->success = _device->SaveSettings();
 
@@ -1415,7 +1421,7 @@ Camera::save_settings(const trigger_req_p, trigger_res_p res)
 }
 
 bool
-Camera::restore_settings(const trigger_req_p, trigger_res_p res)
+Camera::restore_settings(const trigger_req_p, const trigger_res_p res)
 {
     const auto acq = _device->isAcquiring();
     if (acq)

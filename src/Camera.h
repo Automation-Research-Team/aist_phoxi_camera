@@ -62,24 +62,25 @@ class Camera : public rclcpp::Node
 #endif
 {
   private:
-    using cloud_t	= sensor_msgs::msg::PointCloud2;
-    using cloud_p	= cloud_t::UniquePtr;
-    using image_t	= sensor_msgs::msg::Image;
-    using image_p	= image_t::UniquePtr;
-    using camera_info_t	= sensor_msgs::msg::CameraInfo;
-    using camera_info_p	= camera_info_t::UniquePtr;
-    using trigger_t	= std_srvs::srv::Trigger;
-    using trigger_srv_p	= rclcpp::Service<trigger_t>::SharedPtr;
-    using trigger_req_p	= trigger_t::Request::SharedPtr;
-    using trigger_res_p	= trigger_t::Response::SharedPtr;
-    using ddr_t		= ddynamic_reconfigure2::DDynamicReconfigure<>;
+    using cloud_t	   = sensor_msgs::msg::PointCloud2;
+    using cloud_p	   = cloud_t::UniquePtr;
+    using image_t	   = sensor_msgs::msg::Image;
+    using image_p	   = image_t::UniquePtr;
+    using camera_info_t	   = sensor_msgs::msg::CameraInfo;
+    using camera_info_p	   = camera_info_t::UniquePtr;
+    using trigger_t	   = std_srvs::srv::Trigger;
+    using trigger_srv_p	   = rclcpp::Service<trigger_t>::SharedPtr;
+    using trigger_req_p	   = trigger_t::Request::SharedPtr;
+    using trigger_res_p	   = trigger_t::Response::SharedPtr;
+    using ddr_t		   = ddynamic_reconfigure2::DDynamicReconfigure<>;
 #if defined(PROFILE)
-    using profiler_t	= TU::Profiler<>;
+    using profiler_t	   = TU::Profiler<>;
 #endif
     template <class MSG>
-    using publisher_p	= typename rclcpp::Publisher<MSG>::SharedPtr;
-    using broadcaster_t	= tf2_ros::StaticTransformBroadcaster;
-    using timer_p	= rclcpp::TimerBase::SharedPtr;
+    using publisher_p	   = typename rclcpp::Publisher<MSG>::SharedPtr;
+    using broadcaster_t	   = tf2_ros::StaticTransformBroadcaster;
+    using callback_group_p = rclcpp::CallbackGroup::SharedPtr;
+    using timer_p	   = rclcpp::TimerBase::SharedPtr;
 
     enum
     {
@@ -91,10 +92,6 @@ class Camera : public rclcpp::Node
 		~Camera()						;
 
   private:
-    std::string	node_name() const
-		{
-		    return get_name();
-		}
     void	tick()							;
     void	setup_ddr_phoxi()					;
     void	setup_ddr_motioncam()					;
@@ -120,9 +117,12 @@ class Camera : public rclcpp::Node
     void	set_resolution(size_t idx)				;
     void	set_color_resolution(size_t idx)			;
     void	set_white_balance_preset(const std::string& preset)	;
-    bool	trigger_frame(const trigger_req_p, trigger_res_p res)	;
-    bool	save_settings(const trigger_req_p, trigger_res_p res)	;
-    bool	restore_settings(const trigger_req_p, trigger_res_p res);
+    bool	trigger_frame(const trigger_req_p,
+			      const trigger_res_p res)			;
+    bool	save_settings(const trigger_req_p,
+			      const trigger_res_p res)			;
+    bool	restore_settings(const trigger_req_p,
+				 const trigger_res_p res)		;
     void	cache_camera_matrix()					;
     template <class T>
     image_p	create_image(const rclcpp::Time& stamp,
@@ -195,6 +195,7 @@ class Camera : public rclcpp::Node
     const image_transport::CameraPublisher	_color_camera_pub;
     broadcaster_t				_static_broadcaster;
 
+    const callback_group_p			_timer_cbg;
     const timer_p				_timer;
 };
 }	// namespace aist_phoxi_camera
