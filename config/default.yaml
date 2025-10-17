@@ -1,20 +1,6 @@
 phoxi:
   ros__parameters:
-    trigger_mode:                0  # 0: Freerun, 1: Software, 2: Hardware
-    intensity_scale:             0.5
-    rate:                        20.0
-    processing_settings:
-      normals_estimation_radius: 2
-    output_settings:
-      send_point_cloud:          true
-      send_normal_map:           true
-      send_depth_map:            true
-      send_confidence_map:       false
-      send_texture:              true
-
-motioncam:
-  ros__parameters:
-    id:                          LTR-066
+    id:                          $(var id)
     trigger_mode:                0  # 0: Freerun, 1: Software, 2: Hardware
     intensity_scale:             0.5
     rate:                        20.0

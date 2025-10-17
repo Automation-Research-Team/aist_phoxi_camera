@@ -1,12 +1,14 @@
-from launch                   import LaunchDescription
-from launch.actions           import (DeclareLaunchArgument, OpaqueFunction,
-                                      GroupAction)
-from launch.substitutions     import (LaunchConfiguration,
-                                      PathJoinSubstitution, EqualsSubstitution)
-from launch.conditions        import IfCondition, UnlessCondition
-from launch_ros.substitutions import FindPackageShare
-from launch_ros.actions       import Node, LoadComposableNodes
-from launch_ros.descriptions  import ComposableNode
+from launch                            import LaunchDescription
+from launch.actions                    import (DeclareLaunchArgument,
+                                               OpaqueFunction, GroupAction)
+from launch.substitutions              import (LaunchConfiguration,
+                                               PathJoinSubstitution,
+                                               EqualsSubstitution)
+from launch.conditions                 import IfCondition, UnlessCondition
+from launch_ros.substitutions          import FindPackageShare
+from launch_ros.actions                import Node, LoadComposableNodes
+from launch_ros.descriptions           import ComposableNode
+from launch_ros.parameter_descriptions import ParameterFile
 
 launch_arguments = [
     {
@@ -15,11 +17,16 @@ launch_arguments = [
         'description': 'node name of the camera'
     },
     {
+        'name':        'id',
+        'default':     'InstalledExamples-basic-example',
+        'description': 'unique ID of the camera'
+    },
+    {
         'name':        'config_file',
         'default':     PathJoinSubstitution([
                            FindPackageShare('aist_phoxi_camera'), 'config',
                            'default.yaml']),
-        'description': 'path to YAML file for configuring camera'
+        'description': 'abolute path to YAML file for configuring camera'
     },
     {
         'name':        'external_container',
@@ -61,11 +68,13 @@ def declare_launch_arguments(args):
             for arg in args]
 
 def launch_setup(context):
+    param_file = ParameterFile(LaunchConfiguration('config_file'),
+                               allow_substs=True)
     return [
         Node(name=LaunchConfiguration('camera_name'),
              package='aist_phoxi_camera',
              executable='aist_phoxi_camera_node',
-             parameters=[LaunchConfiguration('config_file')],
+             parameters=[param_file],
              output=LaunchConfiguration('output'),
              arguments=['--ros-args', '--log-level',
                         LaunchConfiguration('log_level')],
@@ -93,7 +102,7 @@ def launch_setup(context):
                             name=LaunchConfiguration('camera_name'),
                             package='aist_phoxi_camera',
                             plugin='aist_phoxi_camera::Camera',
-                            parameters=[LaunchConfiguration('config_file')],
+                            parameters=[param_file],
                             extra_arguments=[{'use_intra_process_comms': True}]
                         )
                     ])

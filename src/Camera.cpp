@@ -451,7 +451,9 @@ Camera::setup_ddr_phoxi()
 			  false, "CodingStrategy"),
 		"Coding strategy",
 		{{"Normal",	      PhoXiCodingStrategy::Normal},
-		 {"Interreflections", PhoXiCodingStrategy::Interreflections}});
+		 {"Interreflections", PhoXiCodingStrategy::Interreflections},
+		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency},
+		 {"Sparse",	      PhoXiCodingStrategy::Sparse}});
 
       // 2.8 CodingQuality
 	if (_device->CapturingSettings->CodingQuality !=
@@ -716,7 +718,9 @@ Camera::setup_ddr_motioncam()
 			  false, "CodingStrategy"),
 		"Coding strategy",
 		{{"Normal",	      PhoXiCodingStrategy::Normal},
-		 {"Interreflections", PhoXiCodingStrategy::Interreflections}});
+		 {"Interreflections", PhoXiCodingStrategy::Interreflections},
+		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency},
+		 {"Sparse",	      PhoXiCodingStrategy::Sparse}});
 
       // 2.5 TextureSource
 	if (_device->MotionCamCameraMode->TextureSource !=
@@ -771,7 +775,9 @@ Camera::setup_ddr_motioncam()
 			  false, "CodingStrategy"),
 		"Coding  strategy",
 		{{"Normal",	      PhoXiCodingStrategy::Normal},
-		 {"Interreflections", PhoXiCodingStrategy::Interreflections}});
+		 {"Interreflections", PhoXiCodingStrategy::Interreflections},
+		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency},
+		 {"Sparse",	      PhoXiCodingStrategy::Sparse}});
 
       // 3.4 coding quality
 	if (_device->MotionCamScannerMode->CodingQuality !=
