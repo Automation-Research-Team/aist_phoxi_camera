@@ -31,12 +31,12 @@ launch_arguments = [
     {
         'name':        'external_container',
         'default':     'false',
-        'description': 'use existing external container',
+        'description': 'use external container launched in advance',
         'choices':     ['true', 'false', 'True', 'False']
     },
     {
         'name':        'container',
-        'default':     '',
+        'default':     'camera_container',
         'description': 'name of internal or external component container'
     },
     {
@@ -71,41 +71,24 @@ def launch_setup(context):
     param_file = ParameterFile(LaunchConfiguration('config_file'),
                                allow_substs=True)
     return [
-        Node(name=LaunchConfiguration('camera_name'),
-             package='aist_phoxi_camera',
-             executable='aist_phoxi_camera_node',
-             parameters=[param_file],
+        Node(name=LaunchConfiguration('container'),
+             package='rclcpp_components',
+             executable='component_container_mt',
              output=LaunchConfiguration('output'),
              arguments=['--ros-args', '--log-level',
                         LaunchConfiguration('log_level')],
-             emulate_tty=True,
-             condition=IfCondition(
-                           EqualsSubstitution(
-                               LaunchConfiguration('container'), ''))),
-        GroupAction(
-            condition=UnlessCondition(
-                          EqualsSubstitution(
-                              LaunchConfiguration('container'), '')),
-            actions=[
-                Node(name=LaunchConfiguration('container'),
-                     package='rclcpp_components',
-                     executable='component_container_mt',
-                     output=LaunchConfiguration('output'),
-                     arguments=['--ros-args', '--log-level',
-                                LaunchConfiguration('log_level')],
-                     condition=UnlessCondition(
-                         LaunchConfiguration('external_container'))),
-                LoadComposableNodes(
-                    target_container=LaunchConfiguration('container'),
-                    composable_node_descriptions=[
-                        ComposableNode(
-                            name=LaunchConfiguration('camera_name'),
-                            package='aist_phoxi_camera',
-                            plugin='aist_phoxi_camera::Camera',
-                            parameters=[param_file],
-                            extra_arguments=[{'use_intra_process_comms': True}]
-                        )
-                    ])
+             condition=UnlessCondition(
+                           LaunchConfiguration('external_container'))),
+        LoadComposableNodes(
+            target_container=LaunchConfiguration('container'),
+            composable_node_descriptions=[
+                ComposableNode(
+                    name=LaunchConfiguration('camera_name'),
+                    package='aist_phoxi_camera',
+                    plugin='aist_phoxi_camera::Camera',
+                    parameters=[param_file],
+                    extra_arguments=[{'use_intra_process_comms': True}]
+                )
             ]),
         GroupAction(
             condition=IfCondition(LaunchConfiguration('vis')),
