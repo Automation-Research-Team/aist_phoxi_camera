@@ -230,7 +230,7 @@ Camera::Camera(const rclcpp::NodeOptions& options)
      _timer(create_wall_timer(
 		std::chrono::duration<double>(
 		    1.0 / ddynamic_reconfigure2::declare_read_only_parameter(
-				this, "rate", 10.0)),
+			      this, "rate", 10.0)),
 		std::bind(&Camera::tick, this), _timer_cbg))
 {
     using namespace	pho::api;
@@ -309,7 +309,7 @@ Camera::Camera(const rclcpp::NodeOptions& options)
   // Start acquisition.
     _device->ClearBuffer();
     _device->StartAcquisition();
-
+    
     RCLCPP_INFO_STREAM(get_logger(), "camera is active");
 }
 
@@ -1675,9 +1675,14 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
     cloud->is_bigendian    = false;
     cloud->is_dense	   = _dense_cloud;
 
+  // We must keep these flags because values of device->OutputSettings->SendXXX
+  // might be changed within the main thread during execution of this function.
+    const auto	send_texture	= _device->OutputSettings->SendTexture;
+    const auto	send_normal_map = _device->OutputSettings->SendNormalMap;
+    
     PointCloud2Modifier	modifier(*cloud);
-    if (_device->OutputSettings->SendTexture)
-	if (_device->OutputSettings->SendNormalMap)
+    if (send_texture)
+	if (send_normal_map)
 	    modifier.setPointCloud2Fields(7,
 					  "x",	      1, PointField::FLOAT32,
 					  "y",	      1, PointField::FLOAT32,
@@ -1693,7 +1698,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 					  "z",	      1, PointField::FLOAT32,
 					  "rgb",      1, PointField::UINT32);
     else
-	if (_device->OutputSettings->SendNormalMap)
+	if (send_normal_map)
 	    modifier.setPointCloud2Fields(6,
 					  "x",	      1, PointField::FLOAT32,
 					  "y",	      1, PointField::FLOAT32,
@@ -1706,7 +1711,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 					  "x",	      1, PointField::FLOAT32,
 					  "y",	      1, PointField::FLOAT32,
 					  "z",	      1, PointField::FLOAT32);
-
+    
     if (cloud->is_dense)
     {
 	const auto	npoints = npoints_valid(phoxi_cloud);
@@ -1749,7 +1754,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 	}
     }
 
-    if (_device->OutputSettings->SendTexture)
+    if (send_texture)
     {
 	PointCloud2Iterator<uint8_t> bgr(*cloud, "rgb");
 #if defined(HAVE_COLOR_CAMERA)
@@ -1799,7 +1804,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 	}
     }
 
-    if (_device->OutputSettings->SendNormalMap)
+    if (send_normal_map)
     {
 	if (_device->ProcessingSettings->NormalsEstimationRadius == 0)
 	{
