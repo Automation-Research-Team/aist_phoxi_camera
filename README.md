@@ -9,7 +9,7 @@ is completely reorganized.
 
 `aist_phoxi_camera` has the following features.
 - The driver supports not only [PhoXi 3D Scanners](https://www.photoneo.com/phoxi-3d-scanner/) but also [MotionCam-3D and MotionCam-3D Color](https://www.photoneo.com/motioncam-3d/).
-- Most of the scanning parameters configurable with [PhoXiControl](https://www.photoneo.com/downloads/phoxi-control) can be changed also with [rqt_reconfigure](https://wiki.ros.org/rqt_reconfigure) at runtime.
+- Most of the scanning parameters configurable with [PhoXiControl](https://www.photoneo.com/downloads/phoxi-control) can be changed also with [rqt_reconfigure](https://index.ros.org/p/rqt_reconfigure/) at runtime.
 - The driver is implemented as a [component](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-a-Composable-Node.html) which allows transferring point cloud and/or various 2D maps in a zero-copy manner to other components loaded to the same [component container](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Composition.html).
 
 The driver is tested under the following conditions.
@@ -62,7 +62,7 @@ $ colcon build
 ```
 
 ### Installing a modified version of rqt_reconfigure (optional)
-The `rqt_reconfigure`, providing GUI-based node/plugin for interactively setting ROS parameter values, has been widely used since ROS1 and continuously supported in ROS2 as well. However, the current ROS2 version lacks some features supported in ROS1 version such as inputting numeric values through sliders, grouping parameters within a tab and selecting parameter values from candidates shown in pull-down menu. You will find these lacking features in the modified version [here](https://github.com/Automation-Research-Team/rqt_reconfigure), which is forked from the [rolling branch](https://github.com/ros-visualization/rqt_reconfigure/tree/rolling) of the original and will improve usability of `aist_phoxi_camera`.
+The [rqt_reconfigure](https://github.com/ros-visualization/rqt_reconfigure), providing GUI-based node/plugin for interactively setting ROS parameter values, has been widely used since ROS1 and continuously supported in ROS2 as well. However, the current ROS2 version lacks some features supported in ROS1 version such as inputting numeric values through sliders, grouping parameters within a tab and selecting parameter values from candidates shown in pull-down menu. You will find these lacking features in the modified version [here](https://github.com/Automation-Research-Team/rqt_reconfigure), which is forked from the [rolling branch](https://github.com/ros-visualization/rqt_reconfigure/tree/rolling) of the original and will improve usability of `aist_phoxi_camera`.
 
 ## Testing the driver
 
@@ -123,37 +123,37 @@ with options
 - **camera_name** -- Node name of the camera (default: `phoxi`)
 - **id** -- Unique ID of the camera (default: `InstalledExamples-basic-example`)
 - **config_file** -- Absolute path to the configuration file for setting parameters listed below (default: [default.yaml](./config/default.yaml))
-- **container** (type: str) -- Node name of the component container (default: `camera_container`)
+- **container** -- Node name of the component container (default: `camera_container`)
 - **external_container** If `true`, the driver will be loaded into the existing container with a name specified by `container` which has been started in advance. If `false`, a container with the name specified by `container` will be newly created and the driver will be loaded into it. (default: `false`)
 - **vis** -- If `true`, launch the ROS visualizer, `rviz`, and the parameter setting GUI, `rqt_reconfigure`. (default: `false`)
 
 Then zero-copy transfer will be realized if you load subscriber components into the same container specified above.
 
-## ROS services
+## ROS2 services
 
 The following services are available.
 
-- **~/trigger_frame** (type: [std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) -- Capture an image frame and publish point cloud and/or images in it.
-- **~/save_settings** (type: [std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) -- Save camera settings to the internal ROM of the device.
-- **~/restore_settings** (type: [std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) -- Restore camera settings from the internal ROM of the device.
+- **~/trigger_frame** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Capture an image frame and publish point cloud and/or images in it.
+- **~/save_settings** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Save camera settings to the internal ROM of the device.
+- **~/restore_settings** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Restore camera settings from the internal ROM of the device.
 
-## ROS topics
+## ROS2 topics
 
 The following topics are published by the driver.
 
-- **~/confidence_map** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of values indicating reliability of 3D measurements at each pixel.
-- **~/depth_map**  (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
-- **~/event_map** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map
-- **~/normal_map** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of surface normals.
-- **~/texture** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8/24bit unsigned integer format.
-- **~/pointcloud** (type: [sensor_msgs/PointCloud2](http://docs.ros.org/en/api/sensor_msgs/html/msg/PointCloud2.html)) -- A 2D map of 3D point coordinates in meters. Each 2D pixel has an associated intensity/color value in RGBA format if the parameter `send_texture` is true. In addition, each pixel will be associated with a 3D normal vector if the parameter `send_normal_map` is true.
-- **~/camera_info** (type: [sensor_msgs/CameraInfo](http://docs.ros.org/en/api/sensor_msgs/html/msg/CameraInfo.html)) -- Intrinsic parameters of the depth sensor including a 3x3 calibration matrix and lens distortion coefficients.
-- **~/color/image** (type: [sensor_msgs/Image](http://docs.ros.org/en/api/sensor_msgs/html/msg/Image.html)) -- A 2D map of color values captured by the color sensor of the device. Available only for `MotionCam-3D Color`.
-- **~/color/camera_info** (type: [sensor_msgs/CameraInfo](http://docs.ros.org/en/api/sensor_msgs/html/msg/CameraInfo.html)) -- Intrinsic parameters of the color sensor including a 3x3 calibration matrix and lens distortion coefficients. Available only for `MotionCam-3D Color`.
+- **~/confidence_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of values indicating reliability of 3D measurements at each pixel.
+- **~/depth_map**  (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
+- **~/event_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map
+- **~/normal_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of surface normals.
+- **~/texture** (type: [sensor_msgs//msgImage](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8/24bit unsigned integer format.
+- **~/pointcloud** (type: [sensor_msgs/msg/PointCloud2](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html)) -- A 2D map of 3D point coordinates in meters. Each 2D pixel has an associated intensity/color value in RGBA format if the parameter `send_texture` is true. In addition, each pixel will be associated with a 3D normal vector if the parameter `send_normal_map` is true.
+- **~/camera_info** (type: [sensor_msgs/msg/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the depth sensor including a 3x3 calibration matrix and lens distortion coefficients.
+- **~/color/image** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of color values captured by the color sensor of the device. Available only for `MotionCam-3D Color`.
+- **~/color/camera_info** (type: [sensor_msgs/msg/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the color sensor including a 3x3 calibration matrix and lens distortion coefficients. Available only for `MotionCam-3D Color`.
 
 For `MotionCam-3D Color`, a transform from the frame at the color sensor to that at the depth sensor is broadcasted as a static `tf2` message as well. Thus you will have the pose of color sensor relative to the depth sensor by looking up a transform between them.
 
-## ROS parameters
+## ROS2 parameters
 
 The driver maintains  node parameters including
 - **id** (type: str) -- Unique ID of the camera (default: "`InstalledExamples-basic-example`")
