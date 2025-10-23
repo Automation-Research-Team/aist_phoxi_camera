@@ -57,12 +57,12 @@ $ git checkout develop
 ```
 Finally, you can compile the ROS driver by typing
 ```bash
-$ source (your-ros2-workspace)/devel/setup.bash
+$ source (your-ros2-workspace)/install/setup.bash
 $ colcon build
 ```
 
 ### Installing a modified version of rqt_reconfigure (optional)
-The [rqt_reconfigure](https://github.com/ros-visualization/rqt_reconfigure), providing GUI-based node/plugin for interactively setting ROS parameter values, has been widely used since ROS1 and continuously supported in ROS2 as well. However, the current ROS2 version lacks some features supported in ROS1 version such as inputting numeric values through sliders, grouping parameters within a tab and selecting parameter values from candidates shown in pull-down menu. You will find these lacking features in the modified version [here](https://github.com/Automation-Research-Team/rqt_reconfigure), which is forked from the [rolling branch](https://github.com/ros-visualization/rqt_reconfigure/tree/rolling) of the original and will improve usability of `aist_phoxi_camera`.
+The [rqt_reconfigure](https://github.com/ros-visualization/rqt_reconfigure), a GUI-based node/plugin for interactively setting ROS parameter values, has been widely used since ROS1 and continuously supported in ROS2 as well. However, the current ROS2 version lacks some features supported in ROS1 version such as inputting numeric values through sliders, grouping parameters into tabs and selecting parameter values from candidates shown in pull-down menu. You will find these lacking features in the modified version [here](https://github.com/Automation-Research-Team/rqt_reconfigure), which is forked from the [rolling branch](https://github.com/ros-visualization/rqt_reconfigure/tree/rolling) of the original and will improve usability of `aist_phoxi_camera`.
 
 ## Testing the driver
 
@@ -85,7 +85,7 @@ a connection to the virtual scanner by typing
 ```bash
 $ ros2 launch aist_phoxi_camera launch.py vis:=true
 ```
-where `vis:=true` means that the ROS visualizer, `rviz`, and the parameter setting GUI, `rqt_reconfigure`, are invoked as well. Here, `rviz` is configured to subscribe two topics, `pointcloud`
+where `vis:=true` means that the ROS visualizer, `rviz2`, and the parameter setting GUI, `rqt_reconfigure`, are invoked as well. Here, `rviz2` is configured to subscribe two topics, `pointcloud`
 and `texture`, published by the driver. As the driver is
 started with `Free Run` mode, you will see
 continuously updated point cloud and image streams. You can interactively
@@ -122,10 +122,10 @@ $ ros2 launch aist_phoxi_camera launch.py [camera_name:=<camera_name>...]
 with options
 - **camera_name** -- Node name of the camera (default: `phoxi`)
 - **id** -- Unique ID of the camera (default: `InstalledExamples-basic-example`)
-- **config_file** -- Absolute path to the configuration file for setting parameters listed below (default: [default.yaml](./config/default.yaml))
+- **config_file** -- Absolute path to the configuration file for setting parameters listed below (default: package://aist_phoxi_camera/config/[default.yaml](./config/default.yaml))
 - **container** -- Node name of the component container (default: `camera_container`)
-- **external_container** If `true`, the driver will be loaded into the existing container with a name specified by `container` which has been started in advance. If `false`, a container with the name specified by `container` will be newly created and the driver will be loaded into it. (default: `false`)
-- **vis** -- If `true`, launch the ROS visualizer, `rviz`, and the parameter setting GUI, `rqt_reconfigure`. (default: `false`)
+- **external_container** -- If `true`, the driver will be loaded into the existing container with a name specified by `container` which has been started in advance. If `false`, a container with the name specified by `container` will be newly created and the driver will be loaded into it. (default: `false`)
+- **vis** -- If `true`, launch the ROS visualizer, `rviz2`, and the parameter setting GUI, `rqt_reconfigure`. (default: `false`)
 
 Then zero-copy transfer will be realized if you load subscriber components into the same container specified above.
 
@@ -133,23 +133,23 @@ Then zero-copy transfer will be realized if you load subscriber components into 
 
 The following services are available.
 
-- **~/trigger_frame** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Capture an image frame and publish point cloud and/or images in it.
-- **~/save_settings** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Save camera settings to the internal ROM of the device.
-- **~/restore_settings** (type: [std_srvs/srv/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Restore camera settings from the internal ROM of the device.
+- **~/trigger_frame** (type: [std_srvs/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Capture an image frame and publish point cloud and/or images in it.
+- **~/save_settings** (type: [std_srvs/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Save camera settings to the internal ROM of the device.
+- **~/restore_settings** (type: [std_srvs/Trigger](https://docs.ros2.org/foxy/api/std_srvs/srv/Trigger.html)) -- Restore camera settings from the internal ROM of the device.
 
 ## ROS2 topics
 
 The following topics are published by the driver.
 
-- **~/confidence_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of values indicating reliability of 3D measurements at each pixel.
-- **~/depth_map**  (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
-- **~/event_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map
-- **~/normal_map** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of surface normals.
-- **~/texture** (type: [sensor_msgs//msgImage](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8/24bit unsigned integer format.
-- **~/pointcloud** (type: [sensor_msgs/msg/PointCloud2](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html)) -- A 2D map of 3D point coordinates in meters. Each 2D pixel has an associated intensity/color value in RGBA format if the parameter `send_texture` is true. In addition, each pixel will be associated with a 3D normal vector if the parameter `send_normal_map` is true.
-- **~/camera_info** (type: [sensor_msgs/msg/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the depth sensor including a 3x3 calibration matrix and lens distortion coefficients.
-- **~/color/image** (type: [sensor_msgs/msg/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of color values captured by the color sensor of the device. Available only for `MotionCam-3D Color`.
-- **~/color/camera_info** (type: [sensor_msgs/msg/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the color sensor including a 3x3 calibration matrix and lens distortion coefficients. Available only for `MotionCam-3D Color`.
+- **~/confidence_map** (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of values indicating reliability of 3D measurements at each pixel.
+- **~/depth_map**  (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of depth values, i.e. z-coordinate values of point cloud, in meters.
+- **~/event_map** (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map
+- **~/normal_map** (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of surface normals.
+- **~/texture** (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of intensity/color values. The values are in 8/24bit unsigned integer format.
+- **~/pointcloud** (type: [sensor_msgs/PointCloud2](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html)) -- A 2D map of 3D point coordinates in meters. Each 2D pixel has an associated intensity/color value in RGBA format if the parameter `send_texture` is true. In addition, each pixel will be associated with a 3D normal vector if the parameter `send_normal_map` is true.
+- **~/camera_info** (type: [sensor_msgs/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the depth sensor including a 3x3 calibration matrix and lens distortion coefficients.
+- **~/color/image** (type: [sensor_msgs/Image](https://docs.ros2.org/latest/api/sensor_msgs/msg/Image.html)) -- A 2D map of color values captured by the color sensor of the device. Available only for `MotionCam-3D Color`.
+- **~/color/camera_info** (type: [sensor_msgs/CameraInfo](https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html)) -- Intrinsic parameters of the color sensor including a 3x3 calibration matrix and lens distortion coefficients. Available only for `MotionCam-3D Color`.
 
 For `MotionCam-3D Color`, a transform from the frame at the color sensor to that at the depth sensor is broadcasted as a static `tf2` message as well. Thus you will have the pose of color sensor relative to the depth sensor by looking up a transform between them.
 
@@ -170,4 +170,4 @@ The driver maintains  node parameters including
 - **output_settings.send_color_image** (type: bool) -- Publish `color/image` and `color/camera_info` if true. Available only for `MotionCam-3D Color`.
 - **output_settings.send_point_cloud** (type: bool) -- Publish `pointcloud` if true. Each pixel has its 3D coordinates with respect to the depth sensor. It will also be associated with an intensity/color value if `send_texture` is true, and with a 3D normal vector if `send_normal_map` is true.
 
-and many others concerning with capturing, point cloud processing and color processing. You can view them and interactively hange these values with `rqt_reconfigure`.
+and many others concerning with capturing, point cloud processing and color processing. You can view and interactively change these values with `rqt_reconfigure`.
