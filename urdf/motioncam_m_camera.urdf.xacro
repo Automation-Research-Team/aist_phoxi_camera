@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot name="motioncam_m_camera" xmlns:xacro="http://wiki.ros.org/xacro">
   <xacro:macro name="motioncam_m_camera"
-	       params="name parent use_nominal_extrinsics *origin">
+	       params="name parent use_nominal_extrinsics:=false *origin">
 
     <xacro:include filename="$(find aist_phoxi_camera
 			     )/urdf/PhoXi3Dscanner_values.xacro"/>
