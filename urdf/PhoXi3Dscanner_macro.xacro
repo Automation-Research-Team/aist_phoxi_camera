@@ -1,19 +1,14 @@
 <?xml version="1.0" ?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="PhoXi3Dscanner"
-	       params="parent name image_width image_height
+	       params="parent name use_nominal_extrinsics
+		       image_width image_height
 		       horizontal_fov base_line update_rate
 		       *origin *reference *visual *collision">
     <joint name="${name}_link_joint" type="fixed">
       <parent link="${parent}"/>
       <child  link="${name}_link"/>
       <xacro:insert_block name="origin" />
-    </joint>
-
-    <joint name="${name}_reference_joint" type="fixed">
-      <parent link="${name}_link"/>
-      <child  link="${name}_reference"/>
-      <xacro:insert_block name="reference" />
     </joint>
 
     <link name="${name}_link">
@@ -38,52 +33,59 @@
 
     </link>
 
-    <link name="${name}_reference"/>
+    <xacro:if value="${use_nominal_extrinsics}">
+      <link name="${name}_reference"/>
+      <joint name="${name}_reference_joint" type="fixed">
+	<parent link="${name}_link"/>
+	<child  link="${name}_reference"/>
+	<xacro:insert_block name="reference" />
+      </joint>
 
-    <link name="${name}_sensor"/>
-    <joint name="${name}_sensor_joint"
-	   type="fixed">
-      <parent link="${name}_reference"/>
-      <child  link="${name}_sensor"/>
-      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
-    </joint>
+      <link name="${name}_sensor"/>
+      <joint name="${name}_sensor_joint"
+	     type="fixed">
+	<parent link="${name}_reference"/>
+	<child  link="${name}_sensor"/>
+	<origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+      </joint>
 
-    <gazebo reference="${name}_reference">
-      <sensor type="rgbd_camera" name="${name}">
-	<camera>
-	  <!-- Color sensor's FOV(VGA): 68 deg. -->
-          <horizontal_fov>${horizontal_fov}</horizontal_fov>
-          <image>
-	    <!-- VGA -->
-            <width>${image_width}</width>
-            <height>${image_height}</height>
-            <format>L8</format>
-          </image>
-          <clip>
-            <near>0.1</near>
-            <far>100</far>
-          </clip>
-	  <frame_id>${name}_reference</frame_id>
-	  <optical_frame_id>${name}_sensor</optical_frame_id>
-	  <noise>
-	    <type>gaussian</type>
-	    <mean>0.0</mean>
-	    <stddev>0.001</stddev>
-	  </noise>
-          <distortion>
-	    <k1>0.0</k1>
-	    <k2>0.0</k2>
-	    <k3>0.0</k3>
-	    <p1>0.0</p1>
-	    <p2>0.0</p2>
-	  </distortion>
-	</camera>
-	<always_on>true</always_on>
-        <updateRate>${update_rate}</updateRate>
-	<visualize>true</visualize>
-	<topic>${name}</topic>
-      </sensor>
-    </gazebo>
+      <gazebo reference="${name}_reference">
+	<sensor type="rgbd_camera" name="${name}">
+	  <camera>
+	    <!-- Color sensor's FOV(VGA): 68 deg. -->
+            <horizontal_fov>${horizontal_fov}</horizontal_fov>
+            <image>
+	      <!-- VGA -->
+              <width>${image_width}</width>
+              <height>${image_height}</height>
+              <format>L8</format>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>100</far>
+            </clip>
+	    <frame_id>${name}_reference</frame_id>
+	    <optical_frame_id>${name}_sensor</optical_frame_id>
+	    <noise>
+	      <type>gaussian</type>
+	      <mean>0.0</mean>
+	      <stddev>0.001</stddev>
+	    </noise>
+            <distortion>
+	      <k1>0.0</k1>
+	      <k2>0.0</k2>
+	      <k3>0.0</k3>
+	      <p1>0.0</p1>
+	      <p2>0.0</p2>
+	    </distortion>
+	  </camera>
+	  <always_on>true</always_on>
+          <updateRate>${update_rate}</updateRate>
+	  <visualize>true</visualize>
+	  <topic>${name}</topic>
+	</sensor>
+      </gazebo>
+    </xacro:if>
 
   </xacro:macro>
 </robot>

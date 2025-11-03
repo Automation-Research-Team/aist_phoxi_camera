@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot name="phoxi_xs_camera" xmlns:xacro="http://wiki.ros.org/xacro">
-  <xacro:macro name="phoxi_xs_camera" params="name parent *origin">
+  <xacro:macro name="phoxi_xs_camera"
+	       params="name parent use_nominal_extrinsics:=false *origin">
 
     <xacro:include filename="$(find aist_phoxi_camera
 			     )/urdf/PhoXi3Dscanner_values.xacro"/>
@@ -8,6 +9,7 @@
 			     )/urdf/PhoXi3Dscanner_macro.xacro"/>
 
     <xacro:PhoXi3Dscanner parent="${parent}" name="${name}"
+			  use_nominal_extrinsics="${use_nominal_extrinsics}"
 			  image_width="${PhoXi3DscannerXS_image_width}"
 			  image_height="${PhoXi3DscannerXS_image_height}"
 			  horizontal_fov="${PhoXi3DscannerXS_horizontal_fov}"

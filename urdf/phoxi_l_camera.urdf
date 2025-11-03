@@ -5,7 +5,8 @@
 
   <link name ="base_link"/>
 
-  <xacro:phoxi_l_camera name="phoxi_l" parent="base_link">
+  <xacro:phoxi_l_camera name="phoxi_l" parent="base_link"
+			use_nominal_extrinsics="true">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:phoxi_l_camera>
 </robot>

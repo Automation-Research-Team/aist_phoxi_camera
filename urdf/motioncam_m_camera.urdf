@@ -5,7 +5,8 @@
 
   <link name ="base_link"/>
 
-  <xacro:motioncam_m_camera name="motioncam_m" parent="base_link">
+  <xacro:motioncam_m_camera name="motioncam_m" parent="base_link"
+			    use_nominal_extrinsics="true">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:motioncam_m_camera>
 </robot>
