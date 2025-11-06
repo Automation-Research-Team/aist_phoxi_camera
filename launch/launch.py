@@ -22,7 +22,7 @@ launch_arguments = [
         'description': 'unique ID of the camera'
     },
     {
-        'name':        'config_file',
+        'name':        'param_file',
         'default':     PathJoinSubstitution([
                            FindPackageShare('aist_phoxi_camera'), 'config',
                            'default.yaml']),
@@ -68,7 +68,7 @@ def declare_launch_arguments(args):
             for arg in args]
 
 def launch_setup(context):
-    param_file = ParameterFile(LaunchConfiguration('config_file'),
+    param_file = ParameterFile(LaunchConfiguration('param_file'),
                                allow_substs=True)
     return [
         Node(name=LaunchConfiguration('container'),
