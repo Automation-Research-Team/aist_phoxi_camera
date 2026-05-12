@@ -40,7 +40,7 @@ where `x.y.z` should be replaced with the correct version number of `PhoXiContro
 $ source ~/.bashrc
 ```
 
-After the preparation above, download the [driver source code](https://github.com/Automation-Research-Team/aist_phoxi_camera) as well as the [ddynamic_reconfigure2](https://github.com/Automation-Research-Team/ddynamic_reconfigure2) package by typing
+After the preparation above, bdownload the [driver source code](https://github.com/Automation-Research-Team/aist_phoxi_camera) as well as the [ddynamic_reconfigure2](https://github.com/Automation-Research-Team/ddynamic_reconfigure2) package by typing
 ```bash
 $ cd (your-ros2-workspace)/src
 $ git clone https://github.com/Automation-Research-Team/aist_phoxi_camera
