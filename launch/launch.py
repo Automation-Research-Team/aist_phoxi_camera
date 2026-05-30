@@ -1,10 +1,10 @@
 from launch                            import LaunchDescription
 from launch.actions                    import (DeclareLaunchArgument,
-                                               OpaqueFunction, GroupAction)
+                                               OpaqueFunction)
 from launch.substitutions              import (LaunchConfiguration,
                                                PathJoinSubstitution,
                                                EqualsSubstitution)
-from launch.conditions                 import IfCondition, UnlessCondition
+from launch.conditions                 import UnlessCondition
 from launch_ros.substitutions          import FindPackageShare
 from launch_ros.actions                import Node, LoadComposableNodes
 from launch_ros.descriptions           import ComposableNode
@@ -38,12 +38,6 @@ launch_arguments = [
         'name':        'container',
         'default':     'camera_container',
         'description': 'name of internal or external component container'
-    },
-    {
-        'name':        'vis',
-        'default':     'false',
-        'description': 'visualize camera outputs',
-        'choices':     ['true', 'false', 'True', 'False']
     },
     {
         'name':        'log_level',
@@ -90,22 +84,6 @@ def launch_setup(context):
                     extra_arguments=[{'use_intra_process_comms': True}]
                 )
             ]),
-        GroupAction(
-            condition=IfCondition(LaunchConfiguration('vis')),
-            actions=[
-                Node(name='rviz', package='rviz2', executable='rviz2',
-                     output='screen',
-                     arguments=[
-                         '-d',
-                         PathJoinSubstitution([
-                             FindPackageShare('aist_phoxi_camera'),
-                             'launch',
-                             [LaunchConfiguration('camera_name'), '.rviz']
-                         ])
-                     ]),
-                Node(name='rqt_reconfigure', package='rqt_reconfigure',
-                     executable='rqt_reconfigure', output='screen')
-            ])
     ]
 
 def generate_launch_description():

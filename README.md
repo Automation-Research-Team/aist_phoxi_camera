@@ -77,15 +77,15 @@ ex. point cloud, texture map, depth map, confidence map, etc., via
 $ PhoXiControl
 ```
 
-`PhoXiControl` provides a virtual scanner device named
+`PhoXiControl` provides a virtual scanner device with an ID
 `"InstalledExamples-basic-example"`. Therefore, you can
 test the driver even if no real scanners are
 connected to your host. You can launch the driver and establish
 a connection to the virtual scanner by typing
 ```bash
-$ ros2 launch aist_phoxi_camera launch.py vis:=true
+$ ros2 launch aist_phoxi_camera test.launch.py
 ```
-where `vis:=true` means that the ROS visualizer, `rviz2`, and the parameter setting GUI, `rqt_reconfigure`, are invoked as well. Here, `rviz2` is configured to subscribe two topics, `pointcloud`
+The ROS visualizer, `rviz2`, and the parameter setting GUI, `rqt_reconfigure`, are launched as well. Here, `rviz2` is configured to subscribe two topics, `pointcloud`
 and `texture`, published by the driver. As the driver is
 started with `Free Run` mode, you will see
 continuously updated point cloud and image streams. You can interactively
@@ -95,7 +95,7 @@ When the driver is started with a virtual scanner, there will be many error mess
 
 If you wish to connect a real device, specify its unique ID;
 ```bash
-$ ros2 launch aist_phoxi_camera launch.py vis:=true id:="2018-09-016-LC3"
+$ ros2 launch aist_phoxi_camera test.launch.py id:="2018-09-016-LC3"
 ```
 Here, the ID, "2018-09-016-LC3", varies for each device which can be
 known from `Network Discovery` window of `PhoXiControl`.
@@ -124,8 +124,7 @@ with options
 - **id** -- Unique ID of the camera (default: `InstalledExamples-basic-example`)
 - **config_file** -- Absolute path to the configuration file for setting parameters listed below (default: package://aist_phoxi_camera/config/[default.yaml](./config/default.yaml))
 - **container** -- Node name of the component container (default: `camera_container`)
-- **external_container** -- If `true`, the driver will be loaded into the existing container with a name specified by `container` which has been started in advance. If `false`, a container with the name specified by `container` will be newly created and the driver will be loaded into it. (default: `false`)
-- **vis** -- If `true`, launch the ROS visualizer, `rviz2`, and the parameter setting GUI, `rqt_reconfigure`. (default: `false`)
+- **external_container** -- If `true`, the driver will be loaded into the existing container with a name specified by `container` which has been started in advance. If `false`, a container with a name specified by `container` will be newly created into which the driver will be loaded . (default: `false`)
 
 Then zero-copy transfer will be realized if you load subscriber components into the same container specified above.
 
