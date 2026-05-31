@@ -1,22 +1,20 @@
-from launch                   import LaunchDescription
-from launch.actions           import OpaqueFunction, IncludeLaunchDescription
-from launch.substitutions     import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.substitutions import FindPackageShare
-from launch_ros.actions       import Node
+from launch               import LaunchDescription
+from launch.actions       import OpaqueFunction, IncludeLaunchDescription
+from launch.substitutions import (LaunchConfiguration, PathJoinSubstitution,
+                                  ThisLaunchFileDir)
+from launch_ros.actions   import Node
 
 
 def launch_setup(context):
     return [
         IncludeLaunchDescription(
-            PathJoinSubstitution(
-                [FindPackageShare('aist_phoxi_camera'), 'launch',
-                 'launch.py'])),
+            PathJoinSubstitution([ThisLaunchFileDir(), 'launch.py'])),
         Node(name='rviz', package='rviz2', executable='rviz2',
              output='screen',
              arguments=[
                  '-d',
                  PathJoinSubstitution([
-                     FindPackageShare('aist_phoxi_camera'), 'launch',
+                     ThisLaunchFileDir(),
                      [LaunchConfiguration('camera_name'), '.rviz']
                  ])
              ]),
