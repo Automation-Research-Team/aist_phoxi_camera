@@ -36,28 +36,6 @@
 /*!
  *  \file	Camera.cpp
  */
-#if PHO_SOFTWARE_VERSION_MAJOR >= 1
-#  if PHO_SOFTWARE_VERSION_MINOR >= 4
-#    define HAVE_MOTIONCAM
-#    if PHO_SOFTWARE_VERSION_MINOR >= 5
-#      define HAVE_INTERREFLECTIONS_FILTERING
-#      define HAVE_HARDWARE_TRIGGER
-#      define HAVE_MOTIONCAM_EXPOSURE
-#      if PHO_SOFTWARE_VERSION_MINOR >= 7
-#        define HAVE_HARDWARE_TRIGGER_SIGNAL
-#        define HAVE_INTERREFLECTION_FILTER_STRENGTH
-#	 if PHO_SOFTWARE_VERSION_MINOR >= 8
-#          define HAVE_LED_POWER
-//#          define HAVE_LED_SHUTTER_MULTIPLIER
-#	   if PHO_SOFTWARE_VERSION_MINOR >= 9
-#            define HAVE_COLOR_CAMERA
-#          endif
-#        endif
-#      endif
-#    endif
-#  endif
-#endif
-
 #include "Camera.h"
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
@@ -294,11 +272,9 @@ Camera::Camera(const rclcpp::NodeOptions& options)
       case PhoXiDeviceType::PhoXiScanner:
 	setup_ddr_phoxi();
 	break;
-#if defined(HAVE_MOTIONCAM)
       case PhoXiDeviceType::MotionCam3D:
 	setup_ddr_motioncam();
 	break;
-#endif
       default:
 	RCLCPP_ERROR_STREAM(get_logger(), "unknown device type["
 			    << std::string(_device->GetType()) << ']');
@@ -309,7 +285,7 @@ Camera::Camera(const rclcpp::NodeOptions& options)
   // Start acquisition.
     _device->ClearBuffer();
     _device->StartAcquisition();
-    
+
     RCLCPP_INFO_STREAM(get_logger(), "camera is active");
 }
 
@@ -377,7 +353,7 @@ Camera::setup_ddr_phoxi()
 		      &PhoXi::CapturingSettings,
 		      &PhoXiCapturingSettings::ShutterMultiplier, _1,
 		      false, "ShutterMultiplier"),
-	    "The number of repeats of indivisual pattern", {1, 20});
+	    "The number of repeats of indivisual pattern", {1, 50});
 
       // 2.2 ScanMultiplier
 	_ddr.registerVariable<int>(
@@ -387,7 +363,7 @@ Camera::setup_ddr_phoxi()
 		      &PhoXi::CapturingSettings,
 		      &PhoXiCapturingSettings::ScanMultiplier, _1,
 		      false, "ScanMultiplier"),
-	    "The number of scans taken and merged to sigle output", {1, 20});
+	    "The number of scans taken and merged to sigle output", {1, 50});
 
       // 2.3 CameraOnlyMode
 	_ddr.registerVariable<bool>(
@@ -452,8 +428,7 @@ Camera::setup_ddr_phoxi()
 		"Coding strategy",
 		{{"Normal",	      PhoXiCodingStrategy::Normal},
 		 {"Interreflections", PhoXiCodingStrategy::Interreflections},
-		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency},
-		 {"Sparse",	      PhoXiCodingStrategy::Sparse}});
+		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency}});
 
       // 2.8 CodingQuality
 	if (_device->CapturingSettings->CodingQuality !=
@@ -481,11 +456,13 @@ Camera::setup_ddr_phoxi()
 		std::bind(&Camera::set_texture_source<PhoXiCapturingSettings>,
 			  this, &PhoXi::CapturingSettings, _1),
 		"Source used for texture image",
-		{{"Computed",	PhoXiTextureSource::Computed},
-		 {"LED",	PhoXiTextureSource::LED},
-		 {"Laser",	PhoXiTextureSource::Laser},
-		 {"Focus",	PhoXiTextureSource::Focus},
-		 {"Color",	PhoXiTextureSource::Color}});
+		{{"Computed",           PhoXiTextureSource::Computed},
+		 {"LED",                PhoXiTextureSource::LED},
+		 {"Laser",              PhoXiTextureSource::Laser},
+		 {"Focus",              PhoXiTextureSource::Focus},
+		 {"Color",              PhoXiTextureSource::Color},
+		 {"Computed(Enhanced)",	PhoXiTextureSource::Computed_Enhanced},
+		 {"Laser(Enhanced)",	PhoXiTextureSource::Laser_Enhanced}});
 
       // 2.10 LaserPower
 	_ddr.registerVariable<int>(
@@ -495,7 +472,7 @@ Camera::setup_ddr_phoxi()
 		      &PhoXi::CapturingSettings,
 		      &PhoXiCapturingSettings::LaserPower, _1,
 		      false, "LaserPower"),
-	    "Laser power", {1, 4095});
+	    "Laser power", {0, 4095});
 
       // 2.11 LEDPower
 	_ddr.registerVariable<int>(
@@ -527,7 +504,6 @@ Camera::setup_ddr_phoxi()
 		      false, "ProjectionOffsetRight"),
 	    "Projection offset right", {0, 1023});
 
-#if defined(HAVE_HARDWARE_TRIGGER)
       // 2.14 hardware trigger
 	_ddr.registerVariable<bool>(
 	    "capturing_settings.hardware_trigger",
@@ -538,7 +514,6 @@ Camera::setup_ddr_phoxi()
 		      false, "HardwareTrigger"),
 	    "Hardware trigger");
 
-#  if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
       // 2.15 hardware trigger signal
 	_ddr.registerEnumVariable<int>(
 	    "capturing_settings.hardware_trigger_signal",
@@ -553,9 +528,7 @@ Camera::setup_ddr_phoxi()
 	    {{"Falling",	PhoXiHardwareTriggerSignal::Falling},
 	     {"Rising",		PhoXiHardwareTriggerSignal::Rising},
 	     {"Both",		PhoXiHardwareTriggerSignal::Both}});
-#  endif
-#endif
-#if defined(HAVE_LED_SHUTTER_MULTIPLIER)
+
       // 2.16 LEDShutterMultiplier
 	_ddr.registerVariable<int>(
 	    "capturing_settings.led_shutter_multiplier",
@@ -565,11 +538,9 @@ Camera::setup_ddr_phoxi()
 		      &PhoXiCapturingSettings::LEDShutterMultiplier, _1,
 		      false, "LEDShutterMultiplier"),
 	    "LED shutter multiplier", {1, 20});
-#endif
     }
 }
 
-#if defined(HAVE_MOTIONCAM)
 void
 Camera::setup_ddr_motioncam()
 {
@@ -601,9 +572,8 @@ Camera::setup_ddr_motioncam()
 	    std::bind(&Camera::set_field<PhoXiMotionCam, int>, this,
 		      &PhoXi::MotionCam, &PhoXiMotionCam::LaserPower, _1,
 		      false, "LaserPower"),
-	    "Laser power", {1, 4095});
+	    "Laser power", {1000, 4095});
 
-#if defined(HAVE_LED_POWER)
       // 1.3 led power
 	_ddr.registerVariable<int>(
 	    "motioncam.led_power",
@@ -612,7 +582,6 @@ Camera::setup_ddr_motioncam()
 		      &PhoXi::MotionCam, &PhoXiMotionCam::LEDPower, _1,
 		      false, "LEDPower"),
 	    "LED power", {0, 4095});
-#endif
 
       // 1.4 maximum fps
 	_ddr.registerVariable<double>(
@@ -623,7 +592,6 @@ Camera::setup_ddr_motioncam()
 		      false, "MaximumFPS"),
 	    "Maximum fps", {0.0, 20.0});
 
-#  if defined(HAVE_HARDWARE_TRIGGER)
       // 1.5 hardware trigger
 	_ddr.registerVariable<bool>(
 	    "motioncam.hardware_trigger",
@@ -634,7 +602,6 @@ Camera::setup_ddr_motioncam()
 		      false, "HardwareTrigger"),
 	    "Hardware trigger");
 
-#    if defined(HAVE_HARDWARE_TRIGGER_SIGNAL)
       // 1.6 hardware trigger signal
 	_ddr.registerEnumVariable<int>(
 	    "motioncam.hardware_trigger_signal",
@@ -649,8 +616,6 @@ Camera::setup_ddr_motioncam()
 	    {{"Falling",	PhoXiHardwareTriggerSignal::Falling},
 	     {"Rising",		PhoXiHardwareTriggerSignal::Rising},
 	     {"Both",		PhoXiHardwareTriggerSignal::Both}});
-#    endif
-#  endif
     }
 
   // 2. MotionCam camera mode
@@ -731,10 +696,8 @@ Camera::setup_ddr_motioncam()
 		std::bind(&Camera::set_texture_source<PhoXiMotionCamCameraMode>,
 			  this, &PhoXi::MotionCamCameraMode, _1),
 		"Source used for texture image",
-		{{"Computed",	PhoXiTextureSource::Computed},
-		 {"LED",	PhoXiTextureSource::LED},
+		{{"LED",	PhoXiTextureSource::LED},
 		 {"Laser",	PhoXiTextureSource::Laser},
-		 {"Focus",	PhoXiTextureSource::Focus},
 		 {"Color",	PhoXiTextureSource::Color}});
     }
 
@@ -749,7 +712,7 @@ Camera::setup_ddr_motioncam()
 		      &PhoXi::MotionCamScannerMode,
 		      &PhoXiMotionCamScannerMode::ShutterMultiplier, _1,
 		      false, "ShutterMultiplier"),
-	    "Shutter multiplier", {1, 20});
+	    "Shutter multiplier", {1, 50});
 
       // 3.2 scan multiplier
 	_ddr.registerVariable<int>(
@@ -759,7 +722,7 @@ Camera::setup_ddr_motioncam()
 		      &PhoXi::MotionCamScannerMode,
 		      &PhoXiMotionCamScannerMode::ScanMultiplier, _1,
 		      false, "ScanMultiplier"),
-	    "Scan multiplier", {1, 20});
+	    "Scan multiplier", {1, 10});
 
       // 3.3 coding strategy
 	if (_device->MotionCamScannerMode->CodingStrategy !=
@@ -776,8 +739,7 @@ Camera::setup_ddr_motioncam()
 		"Coding  strategy",
 		{{"Normal",	      PhoXiCodingStrategy::Normal},
 		 {"Interreflections", PhoXiCodingStrategy::Interreflections},
-		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency},
-		 {"Sparse",	      PhoXiCodingStrategy::Sparse}});
+		 {"HighFrequency",    PhoXiCodingStrategy::HighFrequency}});
 
       // 3.4 coding quality
 	if (_device->MotionCamScannerMode->CodingQuality !=
@@ -805,14 +767,15 @@ Camera::setup_ddr_motioncam()
 		std::bind(&Camera::set_texture_source<PhoXiMotionCamScannerMode>,
 			  this, &PhoXi::MotionCamScannerMode, _1),
 		"Texture source",
-		{{"Computed",	PhoXiTextureSource::Computed},
-		 {"LED",	PhoXiTextureSource::LED},
-		 {"Laser",	PhoXiTextureSource::Laser},
-		 {"Focus",	PhoXiTextureSource::Focus},
-		 {"Color",	PhoXiTextureSource::Color}});
+		{{"Computed",           PhoXiTextureSource::Computed},
+		 {"LED",                PhoXiTextureSource::LED},
+		 {"Laser",              PhoXiTextureSource::Laser},
+		 {"Focus",              PhoXiTextureSource::Focus},
+		 {"Color",              PhoXiTextureSource::Color},
+		 {"Computed(Enhanced)",	PhoXiTextureSource::Computed_Enhanced},
+		 {"Laser(Enhanced)",	PhoXiTextureSource::Laser_Enhanced}});
 
       // 3.6 exposure
-#  if defined(HAVE_MOTIONCAM_EXPOSURE)
 	std::map<std::string, double>	enum_exposures;
 	for (auto exposure :
 		 _device->SupportedSinglePatternExposures.GetValue())
@@ -826,10 +789,8 @@ Camera::setup_ddr_motioncam()
 		      &PhoXiMotionCamScannerMode::Exposure, _1,
 		      false, "Exposure"),
 	    "Exposure", enum_exposures);
-#  endif
     }
 }
-#endif
 
 void
 Camera::setup_ddr_common()
@@ -919,7 +880,6 @@ Camera::setup_ddr_common()
 		      false, "NormalsEstimationRadius"),
 	    "Normals estimation radius", {0, 4});
 
-#if defined(HAVE_INTERREFLECTIONS_FILTERING)
       // 3.5 InterreflectionsFiltering
 	_ddr.registerVariable<bool>(
 	    "processing_settings.interreflections_filtering",
@@ -931,7 +891,6 @@ Camera::setup_ddr_common()
 		      false, "InterreflectionsFiltering"),
 	    "Interreflections filtering");
 
-#  if defined(HAVE_INTERREFLECTION_FILTER_STRENGTH)
       // 3.6 InterreflectionFilterStrength
 	_ddr.registerVariable<double>(
 	    "processing_settings.interreflection_filter_strength",
@@ -941,9 +900,8 @@ Camera::setup_ddr_common()
 		      &PhoXi::ProcessingSettings,
 		      &PhoXiProcessingSettings::InterreflectionFilterStrength,
 		      _1, false, "InterreflectionFilterStrength"),
-	    "Interreflection filter strength", {0, 4});
-#  endif
-#endif
+	    "Interreflection filter strength", {0.01, 0.99});
+
       // 3.7 PatternDecompositionReach
 	_ddr.registerEnumVariable<int>(
 	    "processing_settings.pattern_decomposition_reach",
@@ -954,11 +912,11 @@ Camera::setup_ddr_common()
 		      &PhoXi::ProcessingSettings,
 		      &PhoXiProcessingSettings::PatternDecompositionReach, _1,
 		      false, "PatternDecompositionReach"),
-		"Pattern decomposition reach",
-		{{"Local",	PhoXiPatternDecompositionReach::Local},
-		 {"Small",	PhoXiPatternDecompositionReach::Small},
-		 {"Medium",	PhoXiPatternDecompositionReach::Medium},
-		 {"Large",	PhoXiPatternDecompositionReach::Large}});
+            "Pattern decomposition reach",
+            {{"Local",	PhoXiPatternDecompositionReach::Local},
+             {"Small",	PhoXiPatternDecompositionReach::Small},
+             {"Medium",	PhoXiPatternDecompositionReach::Medium},
+             {"Large",	PhoXiPatternDecompositionReach::Large}});
 
       // 3.8 SignalConstrastThreshold
 	_ddr.registerVariable<double>(
@@ -970,9 +928,48 @@ Camera::setup_ddr_common()
 		      &PhoXiProcessingSettings::SignalContrastThreshold,
 		      _1, false, "SignalContrastThreshold"),
 	    "Sigranl contrast threshold", {0.0, 1.0});
+
+      // 3.9 PatternCodeCorrection
+        _ddr.registerEnumVariable<int>(
+	    "processing_settings.pattern_code_correction",
+	    _device->ProcessingSettings->PatternCodeCorrection,
+	    std::bind(&Camera::set_field<PhoXiProcessingSettings,
+                      PhoXiPatternCodeCorrection>,
+		      this,
+		      &PhoXi::ProcessingSettings,
+		      &PhoXiProcessingSettings::PatternCodeCorrection,
+		      _1, false, "PatternCodeCorrection"),
+	    "Pattern code correction",
+            {{"Off",    PhoXiPatternCodeCorrection::Off},
+             {"Medium", PhoXiPatternCodeCorrection::Medium},
+             {"Strong", PhoXiPatternCodeCorrection::Strong}});
+
+      // 3.10 GlareCompensation
+	_ddr.registerVariable<bool>(
+	    "processing_settings.glare_compensation",
+	    _device->ProcessingSettings->GlareCompensation,
+	    std::bind(&Camera::set_field<PhoXiProcessingSettings, bool>,
+		      this,
+		      &PhoXi::ProcessingSettings,
+		      &PhoXiProcessingSettings::GlareCompensation, _1,
+		      false, "GlareCompensation"),
+	    "Glare compensation");
+
+      // 3.11 HoleFilling
+        _ddr.registerEnumVariable<int>(
+	    "processing_settings.hole_filling",
+	    _device->ProcessingSettings->HoleFilling,
+	    std::bind(&Camera::set_field<PhoXiProcessingSettings,
+                      PhoXiHoleFilling>,
+		      this,
+		      &PhoXi::ProcessingSettings,
+		      &PhoXiProcessingSettings::HoleFilling,
+		      _1, false, "HoleFilling"),
+	    "Hole filling",
+            {{"Off",    PhoXiPatternCodeCorrection::Off},
+             {"Medium", PhoXiPatternCodeCorrection::Medium}});
     }
 
-#if defined(HAVE_COLOR_CAMERA)
   // 4. ColorSettings
     if (is_available(_device->ColorSettings))
     {
@@ -1046,7 +1043,7 @@ Camera::setup_ddr_common()
 	    std::bind(&Camera::set_field<PhoXiColorSettings, double>, this,
 		      &PhoXi::ColorSettings,
 		      &PhoXiColorSettings::Gamma, _1, false, "Gamma"),
-	    "Color gamma correction", {0.0, 5.0});
+	    "Color gamma correction", {0.0, 1000.0});
 
       // 4.5 WhiteBalance
 	const auto white_balance_presets
@@ -1083,7 +1080,6 @@ Camera::setup_ddr_common()
 		      false, "RemoveFalseColors"),
 	    "Remove false colors if set");
     }
-#endif
 
   // 5. OutputSettings
     if (is_available(_device->OutputSettings))
@@ -1136,7 +1132,7 @@ Camera::setup_ddr_common()
 		      &FrameOutputSettings::SendTexture, _1,
 		      true, "SendTexture"),
 	    "Publish texture if set");
-#if defined(HAVE_COLOR_CAMERA)
+
 	if (_device->SupportedColorCapturingModes->size() > 0)
 	    _ddr.registerVariable<bool>(
 		"output_settings.send_color_camera_image",
@@ -1146,7 +1142,6 @@ Camera::setup_ddr_common()
 			  &FrameOutputSettings::SendColorCameraImage, _1,
 			  true, "SendColorCameraImage"),
 		"Publish color camera image if set");
-#endif
     }
 
   // 6. Density of the cloud
@@ -1287,7 +1282,6 @@ Camera::set_resolution(size_t idx)
 	_device->StartAcquisition();
 }
 
-#if defined(HAVE_COLOR_CAMERA)
 void
 Camera::set_color_resolution(size_t idx)
 {
@@ -1330,7 +1324,6 @@ Camera::set_white_balance_preset(const std::string& preset)
     RCLCPP_INFO_STREAM(get_logger(), "set white balance to "
 		       << _device->ColorSettings->WhiteBalance.Preset);
 }
-#endif
 
 bool
 Camera::trigger_frame(const trigger_req_p, const trigger_res_p res)
@@ -1634,12 +1627,11 @@ Camera::publish_frame()
     publish_image(stamp, image_encodings::TYPE_32FC1,
 		  1, _frame->EventMap, _event_map_pub);
     profiler_start(5);
-#if defined(HAVE_COLOR_CAMERA)
+
     if (_color_texture_source)
 	publish_image(stamp, image_encodings::RGB8,
 		      _intensity_scale, _frame->TextureRGB, _texture_pub);
     else
-#endif
 	publish_image(stamp, image_encodings::MONO8,
 		      _intensity_scale, _frame->Texture, _texture_pub);
 
@@ -1649,9 +1641,7 @@ Camera::publish_frame()
 
   // Publish color_camera.
     profiler_start(7);
-#if defined(HAVE_COLOR_CAMERA)
     publish_color_camera(stamp);
-#endif
 
     profiler_print(std::cerr);
     RCLCPP_DEBUG_STREAM(get_logger(), "frame published [#"
@@ -1679,7 +1669,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
   // might be changed within the main thread during execution of this function.
     const auto	send_texture	= _device->OutputSettings->SendTexture;
     const auto	send_normal_map = _device->OutputSettings->SendNormalMap;
-    
+
     PointCloud2Modifier	modifier(*cloud);
     if (send_texture)
 	if (send_normal_map)
@@ -1711,7 +1701,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 					  "x",	      1, PointField::FLOAT32,
 					  "y",	      1, PointField::FLOAT32,
 					  "z",	      1, PointField::FLOAT32);
-    
+
     if (cloud->is_dense)
     {
 	const auto	npoints = npoints_valid(phoxi_cloud);
@@ -1757,7 +1747,7 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
     if (send_texture)
     {
 	PointCloud2Iterator<uint8_t> bgr(*cloud, "rgb");
-#if defined(HAVE_COLOR_CAMERA)
+
 	if (_color_texture_source)
 	{
 	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
@@ -1782,7 +1772,6 @@ Camera::publish_cloud(const rclcpp::Time& stamp, float distanceScale) const
 	    }
 	}
 	else
-#endif
 	{
 	    for (int v = 0; v < phoxi_cloud.Size.Height; ++v)
 	    {
@@ -1879,7 +1868,6 @@ Camera::publish_camera_info(const rclcpp::Time& stamp)
 			   _frame->Info.SensorZAxis));
 }
 
-#if defined(HAVE_COLOR_CAMERA)
 void
 Camera::publish_color_camera(const rclcpp::Time& stamp)
 {
@@ -1933,7 +1921,6 @@ Camera::publish_color_camera(const rclcpp::Time& stamp)
 			       _frame->Info.ColorCameraYAxis,
 			       _frame->Info.ColorCameraZAxis).release()));
 }
-#endif
 }	// namespace aist_phoxi_camera
 
 #include <rclcpp_components/register_node_macro.hpp>
